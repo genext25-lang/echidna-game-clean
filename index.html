@@ -318,7 +318,7 @@
         <button class="nav-btn" onclick="showScreen('skins')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>Скины</span></button>
         <button class="nav-btn" onclick="showScreen('leaderboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10c1 0 2 .5 2 2v3c0 1-1 2-2 2H7c-1 0-2-1-2-2V6c0-1.5 1-2 2-2zM6 11h12"/></svg><span>Рейтинг</span></button>
     </div>
-    <script>
+       <script>
         var moveImages = { rock: 'move-rock.png', scissors: 'move-scissors.png', paper: 'move-paper.png' };
         var audioCtx = null, soundsInitialized = false, audioUnlockAttempts = 0;
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
@@ -345,7 +345,13 @@
         function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
         var SUPABASE_URL = 'https://tejndwtckdvueufqhitu.supabase.co';
         var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
-        async function getSecureUser() { if (window.secureUser) return window.secureUser; if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData) { return { id: Math.floor(Math.random() * 1000000), username: 'Guest' }; } try { const response = await fetch('https://tejndwtckdvueufqhitu.supabase.co/functions/v1/verify-telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: window.Telegram.WebApp.initData, botToken: '8726495160:AAGRPV8YmMYdTlGwhlHSq6IewwGlytvq1jU' }) }); const result = await response.json(); if (result.success) { window.secureUser = { id: result.user_id, username: result.username, photo_url: window.Telegram.WebApp.initDataUnsafe.user?.photo_url || null }; return window.secureUser; } else { console.error('Verification failed:', result.error); return { id: Math.floor(Math.random() * 1000000), username: 'Guest' }; } } catch (e) { console.error('Edge Function error:', e); return { id: Math.floor(Math.random() * 1000000), username: 'Guest' }; } }
+        
+        // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (инициализируем временными значениями) ============
+        var user = null;
+        var MY_ID = null;
+        var MY_PHOTO_URL = null;
+        var MY_INITIAL = '?';
+        
         var SKINS = [ { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png' }, { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png' }, { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png' }, { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png' }, { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png' }, { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png' }, { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png' }, { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png' } ];
         var skinNames = { 'default': 'Обычная', 'socks': 'Оборванец', 'sporty': 'Нищий', 'sneakers': 'Выживший', 'cap': 'Работяга', 'cool': 'Мажор', 'rich': 'Миллионер', 'collector': 'Магнат' };
         var ownedSkins = ['default']; var currentSkin = 'default'; var currentModalSkin = null;
@@ -353,7 +359,27 @@
         function getSkinPrice(id) { var s = SKINS.find(function(s) { return s.id === id; }); return s ? s.price : 0; }
         function getSkinImg(id) { var s = SKINS.find(function(s) { return s.id === id; }); return s ? s.img : ''; }
         function isSkinOwned(id) { return ownedSkins.indexOf(id) !== -1; }
-        async function loadSkinsFromDB() { try { if (!MY_ID || MY_ID === 999999) return false; var result = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var userSkinData = result[0]; if (userSkinData.owned_skins) { try { var loadedOwned = JSON.parse(userSkinData.owned_skins); if (Array.isArray(loadedOwned) && loadedOwned.length > 0) { ownedSkins = loadedOwned; if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } } catch(e) { console.warn('Parse owned skins error:', e); } } if (userSkinData.current_skin) currentSkin = userSkinData.current_skin; try { localStorage.setItem('echidna_owned_skins_v2', JSON.stringify(ownedSkins)); localStorage.setItem('echidna_selected_skin', currentSkin); } catch(e) {} return true; } else { await saveSkinsToDB(); return false; } } catch(e) { console.error('[SKINS] Failed to load skins from DB:', e); playErrorSound(); alert('⚠️ Ошибка загрузки скинов.'); return false; } }
+        async function loadSkinsFromDB() { 
+            if (!MY_ID || MY_ID === 999999) { console.log('[SKINS] No user ID yet'); return false; }
+            try { 
+                var result = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); 
+                if (result && result.length > 0) { 
+                    var userSkinData = result[0]; 
+                    if (userSkinData.owned_skins) { 
+                        try { var loadedOwned = JSON.parse(userSkinData.owned_skins); if (Array.isArray(loadedOwned) && loadedOwned.length > 0) { ownedSkins = loadedOwned; if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } } catch(e) { console.warn('Parse owned skins error:', e); } 
+                    } 
+                    if (userSkinData.current_skin) currentSkin = userSkinData.current_skin; 
+                    try { localStorage.setItem('echidna_owned_skins_v2', JSON.stringify(ownedSkins)); localStorage.setItem('echidna_selected_skin', currentSkin); } catch(e) {} 
+                    return true; 
+                } else { 
+                    await saveSkinsToDB(); 
+                    return false; 
+                } 
+            } catch(e) { 
+                console.error('[SKINS] Failed to load skins from DB:', e); 
+                return false; 
+            } 
+        }
         async function saveSkinsToDB() { try { if (!MY_ID || MY_ID === 999999) return false; var existing = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, owned_skins: JSON.stringify(ownedSkins), current_skin: currentSkin, updated_at: new Date().toISOString() }; if (existing && existing.length > 0) { await db('user_skins', 'PATCH', payload, '?player_id=eq.' + MY_ID); } else { await db('user_skins', 'POST', [payload]); } return true; } catch(e) { console.error('[SKINS] Failed to save skins to DB:', e); return false; } }
         function loadOwnedSkinsLocally() { try { var s = localStorage.getItem('echidna_owned_skins_v2'); if (s) ownedSkins = JSON.parse(s); if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } catch(e) {} }
         function saveOwnedSkinsLocally() { try { localStorage.setItem('echidna_owned_skins_v2', JSON.stringify(ownedSkins)); } catch(e) {} }
@@ -370,7 +396,7 @@
         function getDailyReward(day) { return (day + 1) * 100; }
         async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); currentBalance += reward; data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
         async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
-        var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; if (tg) { tg.ready && tg.ready(); tg.expand && tg.expand(); }
+        var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; 
         async function ensureUserExists(userId, username) { try { var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); if (!existing || existing.length === 0) { await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0 }]); } } catch(e) { console.error('Failed to ensure user exists:', e); } }
         function renderAvatar(elementId, photoUrl, username) { var el = document.getElementById(elementId); if (!el) return; if (photoUrl) { el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(username || 'User') + '" onerror="this.parentElement.innerHTML=\'' + escapeHtml(username ? username.charAt(0).toUpperCase() : '?') + '\'">'; } else { el.innerHTML = escapeHtml(username ? username.charAt(0).toUpperCase() : '?'); } }
         function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 3000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
@@ -414,10 +440,14 @@
         async function loadLeaderboard() { var c = document.getElementById('leaderboardList'); if (!c) return; try { var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses&order=wins.desc.nullslast&limit=20', false); var usersList = Array.isArray(allUsers) ? allUsers : []; var leaderboardData = []; for (var j = 0; j < usersList.length; j++) { var u = usersList[j]; var games = await db('game_history', 'GET', null, '?player_id=eq.' + u.telegram_id, false); var gamesList = Array.isArray(games) ? games : []; var balance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') balance += absVal; else if (game.result === 'lose') balance -= absVal; }); leaderboardData.push({ telegram_id: u.telegram_id, username: u.username, wins: u.wins || 0, balance: Math.round(balance) }); } leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); c.innerHTML = ''; leaderboardData.forEach(function(u, i) { var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; var name = escapeHtml(u.username || 'User_' + String(u.telegram_id).slice(-4)); var isMe = Number(u.telegram_id) === MY_ID; var el = document.createElement('div'); el.className = 'room-card' + (isMe ? ' my-room' : ''); el.innerHTML = '<div class="leaderboard-row">' + '<div class="leaderboard-left">' + '<div style="font-weight:700;width:30px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1) + '</div>' + '<div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div>' + '<div class="room-info"><div class="room-stake">@' + name + '</div></div>' + '</div>' + '<div class="leaderboard-right">' + '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(u.balance) + '</div>' + '</div>'; c.appendChild(el); }); var myData = leaderboardData.find(function(u) { return Number(u.telegram_id) === MY_ID; }); var myRank = leaderboardData.findIndex(function(u) { return Number(u.telegram_id) === MY_ID; }) + 1; if (MY_ID && (!myData || myRank > 20)) { var myBalance = await recalculateBalance(); var ms = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0]; var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4)); var el = document.createElement('div'); el.className = 'room-card my-room'; el.style.border = '1px dashed var(--gold)'; el.style.marginTop = '10px'; el.innerHTML = '<div class="leaderboard-row">' + '<div class="leaderboard-left">' + '<div style="font-weight:700;width:30px;color:var(--gold);">' + (myRank > 0 ? myRank : '?') + '</div>' + '<div class="room-icon"><img src="' + escapeHtml(ms.img) + '" alt=""></div>' + '<div class="room-info"><div class="room-stake">@' + myName + ' <span style="color:var(--success);font-size:10px;">(Вы)</span></div></div>' + '</div>' + '<div class="leaderboard-right">' + '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(myBalance) + '</div>' + '</div>'; c.appendChild(el); } } catch(e) { c.innerHTML = '<div style="color:red;padding:15px;">' + escapeHtml(e.message) + '</div>'; } }
         async function loadStats() { if (!MY_ID || MY_ID === 999999) return; var tableBody = document.getElementById('gamesTableBody'); tableBody.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>'; try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); var gamesList = Array.isArray(games) ? games : []; if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty"><div>Пока нет игр</div></div>'; document.getElementById('statsWinRate').textContent = '0%'; document.getElementById('statsFavMove').textContent = '-'; document.getElementById('statsTotalSpike').textContent = '0 Spike'; return; } var wins = 0, losses = 0, draws = 0, totalSpike = 0; var moveCounts = { rock: 0, scissors: 0, paper: 0 }; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') { wins++; totalSpike += absVal; } else if (game.result === 'lose') { losses++; totalSpike -= absVal; } else { draws++; } if (game.player_move && moveCounts[game.player_move] !== undefined) moveCounts[game.player_move]++; }); var totalGames = wins + losses + draws; var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0; var maxMoves = Object.entries(moveCounts).sort(function(a, b) { return b[1] - a[1]; }); var favMove = maxMoves[0] && maxMoves[0][1] > 0 ? maxMoves[0][0] : null; var moveEmojis = { rock: '🪨', scissors: '✂️', paper: '📄' }; var moveNames = { rock: 'Камень', scissors: 'Ножницы', paper: 'Бумага' }; document.getElementById('statsWinRate').textContent = winRate + '%'; document.getElementById('statsFavMove').textContent = favMove ? (moveEmojis[favMove] + ' ' + moveNames[favMove]) : '-'; var spikeEl = document.getElementById('statsTotalSpike'); spikeEl.textContent = formatCompactNumber(Math.round(totalSpike)) + ' Spike'; if (totalSpike < 0) spikeEl.classList.add('negative'); else spikeEl.classList.remove('negative'); var rowsHtml = ''; gamesList.slice(0, 20).forEach(function(game) { var opponentName = escapeHtml(game.opponent_name || '???'); var resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw'; var resultText = game.result === 'win' ? 'Победа' : game.result === 'lose' ? 'Поражение' : 'Ничья'; var moveEmoji = ''; if (game.player_move === 'rock') moveEmoji = '<img src="move-rock.png" width="24" height="24" alt="Камень">'; else if (game.player_move === 'scissors') moveEmoji = '<img src="move-scissors.png" width="24" height="24" alt="Ножницы">'; else if (game.player_move === 'paper') moveEmoji = '<img src="move-paper.png" width="24" height="24" alt="Бумага">'; else moveEmoji = moveEmojis[game.player_move] || ''; var absVal = Math.abs(game.stake || 0); var stakeDisplay = game.stake === 0 ? '0' : formatCompactNumber(absVal) + ' Spike'; rowsHtml += '<div class="game-row"><span class="game-opponent">' + opponentName + '</span>' + '<span class="game-stake">' + stakeDisplay + '</span>' + '<span class="game-result ' + resultClass + '">' + resultText + '</span>' + '<div class="game-move">' + moveEmoji + '</div></div>'; }); tableBody.innerHTML = rowsHtml; } catch(e) { console.error('Load stats error:', e); tableBody.innerHTML = '<div class="games-empty"><div>Ошибка загрузки</div></div>'; } }
         function filterRooms() { var query = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('#roomsList .room-card').forEach(function(el) { var creatorText = (el.querySelector('.room-creator') && el.querySelector('.room-creator').textContent || '').toLowerCase(); el.style.display = creatorText.indexOf(query) !== -1 ? 'flex' : 'none'; }); }
-     document.getElementById('startGameBtn').addEventListener('click', startGame);
         
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        
+        // ============ ИНИЦИАЛИЗАЦИЯ ============
         window.addEventListener('load', async function() {
-            // 🔄 Попытка авторизации через Edge Function
+            console.log('[INIT] Starting initialization...');
+            
+            // 1. Получаем пользователя через Edge Function
             try {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
                     console.log('[AUTH] Sending initData to Edge Function...');
@@ -425,10 +455,7 @@
                     const response = await fetch('https://tejndwtckdvueufqhitu.supabase.co/functions/v1/verify-telegram', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-    initData: window.Telegram.WebApp.initData
-    // botToken больше не передаём — сервер возьмёт его из секретов
-})
+                        body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
                     });
                     
                     console.log('[AUTH] Response status:', response.status);
@@ -441,42 +468,46 @@
                             username: result.username,
                             photo_url: window.Telegram.WebApp.initDataUnsafe?.user?.photo_url || null
                         };
-                        console.log('[AUTH] ✅ Verified:', user.username);
+                        console.log('[AUTH] ✅ Verified:', user.username, '(ID:', user.id, ')');
                     } else {
                         console.warn('[AUTH] ❌ Verification failed:', result.error);
-                        // Фолбэк на старый метод
-                        user = { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+                        user = { id: Math.floor(Math.random() * 1000000), username: 'Guest_' + Math.floor(Math.random() * 10000) };
                     }
                 } else {
                     console.warn('[AUTH] ⚠️ No Telegram initData, using guest');
-                    user = { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+                    user = { id: Math.floor(Math.random() * 1000000), username: 'Guest_' + Math.floor(Math.random() * 10000) };
                 }
             } catch (e) {
                 console.error('[AUTH] ❌ Edge Function error:', e);
-                // Фолбэк при ошибке сети
-                user = { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+                user = { id: Math.floor(Math.random() * 1000000), username: 'Guest_' + Math.floor(Math.random() * 10000) };
             }
             
-            // Применяем данные пользователя
+            // 2. Применяем данные пользователя в глобальные переменные
             MY_ID = Number(user.id);
             MY_PHOTO_URL = user.photo_url || null;
             MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
             
-            // Загружаем остальное
+            console.log('[INIT] User set - ID:', MY_ID, 'Username:', user.username);
+            
+            // 3. Загружаем скины из БД (теперь MY_ID уже есть)
             await loadSkinsFromDB();
             loadOwnedSkinsLocally();
             var savedSkin = localStorage.getItem('echidna_selected_skin');
             if (savedSkin && isSkinOwned(savedSkin)) currentSkin = savedSkin;
             
+            // 4. Настраиваем Telegram WebApp
             if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.expand();
                 window.Telegram.WebApp.setHeaderColor('#0a0a1a');
                 window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
             }
             
-            // Загружаем интерфейс
+            // 5. Загружаем интерфейс
+            await updateBalanceDisplay();
+            await updateStats();
             loadRooms();
-            updateBalanceDisplay();
+            
+            console.log('[INIT] Initialization complete. Balance:', currentBalance);
         });
     </script>
 </body>
