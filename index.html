@@ -426,9 +426,9 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            initData: window.Telegram.WebApp.initData,
-                            botToken: '8726495160:AAGRPV8YmMYdTlGwhlHSq6IewwGlytvq1jU'
-                        })
+    initData: window.Telegram.WebApp.initData
+    // botToken больше не передаём — сервер возьмёт его из секретов
+})
                     });
                     
                     console.log('[AUTH] Response status:', response.status);
