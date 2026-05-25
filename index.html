@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, target-densitydpi=device-dpi">
+    <title>Echidna Naklz</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --bg: #0a0a1a; --card: #1a1a2e; --primary: #6366f1; --success: #10b981; --error: #ef4444; --gold: #fbbf24; --text: #f8fafc; --sec: #94a3b8; --border: #334155; }
+        * { box-sizing: border-box; }
+        html { height: 100%; width: 100%; }
+        body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; padding-bottom: 100px; box-sizing: border-box; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .balance-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
+        .balance-mini-icon { width: 28px; height: 28px; }
+        .balance-mini-icon img { width: 100%; height: 100%; object-fit: contain; }
+        .balance-mini-amount { font-size: 20px; font-weight: 700; color: var(--gold); }
+        
+        .lang-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
+        .lang-mini-btn { padding: 0 8px; border: none; background: transparent; color: var(--sec); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; border-radius: 20px; }
+        .lang-mini-btn.active { background: var(--primary); color: #fff; padding: 4px 12px; }
+        
+        .hero-echidna { width: 100%; max-width: 300px; margin: 0 auto 20px; text-align: center; }
+        .hero-echidna img { width: 100%; height: auto; display: block; border-radius: 0; }
+        
+        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 20px; padding: 16px; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-item { flex: 1; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: 11px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
+        .skin-badge-small { display: inline-block; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
+        
+        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
+        .btn-create { background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-open-rooms { background: rgba(99,102,241,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(99,102,241,0.5); color: var(--primary); font-size: 16px; font-weight: 700; text-transform: none; }
+        .btn-create:active, .btn-open-rooms:active { transform: scale(0.97); opacity: 0.8; }
+        
+        .rooms-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 200; padding: 15px; padding-bottom: 90px; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s ease-out; }
+        .rooms-screen.open { transform: translateX(0); }
+        .rooms-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .back-btn { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 10px 16px; color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .back-btn:active { transform: scale(0.97); }
+        .rooms-title { font-size: 20px; font-weight: 700; }
+        
+        .section-title { font-size: 13px; color: var(--sec); margin: 18px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 12px; outline: none; box-sizing: border-box; }
+        .search-input:focus { border-color: var(--primary); }
+        
+        .room-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; }
+        .room-card:active { transform: scale(0.98); background: rgba(31,31,53,0.8); }
+        .room-card.my-room { border-left: 3px solid var(--success); }
+        .room-card.equipped { border: 2px solid var(--gold); }
+        .room-icon { width: 50px; height: 50px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(10,10,26,0.5); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: var(--sec); position: relative; }
+        .room-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .lock-icon { position: absolute; top: 2px; right: 2px; background: var(--gold); border-radius: 50%; padding: 1px 4px; font-size: 8px; }
+        .room-info { flex: 1; min-width: 0; }
+        .room-stake { font-weight: 700; color: var(--gold); display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 13px; }
+        .room-creator { font-size: 11px; color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .room-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .room-btn { padding: 6px 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 11px; white-space: nowrap; }
+        .room-btn.join { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
+        .room-btn.cancel { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+        .room-btn.buy { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+        .room-btn.buy-disabled { background: rgba(26,26,46,0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--sec); cursor: not-allowed; opacity: 0.5; }
+        .room-btn.equipped { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+        .room-timer { font-family: monospace; font-size: 10px; color: var(--gold); font-weight: bold; margin-left: 4px; background: rgba(251, 191, 36, 0.1); padding: 1px 4px; border-radius: 4px; }
+        .room-timer.urgent { color: var(--error); animation: timerPulse 1s infinite; }
+        @keyframes timerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .skin-room-icon { width: 90px; height: 90px; border-radius: 14px; }
+        .skin-price { font-size: 12px; color: var(--gold); margin-top: 2px; }
+        
+        .lb-stats { font-size: 11px; color: var(--sec); display: flex; gap: 8px; margin-top: 4px; }
+        .lb-stats span { display: flex; align-items: center; gap: 4px; }
+        .lb-coin-icon { width: 14px; height: 14px; }
+        .lb-coin-icon img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .section-header { font-size: 16px; color: var(--text); text-align: center; margin-bottom: 16px; font-weight: 600; }
+        .section-subheader { font-size: 13px; color: var(--sec); text-align: center; margin-bottom: 20px; }
+        .skin-card-name { font-size: 14px; font-weight: 700; color: var(--text); }
+        
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h2 { font-size: 22px; margin-bottom: 8px; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-sub { font-size: 14px; color: var(--sec); }
+        
+        .daily-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; padding: 0 4px; }
+        .daily-card { aspect-ratio: 0.85; perspective: 1000px; cursor: pointer; }
+        .daily-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .daily-card-inner.flipped { transform: rotateY(180deg); }
+        .daily-card-front, .daily-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); font-weight: 700; box-sizing: border-box; overflow: hidden; }
+        .daily-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 0; }
+        .daily-card-front img.card-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .daily-card-front .card-overlay { position: absolute; top: 6px; left: 6px; display: flex; align-items: center; gap: 4px; z-index: 1; }
+        .daily-card-front .day-badge { background: rgba(0,0,0,0.75); color: #fff; font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 8px; display: flex; align-items: center; gap: 3px; }
+        .daily-card-front.collected .day-badge { background: rgba(16,185,129,0.85); }
+        .daily-card-front.today { border-color: var(--gold); box-shadow: 0 0 20px rgba(251,191,36,0.6); animation: cardPulse 1.5s ease-in-out infinite; cursor: pointer; }
+        .daily-card-front.today .day-badge { background: rgba(251,191,36,0.9); color: #000; font-size: 15px; padding: 4px 10px; }
+        @keyframes cardPulse { 0%, 100% { box-shadow: 0 0 20px rgba(251,191,36,0.6); transform: scale(1); } 50% { box-shadow: 0 0 35px rgba(251,191,36,0.9); transform: scale(1.03); } }
+        .daily-card-back { background: linear-gradient(135deg, rgba(31,31,53,0.9), rgba(42,42,62,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--gold); gap: 6px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .daily-card-back .reward-coin { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; animation: coinBounce 0.6s ease-out; margin-bottom: 8px; }
+        @keyframes coinBounce { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+        .daily-card-back .reward-amount { font-size: 28px; font-weight: 800; color: var(--gold); text-shadow: 0 2px 8px rgba(251,191,36,0.4); }
+        .daily-streak-info { text-align: center; margin-bottom: 12px; font-size: 16px; color: var(--sec); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .daily-streak-info span { color: var(--gold); font-weight: 700; font-size: 18px; }
+        .daily-warning { margin-top: 12px; font-size: 13px; color: var(--sec); text-align: center; }
+
+        .player-wrapper { display: flex; flex-direction: column; align-items: center; width: 90px; }
+        .player-avatar { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.1); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--sec); }
+        .player-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .player-stats-small { font-size: 13px; margin-top: 10px; padding: 5px 10px; background: rgba(26,26,46,0.9); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center; min-width: 60px; }
+        .game-players { display: flex; justify-content: space-around; align-items: flex-start; margin: 15px 0; }
+        .game-stakes { background: rgba(251,191,36,0.05); border-radius: 12px; padding: 12px; margin: 10px 0; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stake-line { font-size: 14px; font-weight: 600; margin: 4px 0; display: flex; justify-content: space-between; padding: 0 10px; }
+        .stake-value { color: var(--gold); }
+        .stake-win { color: var(--success); font-size: 16px; }
+        .choices { display: flex; justify-content: space-between; gap: 12px; margin: 20px 0; width: 100%; }
+        .choice-btn { flex: 1; height: 150px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; transition: all 0.2s; }
+        .choice-btn:active:not(:disabled) { transform: scale(0.96); background: rgba(31,31,53,0.8); }
+        .choice-btn img { width: 85px; height: 85px; object-fit: contain; margin-bottom: 10px; }
+        .choice-btn span { font-size: 13px; color: var(--gold); font-weight: 800; text-transform: uppercase; }
+        .choice-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); }
+        .status-box { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 14px; padding: 16px 16px 24px; text-align: center; margin: 15px 0; border: 1px solid rgba(255,255,255,0.1); min-height: 50px; font-weight: 600; position: relative; }
+        #statusMessage { min-height: 24px; display: flex; align-items: center; justify-content: center; }
+        .timer-text { font-size: 14px; color: var(--error); font-weight: bold; margin-top: 6px; display: none; }
+        .timer-text.active { display: block; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .timer-bar-container { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(51,65,85,0.5); border-radius: 0 0 14px 14px; overflow: hidden; display: none; }
+        .timer-bar { height: 100%; background: var(--primary); width: 100%; transition: width 1s linear; }
+        .timer-bar.urgent { background: var(--error); }
+        .hidden { display: none !important; }
+        .loader { text-align: center; padding: 30px; color: var(--sec); min-height: 60px; }
+        .spinner { border: 3px solid rgba(51,65,85,0.3); border-top-color: var(--primary); border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(26,26,46,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; transition: opacity 0.3s, pointer-events 0.3s; }
+        .bottom-nav.disabled { opacity: 0.4; pointer-events: none; }
+        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--sec); font-size: 10px; cursor: pointer; padding: 5px 0; transition: all 0.2s; }
+        .nav-btn.active { color: var(--primary); }
+        .nav-btn svg { width: 28px; height: 28px; }
+        .splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; box-sizing: border-box; transition: opacity 0.5s, visibility 0.5s; }
+        .splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; display: none !important; }
+        .splash-content { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 420px; flex-shrink: 0; }
+        .splash-title { margin-bottom: 16px; font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
+        .splash-banner { width: 100%; max-width: 420px; margin: 0; border-radius: 16px; overflow: hidden; }
+        .splash-banner img { width: 100%; height: auto; display: block; object-fit: cover; aspect-ratio: 7/3; }
+        .splash-rules { margin-top: 16px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; width: 100%; box-sizing: border-box; }
+        .splash-rules h3 { color: var(--gold); margin-bottom: 12px; font-size: 16px; text-align: center; }
+        .splash-rules ul { list-style: none; padding: 0; margin: 0; }
+        .splash-rules ul li { position: relative; padding-left: 24px; margin-bottom: 8px; color: var(--sec); font-size: 14px; }
+        .splash-rules ul li::before { content: '•'; position: absolute; left: 6px; color: var(--gold); font-size: 24px; }
+        .splash-btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; color: #fff; cursor: pointer; margin-top: 16px; }
+        .splash-btn:active { transform: scale(0.97); }
+        .skin-modal, .stake-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.3s; }
+        .skin-modal.hidden, .stake-modal.hidden { display: none; }
+        .skin-modal-content, .stake-modal-content { background: rgba(26,26,46,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid rgba(255,255,255,0.2); position: relative; animation: slideUp 0.3s; }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .skin-modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .skin-modal-close:active { transform: scale(0.9); }
+        .skin-modal-img { width: 220px; height: 220px; margin: 0 auto 16px; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .skin-modal-img img { width: 100%; height: 100%; object-fit: cover; }
+        .skin-modal-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+        .skin-modal-price { text-align: center; font-size: 14px; color: var(--gold); margin-bottom: 16px; font-weight: 600; }
+        .skin-modal-desc { font-size: 14px; line-height: 1.6; color: var(--sec); margin-bottom: 16px; text-align: center; }
+        .skin-modal-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .skin-modal-btn.buy { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+        .skin-modal-btn.equip { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+        .skin-modal-btn.equipped { background: rgba(26,26,46,0.7); border: 1px solid var(--success); color: var(--success); cursor: default; }
+        .skin-modal-btn:active { transform: scale(0.97); }
+        .stake-modal-content { max-width: 360px; }
+        .stake-modal-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 16px; }
+        .stake-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+        .stake-preset-btn { padding: 12px 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; white-space: nowrap; }
+        .stake-preset-btn:active { transform: scale(0.95); }
+        .stake-preset-btn.selected { border-color: var(--gold); background: rgba(251,191,36,0.15); color: var(--gold); }
+        .stake-input-group { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 12px; width: 100%; }
+        .stake-input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 16px; text-align: center; outline: none; box-sizing: border-box; }
+        .stake-input:focus { border-color: var(--primary); }
+        .stake-error { font-size: 12px; color: var(--error); text-align: center; min-height: 16px; }
+        .stake-confirm-btn { background: linear-gradient(135deg, #10b981, #059669); width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; color: #fff; cursor: pointer; margin-top: 12px; }
+        .stake-confirm-btn:active { transform: scale(0.97); }
+        .stats-header { text-align: center; margin-bottom: 20px; }
+        .stats-header h2 { font-size: 22px; margin-bottom: 5px; }
+        .stats-header .subtitle { color: var(--sec); font-size: 13px; }
+        .stats-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 16px; padding: 14px 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-card .stat-icon { font-size: 28px; margin-bottom: 6px; }
+        .stat-card .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); word-break: break-word; }
+        .stat-card .stat-value.negative { color: var(--error); }
+        .stat-card .stat-label { font-size: 10px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
+        .games-table { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .games-table-header { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; background: rgba(99,102,241,0.1); font-size: 11px; color: var(--sec); text-transform: uppercase; font-weight: 600; }
+        .game-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; align-items: center; }
+        .game-opponent { color: var(--text); font-weight: 600; }
+        .game-stake { color: var(--gold); }
+        .game-result { font-weight: 600; }
+        .game-result.win { color: var(--success); }
+        .game-result.lose { color: var(--error); }
+        .game-result.draw { color: var(--gold); }
+        .game-move { font-size: 18px; display: flex; align-items: center; justify-content: center; }
+        .game-move img { width: 24px; height: 24px; object-fit: contain; }
+        .games-empty { text-align: center; padding: 30px; color: var(--sec); }
+        .thinking-echidna-wrapper { display: flex; align-items: center; justify-content: center; margin: 0 10px; }
+        .thinking-echidna { width: 85px; height: 85px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; overflow: hidden; animation: bounce 2s ease-in-out infinite; transition: all 0.2s; }
+        .thinking-echidna img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .reveal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
+        .reveal-overlay.hidden { display: none; }
+        .reveal-title { font-size: 18px; color: var(--sec); margin-bottom: 30px; animation: slideDown 0.5s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .reveal-players { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
+        .reveal-player { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .reveal-player-label { font-size: 14px; color: var(--sec); font-weight: 600; }
+        .reveal-card { width: 110px; height: 130px; perspective: 1000px; }
+        .reveal-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; transform: rotateY(0deg); }
+        .reveal-card-inner.flipped { transform: rotateY(180deg); }
+        .reveal-card-front, .reveal-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
+        .reveal-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .reveal-card-front .card-icon { font-size: 40px; }
+        .reveal-card-back { background: linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--primary); }
+        .reveal-card-back img { width: 90px; height: 90px; object-fit: contain; }
+        .reveal-card-back .move-name { font-size: 14px; color: #fff; margin-top: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .reveal-vs { font-size: 24px; font-weight: 700; color: var(--error); animation: pulse 1s infinite; }
+        .reveal-result { font-size: 28px; font-weight: 700; opacity: 0; transform: scale(0.8); transition: all 0.5s ease-out; text-align: center; padding: 0 20px; }
+        .reveal-result.show { opacity: 1; transform: scale(1); }
+        .reveal-result.victory { color: var(--success); }
+        .reveal-result.defeat { color: var(--error); }
+        .reveal-result.draw { color: var(--gold); }
+        .reveal-countdown { font-size: 14px; color: var(--sec); margin-top: 20px; }
+        .reveal-emotion { width: 256px; height: 256px; margin: 20px auto; border-radius: 20px; overflow: hidden; animation: emotionPop 0.5s ease-out; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+        .reveal-emotion img { width: 100%; height: 100%; object-fit: contain; }
+        @keyframes emotionPop { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        .confetti-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 2001; overflow: hidden; }
+        .confetti { position: absolute; width: 10px; height: 10px; animation: confettiFall 3s ease-out forwards; }
+        @keyframes confettiFall { 0% { transform: translateY(-100px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+        
+        .leaderboard-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .leaderboard-left { display: flex; align-items: center; gap: 12px; }
+        .leaderboard-right { display: flex; align-items: center; gap: 6px; }
+    </style>
+</head>
+<body>
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <div class="splash-title">Echidna Naklz</div>
+            <div class="splash-banner">
+                <img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-banner.png" alt="Echidna Naklz">
+            </div>
+            <div class="splash-rules">
+                <h3>📜 Как играть</h3>
+                <ul>
+                    <li>Создай комнату или присоединись к существующей</li>
+                    <li>Выбери ставку от 10 до 1000 Spike</li>
+                    <li>Выбери один из трёх ходов: Камень, Ножницы или Бумага</li>
+                    <li>Камень побеждает Ножницы, Ножницы режут Бумагу, Бумага накрывает Камень</li>
+                    <li>Победитель забирает весь банк</li>
+                    <li>Зарабатывай Spike и прокачивай Ехидну — покупай новые скины!</li>
+                </ul>
+            </div>
+            <button class="splash-btn" id="startGameBtn">🎮 ИГРАТЬ</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="lobbyScreen">
+            <div class="top-bar">
+                <div class="balance-mini">
+                    <div class="balance-mini-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display='none';this.parentElement.innerHTML='🪙'"></div>
+                    <span class="balance-mini-amount" id="balanceSpike">0</span>
+                </div>
+                <div class="lang-mini">
+                    <button class="lang-mini-btn active" onclick="setLanguage('ru')">RU</button>
+                    <button class="lang-mini-btn" onclick="setLanguage('en')">EN</button>
+                </div>
+            </div>
+            
+            <div class="hero-echidna">
+                <img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png" alt="Echidna" id="heroEchidnaImg">
+            </div>
+            
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-value" id="statWins">0</div>
+                    <div class="stat-label">Побед</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statGames">0</div>
+                    <div class="stat-label">Игр</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statSkinName">Обычная</div>
+                    <div class="stat-label">Скин</div>
+                    <div class="skin-badge-small" id="statSkinBadge">#1</div>
+                </div>
+            </div>
+            
+            <button class="btn-create" onclick="openStakeModal()">🚪 СОЗДАТЬ КОМНАТУ</button>
+            <button class="btn-open-rooms" onclick="openRoomsScreen()">📋 ОТКРЫТЫЕ КОМНАТЫ</button>
+        </div>
+        
+        <div id="roomsScreen" class="rooms-screen">
+            <div class="rooms-header">
+                <button class="back-btn" onclick="closeRoomsScreen()">← Назад</button>
+                <div class="rooms-title">Комнаты</div>
+            </div>
+            
+            <div class="section-title">Мои комнаты</div>
+            <div id="myRoomsList"><div class="loader"><div class="spinner"></div></div></div>
+            
+            <div class="section-title"><span>Доступные комнаты</span></div>
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск по нику..." oninput="filterRooms()">
+            <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
+        </div>
+        
+        <div id="tasksScreen" class="hidden">
+            <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
+            <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
+            <div class="daily-grid" id="dailyCardsGrid"></div>
+            <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
+        </div>
+        
+        <div id="statsScreen" class="hidden">
+            <div class="stats-header"><h2>📊 Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
+            <div class="stats-cards">
+                <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="statsWinRate">0%</div><div class="stat-label">Побед</div></div>
+                <div class="stat-card"><div class="stat-icon">✊</div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
+                <div class="stat-card"><div class="stat-icon">🦔</div><div class="stat-value" id="statsTotalSpike">0 Spike</div><div class="stat-label">Выиграно Spike</div></div>
+            </div>
+            <div class="section-title">🎮 Последние игры</div>
+            <div class="games-table"><div class="games-table-header"><span>Соперник</span><span>Ставка</span><span>Результат</span><span>Ход</span></div><div id="gamesTableBody"><div class="loader" style="padding:20px;"><div class="spinner"></div></div></div></div>
+        </div>
+        
+        <div id="gameScreen" class="hidden">
+            <div class="header"><h2>⚔️ Битва!</h2></div>
+            <div class="game-players">
+                <div class="player-wrapper"><div class="player-avatar" id="playerAvatar"></div><div class="player-stats-small" id="playerStats"></div></div>
+                <div class="thinking-echidna-wrapper"><div class="thinking-echidna"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-thinking.png" alt="Thinking" onerror="this.style.display='none';this.parentElement.innerHTML='🤔'"></div></div>
+                <div class="player-wrapper"><div class="player-avatar" id="opponentAvatar"></div><div class="player-stats-small" id="opponentStats"></div></div>
+            </div>
+            <div class="game-stakes"><div class="stake-line">💰 Ставка: <span id="stakeAmount" class="stake-value">10</span> Spike</div><div class="stake-line">🏆 Ты получишь: <span id="winAmount" class="stake-win">20</span> Spike</div></div>
+            <div class="status-box"><div id="statusMessage"><div class="spinner"></div></div><div class="timer-text" id="timerText">30s</div><div class="timer-bar-container" id="timerBarContainer"><div class="timer-bar" id="timerBar"></div></div></div>
+            <div class="choices">
+                <button class="choice-btn" onclick="makeMove('rock')"><img src="move-rock.png" alt="Камень"><span>Камень</span></button>
+                <button class="choice-btn" onclick="makeMove('scissors')"><img src="move-scissors.png" alt="Ножницы"><span>Ножницы</span></button>
+                <button class="choice-btn" onclick="makeMove('paper')"><img src="move-paper.png" alt="Бумага"><span>Бумага</span></button>
+            </div>
+        </div>
+        
+        <div id="skinsScreen" class="hidden">
+            <div class="header"><h2>🎨 Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
+            <div id="skinsList"></div>
+        </div>
+        
+        <div id="leaderboardScreen" class="hidden"><div class="header"><h2>🏆 Рейтинг</h2></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img"><img src="" id="modalImg" alt=""></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
+    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
+    <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
+    <div id="confettiContainer" class="confetti-container hidden"></div>
+    
+    <div class="bottom-nav" id="bottomNav">
+        <button class="nav-btn active" onclick="showScreen('lobby')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Лобби</span></button>
+        <button class="nav-btn" onclick="showScreen('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg><span>Задания</span></button>
+        <button class="nav-btn" onclick="showScreen('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Статистика</span></button>
+        <button class="nav-btn" onclick="showScreen('skins')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>Скины</span></button>
+        <button class="nav-btn" onclick="showScreen('leaderboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10c1 0 2 .5 2 2v3c0 1-1 2-2 2H7c-1 0-2-1-2-2V6c0-1.5 1-2 2-2zM6 11h12"/></svg><span>Рейтинг</span></button>
+    </div>
+
+    <script>
+        var moveImages = { rock: 'move-rock.png', scissors: 'move-scissors.png', paper: 'move-paper.png' };
+        var audioCtx = null, soundsInitialized = false, audioUnlockAttempts = 0;
+        
+        function initAudio() {
+            if (soundsInitialized) return true;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); });
+                } else { soundsInitialized = true; }
+                return soundsInitialized;
+            } catch(e) { console.warn('Audio init failed:', e); return false; }
+        }
+        
+        function forceUnlockAudio() {
+            if (!soundsInitialized && audioUnlockAttempts < 5) {
+                audioUnlockAttempts++;
+                initAudio();
+                try {
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        var osc = audioCtx.createOscillator();
+                        var gain = audioCtx.createGain();
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01);
+                        soundsInitialized = true;
+                    }
+                } catch(e) {}
+            }
+        }
+        
+        ['click', 'touchstart', 'touchend'].forEach(function(evt) {
+            document.addEventListener(evt, function() { if (!soundsInitialized) forceUnlockAudio(); }, { passive: true });
+        });
+        
+        function vibrate(pattern) {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                if (pattern === 'light' || pattern === 50) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                else if (pattern === 'medium' || pattern === 100) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                else if (pattern === 'heavy' || pattern === 200) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+                else if (Array.isArray(pattern)) { if (navigator.vibrate) navigator.vibrate(pattern); }
+            } else if (navigator.vibrate) { navigator.vibrate(pattern); }
+        }
+        
+        function playBeep(frequency, duration, type, volume) {
+            if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
+            if (!audioCtx) return;
+            try {
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = type || 'sine';
+                osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume || 0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+        
+        function playNoise(duration, volume) {
+            if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
+            if (!audioCtx) return;
+            try {
+                var bufferSize = audioCtx.sampleRate * duration;
+                var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                var data = buffer.getChannelData(0);
+                for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                var noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                var filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass'; filter.frequency.value = 2000; filter.Q.value = 0.5;
+                var gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(volume || 0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                noise.start();
+            } catch(e) {}
+        }
+        
+        function playJoinSound() { playBeep(523, 0.15, 'sine', 0.15); setTimeout(function() { playBeep(784, 0.15, 'sine', 0.1); }, 80); vibrate([30, 20, 30]); }
+        function playFlipCardSound() { playNoise(0.12, 0.18); vibrate(20); }
+        function playWinSound() { playBeep(523, 0.1, 'triangle', 0.15); setTimeout(function() { playBeep(659, 0.1, 'triangle', 0.12); }, 100); setTimeout(function() { playBeep(784, 0.1, 'triangle', 0.1); }, 200); setTimeout(function() { playBeep(1047, 0.2, 'triangle', 0.08); }, 300); vibrate([50, 30, 50]); }
+        function playLoseSound() { playBeep(280, 0.3, 'sawtooth', 0.12); setTimeout(function() { playBeep(180, 0.2, 'sawtooth', 0.08); }, 200); vibrate([100]); }
+        function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
+        function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' };
+            return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; });
+        }
+        
+        function sanitizeFilter(filter) {
+            if (!filter) return '';
+            if (/[<>'";{}()\\]/.test(filter)) {
+                console.error('[SECURITY] Invalid characters in filter');
+                throw new Error('Invalid filter parameter');
+            }
+            if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); }
+            return filter;
+        }
+        async function db(table, method, payload, filters, single) {
+            payload = payload || null; filters = filters || ''; single = single || false;
+            var safeFilters = sanitizeFilter(filters);
+            var url = SUPABASE_URL + '/rest/v1/' + table + safeFilters;
+            var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' };
+            if (method === 'POST') headers['Prefer'] = 'return=representation';
+            else if (method === 'DELETE') headers['Prefer'] = 'return=minimal';
+            else if (method === 'PATCH') headers['Prefer'] = 'return=representation';
+            try {
+                var response = await fetch(url, { method: method, headers: headers, body: payload ? JSON.stringify(payload) : null, cache: 'no-store' });
+                if (!response.ok) { var errorText = await response.text(); throw new Error(response.status + ' ' + errorText); }
+                if (method === 'DELETE') return true;
+                var responseData = await response.json();
+                return single && Array.isArray(responseData) ? responseData[0] : responseData;
+            } catch(e) { console.error('[DB ERROR]', e); throw e; }
+        }
+        
+        var activeIntervals = { pollInterval: null, lobbyRefreshInterval: null, timerInterval: null };
+        function clearAllIntervals() {
+            if (activeIntervals.pollInterval) { clearInterval(activeIntervals.pollInterval); activeIntervals.pollInterval = null; }
+            if (activeIntervals.lobbyRefreshInterval) { clearInterval(activeIntervals.lobbyRefreshInterval); activeIntervals.lobbyRefreshInterval = null; }
+            if (activeIntervals.timerInterval) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; }
+            window._timerRunning = false;
+        }
+        
+        async function canCreateRoom() {
+            try {
+                var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10');
+                var activeRooms = Array.isArray(myRooms) ? myRooms.filter(function(r) { return r.status !== 'finished'; }) : [];
+                if (activeRooms.length >= 5) { playErrorSound(); alert('❌ У вас уже есть 5 активных комнат!'); return false; }
+                return true;
+            } catch(e) { console.error('Check rooms limit error:', e); return true; }
+        }
+        
+        function setLanguage(lang) { document.querySelectorAll('.lang-mini-btn').forEach(function(b) { b.classList.toggle('active', b.textContent.toLowerCase() === lang); }); }
+        function openRoomsScreen() { document.getElementById('roomsScreen').classList.add('open'); }
+        function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
+        function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
+
+        var SUPABASE_URL = 'https://tejndwtckdvueufqhitu.supabase.co';
+        var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
+        
+        // 🛡️ БЕЗОПАСНАЯ АВТОРИЗАЦИЯ ЧЕРЕЗ EDGE FUNCTION
+        async function getSecureUser() {
+            if (window.secureUser) return window.secureUser;
+            if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData) {
+                return { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+            }
+            try {
+                const response = await fetch('https://tejndwtckdvueufqhitu.supabase.co/functions/v1/verify-telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        initData: window.Telegram.WebApp.initData,
+                        botToken: '8726495160:AAGRPV8YmMYdTlGwhlHSq6IewwGlytvq1jU'
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.secureUser = { 
+                        id: result.user_id, 
+                        username: result.username,
+                        photo_url: window.Telegram.WebApp.initDataUnsafe.user?.photo_url || null
+                    };
+                    return window.secureUser;
+                } else {
+                    console.error('Verification failed:', result.error);
+                    return { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+                }
+            } catch (e) {
+                console.error('Edge Function error:', e);
+                return { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+            }
+        }
+        
+        var SKINS = [
+            { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png' },
+            { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png' },
+            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png' },
+            { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png' },
+            { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png' },
+            { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png' },
+            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png' },
+            { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png' }
+        ];
+        
+        var skinNames = { 'default': 'Обычная', 'socks': 'Оборванец', 'sporty': 'Нищий', 'sneakers': 'Выживший', 'cap': 'Работяга', 'cool': 'Мажор', 'rich': 'Миллионер', 'collector': 'Магнат' };
+        var ownedSkins = ['default']; var currentSkin = 'default'; var currentModalSkin = null;
+        function getSkinNameById(id) { return skinNames[id] || id; }
+        function getSkinPrice(id) { var s = SKINS.find(function(s) { return s.id === id; }); return s ? s.price : 0; }
+        function getSkinImg(id) { var s = SKINS.find(function(s) { return s.id === id; }); return s ? s.img : ''; }
+        function isSkinOwned(id) { return ownedSkins.indexOf(id) !== -1; }
+        
+        async function loadSkinsFromDB() {
+            try {
+                if (!MY_ID || MY_ID === 999999) return false;
+                var result = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1');
+                if (result && result.length > 0) {
+                    var userSkinData = result[0];
+                    if (userSkinData.owned_skins) { try { var loadedOwned = JSON.parse(userSkinData.owned_skins); if (Array.isArray(loadedOwned) && loadedOwned.length > 0) { ownedSkins = loadedOwned; if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } } catch(e) { console.warn('Parse owned skins error:', e); } }
+                    if (userSkinData.current_skin) currentSkin = userSkinData.current_skin;
+                    try { localStorage.setItem('echidna_owned_skins_v2', JSON.stringify(ownedSkins)); localStorage.setItem('echidna_selected_skin', currentSkin); } catch(e) {}
+                    return true;
+                } else { await saveSkinsToDB(); return false; }
+            } catch(e) { console.error('[SKINS] Failed to load skins from DB:', e); playErrorSound(); alert('⚠️ Ошибка загрузки скинов.'); return false; }
+        }
+        
+        async function saveSkinsToDB() {
+            try {
+                if (!MY_ID || MY_ID === 999999) return false;
+                var existing = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1');
+                var payload = { player_id: MY_ID, owned_skins: JSON.stringify(ownedSkins), current_skin: currentSkin, updated_at: new Date().toISOString() };
+                if (existing && existing.length > 0) { await db('user_skins', 'PATCH', payload, '?player_id=eq.' + MY_ID); } else { await db('user_skins', 'POST', [payload]); }
+                return true;
+            } catch(e) { console.error('[SKINS] Failed to save skins to DB:', e); return false; }
+        }
+        
+        function loadOwnedSkinsLocally() { try { var s = localStorage.getItem('echidna_owned_skins_v2'); if (s) ownedSkins = JSON.parse(s); if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } catch(e) {} }
+        function saveOwnedSkinsLocally() { try { localStorage.setItem('echidna_owned_skins_v2', JSON.stringify(ownedSkins)); } catch(e) {} }
+
+        var selectedStake = 10; var currentRoom = null; var isGameFinished = false; var currentWins = 0; var currentBalance = 0; window.roomExpiry = {}; window._lastStatsUpdate = 0;
+
+        function formatCompactNumber(num) { if (num === null || num === undefined) return '0'; var absNum = Math.abs(num); var sign = num < 0 ? '-' : ''; if (absNum >= 1000000000000) return sign + (absNum / 1000000000000).toFixed(1).replace(/\.0$/, '') + 'T'; if (absNum >= 1000000000) return sign + (absNum / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'; if (absNum >= 1000000) return sign + (absNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'; if (absNum >= 1000) return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, '') + 'K'; return sign + Math.round(absNum).toString(); }
+        function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
+        function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
+
+        async function loadDailyDataFromDB() { try { if (!MY_ID || MY_ID === 999999) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: result[0].collected_cards || [] }; } return null; } catch(e) { return null; } }
+        async function saveDailyDataToDB(data) { try { if (!MY_ID || MY_ID === 999999) return; var existing = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, streak: data.streak || 0, last_claim_date: data.lastClaimDate || null, collected_cards: data.collectedCards || [], updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('daily_tasks', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('daily_tasks', 'POST', [payload]); } catch(e) {} }
+        async function getDailyData() { var dbData = await loadDailyDataFromDB(); if (dbData) { try { localStorage.setItem('echidna_daily_v5', JSON.stringify(dbData)); } catch(e) {} return dbData; } try { var s = localStorage.getItem('echidna_daily_v5'); if (s) return JSON.parse(s); } catch(e) {} return { streak: 0, lastClaimDate: null, collectedCards: [] }; }
+        function saveDailyData(data) { try { localStorage.setItem('echidna_daily_v5', JSON.stringify(data)); } catch(e) {} saveDailyDataToDB(data); }
+        
+        function isSameUTCDate(dateStr1, dateStr2) { if (!dateStr1 || !dateStr2) return false; const d1 = new Date(dateStr1 + 'T00:00:00Z'); const d2 = new Date(dateStr2 + 'T00:00:00Z'); return d1.getUTCFullYear() === d2.getUTCFullYear() && d1.getUTCMonth() === d2.getUTCMonth() && d1.getUTCDate() === d2.getUTCDate(); }
+        function getTodayDate() { var d = new Date(); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
+        function getDailyReward(day) { return (day + 1) * 100; }
+
+        async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); currentBalance += reward; data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
+
+        async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
+
+        var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; if (tg) { tg.ready && tg.ready(); tg.expand && tg.expand(); }
+        
+        async function ensureUserExists(userId, username) { try { var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); if (!existing || existing.length === 0) { await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0 }]); } } catch(e) { console.error('Failed to ensure user exists:', e); } }
+        
+        function renderAvatar(elementId, photoUrl, username) { var el = document.getElementById(elementId); if (!el) return; if (photoUrl) { el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(username || 'User') + '" onerror="this.parentElement.innerHTML=\'' + escapeHtml(username ? username.charAt(0).toUpperCase() : '?') + '\'">'; } else { el.innerHTML = escapeHtml(username ? username.charAt(0).toUpperCase() : '?'); } }
+        function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 3000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
+        
+        function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
+        function forceExitToLobby() { isGameFinished = true; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); updateBalanceDisplay(); showScreen('lobby'); }
+
+        async function updateStats() { try { if (!MY_ID || MY_ID === 999999) return; var data = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, false); var wins = data[0] ? (data[0].wins || 0) : 0; var losses = data[0] ? (data[0].losses || 0) : 0; currentWins = wins; document.getElementById('statWins').textContent = wins; document.getElementById('statGames').textContent = wins + losses; document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); updateHeroImage(); } catch(e) { console.error(e); } }
+
+        async function updateBalanceDisplay() { try { if (!MY_ID || MY_ID === 999999) return; var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=100', false); var gamesList = Array.isArray(games) ? games : []; var balance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') balance += absVal; else if (game.result === 'lose') balance -= absVal; }); currentBalance = Math.round(balance); var el = document.getElementById('balanceSpike'); if (el) { el.textContent = formatCompactNumber(currentBalance); el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; } } catch(e) { console.error('Balance update error:', e); } }
+
+        function renderSkins() { var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; SKINS.forEach(function(s, i) { var owned = isSkinOwned(s.id); var equipped = currentSkin === s.id; var canBuy = !owned && currentBalance >= s.price; var el = document.createElement('div'); el.className = 'room-card' + (equipped ? ' equipped' : ''); el.onclick = function() { openSkinModal(s); }; var btnHtml = ''; if (equipped) { btnHtml = '<button class="room-btn equipped">Надето</button>'; } else if (owned) { btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + escapeHtml(s.id) + '\')">Надеть</button>'; } else { if (canBuy) { btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + escapeHtml(s.id) + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; } else { btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; } } el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div>' + '<div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' + '<div class="room-info"><div class="skin-card-name">' + escapeHtml(getSkinNameById(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; c.appendChild(el); }); }
+
+        function openSkinModal(s) { currentModalSkin = s; disableBottomNav(); var m = document.getElementById('skinModal'); document.getElementById('modalImg').src = escapeHtml(s.img); document.getElementById('modalTitle').textContent = escapeHtml(getSkinNameById(s.id)); document.getElementById('modalDesc').textContent = ''; var priceEl = document.getElementById('modalPrice'); var btnEl = document.getElementById('modalBtn'); if (currentSkin === s.id) { priceEl.textContent = '✅ Надето'; btnEl.textContent = 'Надето'; btnEl.className = 'skin-modal-btn equipped'; btnEl.disabled = true; } else if (isSkinOwned(s.id)) { priceEl.textContent = '✅ Куплено'; btnEl.textContent = 'Надеть'; btnEl.className = 'skin-modal-btn equip'; btnEl.disabled = false; } else { priceEl.textContent = '💰 ' + formatCompactNumber(s.price) + ' Spike'; btnEl.textContent = currentBalance >= s.price ? 'Купить - ' + formatCompactNumber(s.price) + ' Spike' : 'Нужно ещё ' + formatCompactNumber(s.price - currentBalance) + ' Spike'; btnEl.className = 'skin-modal-btn buy'; btnEl.disabled = currentBalance < s.price; } m.classList.remove('hidden'); }
+        function closeSkinModal(e) { if (!e || e.target.id === 'skinModal' || e.target.className === 'skin-modal-close') { document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); } }
+        function handleSkinAction() { if (!currentModalSkin) return; if (currentSkin === currentModalSkin.id) return; if (isSkinOwned(currentModalSkin.id)) equipSkin(currentModalSkin.id); else buySkin(currentModalSkin.id); }
+
+        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1000', false); var gamesList = Array.isArray(games) ? games : []; var realBalance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') realBalance += absVal; else if (game.result === 'lose') realBalance -= absVal; }); if (realBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } currentBalance = realBalance; } catch(e) { console.error('Balance check error:', e); } currentBalance -= price; ownedSkins.push(skinId); saveOwnedSkinsLocally(); var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
+
+        async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; try { localStorage.setItem('echidna_selected_skin', id); } catch(e) {} var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); }
+
+        function openStakeModal() { if (currentBalance < 10) { playErrorSound(); alert('Недостаточно средств!'); return; } selectedStake = 10; document.getElementById('stakeInput').value = ''; document.getElementById('stakeError').textContent = ''; document.getElementById('roomPassword').value = ''; document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); }); var defBtn = document.querySelector('.stake-preset-btn[data-stake="10"]'); if (defBtn) defBtn.classList.add('selected'); var inp = document.getElementById('stakeInput'); inp.placeholder = '10 - 1000'; inp.min = 10; inp.max = 1000; inp.step = 10; disableBottomNav(); document.getElementById('stakeModal').classList.remove('hidden'); }
+        function closeStakeModal(e) { if (!e || e.target.id === 'stakeModal' || e.target.className === 'skin-modal-close') { document.getElementById('stakeModal').classList.add('hidden'); enableBottomNav(); } }
+        function selectStakePreset(value, btn) { selectedStake = value; document.getElementById('stakeInput').value = ''; document.getElementById('stakeError').textContent = ''; document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); }); if (btn) btn.classList.add('selected'); }
+        function onStakeInput() { var val = parseInt(document.getElementById('stakeInput').value); document.getElementById('stakeError').textContent = ''; document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); }); if (isNaN(val)) { selectedStake = 10; return; } if (val < 10) { document.getElementById('stakeError').textContent = 'Мин: 10 Spike'; selectedStake = 10; } else if (val > 1000) { document.getElementById('stakeError').textContent = 'Макс: 1000 Spike'; selectedStake = 1000; } else { selectedStake = Math.round(val / 10) * 10; } }
+
+        async function confirmStake() { var canCreate = await canCreateRoom(); if (!canCreate) return; var inputVal = document.getElementById('stakeInput').value; var finalStake = selectedStake; if (inputVal) { var parsed = parseInt(inputVal); if (parsed < 10 || parsed > 1000 || isNaN(parsed)) { playErrorSound(); document.getElementById('stakeError').textContent = 'Введи от 10 до 1000'; return; } finalStake = Math.round(parsed / 10) * 10; } if (currentBalance < finalStake) { playErrorSound(); document.getElementById('stakeError').textContent = 'Недостаточно средств!'; return; } var rawPassword = document.getElementById('roomPassword').value.trim(); if (rawPassword && !/^\d{1,4}$/.test(rawPassword)) { playErrorSound(); document.getElementById('stakeError').textContent = 'Пароль: 1-4 цифры'; return; } if (finalStake < 10 || finalStake > 1000) { playErrorSound(); alert('Недопустимая ставка!'); return; } closeStakeModal(); try { await ensureUserExists(MY_ID, user.username); var room = await db('rooms', 'POST', [{ creator_tg_id: MY_ID, creator_username: escapeHtml(user.username || 'Anonymous'), stake: finalStake, status: 'waiting', room_password: rawPassword || null }], '', true); currentRoom = room; showGameScreen(); startPolling(); loadRooms(); } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); } }
+
+        function formatCountdown(ms) { if (ms <= 0) return "00:00"; var totalSeconds = Math.floor(ms / 1000); var minutes = Math.floor(totalSeconds / 60); var seconds = totalSeconds % 60; return (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds; }
+        setInterval(function() { var now = Date.now(); document.querySelectorAll('.room-timer').forEach(function(el) { var roomId = el.dataset.roomId; if (roomId && window.roomExpiry[roomId]) { var remaining = window.roomExpiry[roomId] - now; el.textContent = formatCountdown(remaining); if (remaining <= 60000) el.classList.add('urgent'); else el.classList.remove('urgent'); if (remaining <= 0) { el.textContent = '⌛ Истекло'; el.style.color = 'var(--error)'; } } }); }, 1000);
+        function formatStakeDisplay(room) { return (room.stake || 0) + ' Spike'; }
+
+        async function loadRooms() { if (!MY_ID || MY_ID === 999999) { document.getElementById('myRoomsList').innerHTML = '<div style="color:var(--error);padding:15px;">⚠️ Пользователь не найден</div>'; return; } try { var my = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&order=created_at.desc&limit=10'); var all = await db('rooms', 'GET', null, '?status=neq.finished&order=created_at.desc&limit=50'); renderRooms('myRoomsList', Array.isArray(my) ? my : [], true); renderRooms('roomsList', (Array.isArray(all) ? all : []).filter(function(r) { return Number(r.creator_tg_id) !== MY_ID; }), false); } catch(e) { document.getElementById('myRoomsList').innerHTML = '<div style="color:var(--error);padding:15px;">⚠️ Ошибка загрузки</div>'; document.getElementById('roomsList').innerHTML = '<div style="color:var(--error);padding:15px;">⚠️ Ошибка загрузки</div>'; } }
+
+        function renderRooms(id, rooms, isMy) { var c = document.getElementById(id); if (!c) return; c.innerHTML = ''; if (!rooms || rooms.length === 0) { c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Нет комнат</div>'; return; } rooms.forEach(function(r, i) { try { var trulyMine = Number(r.creator_tg_id) === MY_ID; var isOpponent = Number(r.opponent_tg_id) === MY_ID; var isFinished = r.status === 'finished'; var isPlaying = r.status === 'playing'; var isWaiting = r.status === 'waiting'; var el = document.createElement('div'); el.className = 'room-card' + (trulyMine ? ' my-room' : '') + (isPlaying ? ' playing' : ''); if (trulyMine || isOpponent) { el.onclick = function() { resumeRoom(r.id); }; el.style.cursor = 'pointer'; } var badgeHtml = '', btnHtml = '', timerHtml = ''; var hasPassword = r.room_password && r.room_password.length > 0; var lockIcon = hasPassword ? '<span class="lock-icon">🔒</span>' : ''; if (isWaiting) { badgeHtml = '<span style="background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:9px;">ЖДЁТ</span>'; if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 1000; var remaining = window.roomExpiry[r.id] - Date.now(); timerHtml = '<span class="room-timer' + (remaining <= 60000 ? ' urgent' : '') + '" data-room-id="' + r.id + '">' + formatCountdown(remaining) + '</span>'; } var stakeDisplay = formatStakeDisplay(r); var creatorName = escapeHtml(r.creator_username || 'Anonymous'); if (trulyMine) { if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + escapeHtml(r.id) + '\')">🔄 Вернуться</button>'; var cancelBtn = !isFinished ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + escapeHtml(r.id) + '\')">✕</button>' : ''; el.innerHTML = '<div class="room-icon"><img src="' + escapeHtml(MY_PHOTO_URL || '') + '" alt="You" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'' + escapeHtml(MY_INITIAL) + '\'">' + lockIcon + '</div>' + '<div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div>' + '<div class="room-actions">' + btnHtml + cancelBtn + '</div>'; } else { btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();joinRoom(\'' + escapeHtml(r.id) + '\',this)">Войти</button>'; el.innerHTML = '<div class="room-icon">' + escapeHtml(creatorName.charAt(0).toUpperCase()) + lockIcon + '</div>' + '<div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">@' + creatorName + '</div></div>' + '<div class="room-actions">' + btnHtml + '</div>'; } c.appendChild(el); } catch(err) { console.error('[ERROR] Render room ' + (i + 1) + ':', err); } }); }
+
+        async function resumeRoom(roomId) { try { var room = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), true); if (!room) { alert('Room not found'); loadRooms(); return; } currentRoom = room; if (currentRoom.status === 'finished') { showGameScreen(); showGameResult(currentRoom); return; } showGameScreen(); startPolling(); } catch(e) { alert('Ошибка: ' + e.message); } }
+        async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
+        async function joinRoom(roomId, btnElement) { if (!btnElement) return; btnElement.disabled = true; btnElement.textContent = '⏳'; try { var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), false); if (!roomData || !roomData.length) throw new Error('Комната занята'); var room = roomData[0]; if (Number(room.creator_tg_id) === MY_ID || Number(room.opponent_tg_id) === MY_ID) { resumeRoom(roomId); return; } if (room.room_password) { var pwd = prompt('🔒 Комната защищена паролем.\nВведите пароль:'); if (pwd !== room.room_password) { playErrorSound(); alert('Неверный пароль!'); btnElement.disabled = false; btnElement.textContent = 'Войти'; return; } } await ensureUserExists(MY_ID, user.username); var res = await db('rooms', 'PATCH', { opponent_tg_id: MY_ID, opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' }, '?id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); if (!res) throw new Error('Ошибка'); currentRoom = res; showGameScreen(); startPolling(); loadRooms(); closeRoomsScreen(); } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } } }
+
+        async function renderPlayerStats() { if (!currentRoom || !currentRoom.id) return; try { var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id), true); if (!roomData) return; var creatorId = roomData.creator_tg_id; var opponentId = roomData.opponent_tg_id; var isCreator = String(creatorId) === String(MY_ID); if (isCreator) { renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); if (opponentId) renderAvatar('opponentAvatar', null, roomData.opponent_username || '?'); } else { renderAvatar('opponentAvatar', MY_PHOTO_URL, user.username || '?'); if (creatorId) renderAvatar('playerAvatar', null, roomData.creator_username || '?'); } if (!creatorId || !opponentId) { document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; return; } var now = Date.now(); if (now - window._lastStatsUpdate < 2000) return; window._lastStatsUpdate = now; var results = await Promise.allSettled([ db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + String(creatorId), false), db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + String(opponentId), false) ]); var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; } catch(e) { console.warn('Stats load error:', e); } }
+
+        function showGameScreen() { closeRoomsScreen(); ['lobbyScreen', 'statsScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); }); document.getElementById('gameScreen').classList.remove('hidden'); if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; } var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID); var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; var choices = document.querySelectorAll('.choice-btn'); if (currentRoom[myCol] && currentRoom[myCol === 'creator_choice' ? 'opponent_choice' : 'creator_choice']) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '⏳ Итоги...'; } else if (currentRoom[myCol]) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; } else { choices.forEach(function(b) { b.disabled = false; }); document.getElementById('statusMessage').innerHTML = '<div class="spinner"></div>'; } isGameFinished = false; window._timerRunning = false; var stake = currentRoom.stake || 10; document.getElementById('stakeAmount').textContent = stake + ' Spike'; document.getElementById('winAmount').textContent = (stake * 2) + ' Spike'; renderPlayerStats(); updateGameStatus(currentRoom); }
+
+        function updateGameStatus(room) { if (!room || isGameFinished) return; var msgEl = document.getElementById('statusMessage'); var timerText = document.getElementById('timerText'); var timerBarContainer = document.getElementById('timerBarContainer'); var timerBar = document.getElementById('timerBar'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; if (room[myCol] && room[myCol === 'creator_choice' ? 'opponent_choice' : 'creator_choice']) { msgEl.textContent = '⏳ Итоги...'; timerText.classList.remove('active'); timerBarContainer.style.display = 'none'; window._timerRunning = false; if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); return; } timerText.classList.remove('active'); timerBarContainer.style.display = 'none'; timerBar.style.width = '100%'; timerBar.classList.remove('urgent'); if (room.status === 'waiting') { msgEl.textContent = '⏳ Ждём соперника...'; } else if (room.status === 'playing') { if (room[myCol]) { msgEl.textContent = '✅ Ход записан'; window._timerRunning = false; } else { msgEl.innerHTML = '<span style="color:var(--error)">⚠️ Ваш ход!</span>'; timerText.classList.add('active'); timerBarContainer.style.display = 'block'; if (!window._timerRunning) { window._timerRunning = true; window._timerStart = Date.now(); startTimer(window._timerStart); } } } else { msgEl.textContent = '🏁 Игра окончена'; window._timerRunning = false; } }
+
+        function startTimer(startTime) { if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); var timeLimit = 30000; var timerBar = document.getElementById('timerBar'); var timerText = document.getElementById('timerText'); activeIntervals.timerInterval = setInterval(function() { if (!window._timerRunning) return; var elapsed = Date.now() - startTime; var remaining = Math.max(0, timeLimit - elapsed); timerBar.style.width = (remaining / timeLimit) * 100 + '%'; timerText.textContent = Math.ceil(remaining / 1000) + 's'; if (remaining < 10000) timerBar.classList.add('urgent'); if (remaining <= 0) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; window._timerRunning = false; handleTimeout(); } }, 1000); }
+
+        async function handleTimeout() { if (!currentRoom || isGameFinished) return; var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (!currentRoom[myCol]) { isGameFinished = true; clearAllIntervals(); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; db('users', 'GET', null, '?telegram_id=eq.' + opponentId + '&select=wins', false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?telegram_id=eq.' + opponentId); }).catch(console.warn); db('users', 'PATCH', { losses: (currentWins || 0) + 1 }, '?telegram_id=eq.' + MY_ID).catch(console.warn); document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); } }
+
+        function startPolling() { clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; activeIntervals.pollInterval = setInterval(async function() { if (!currentRoom || isGameFinished) return; try { var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); var room = res[0]; if (!room) return; if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } currentRoom = room; updateGameStatus(room); renderPlayerStats(); if (room.creator_choice && room.opponent_choice && room.status !== 'finished') { isGameFinished = true; clearAllIntervals(); await showRevealAnimation(room); return; } if (room.status === 'finished') { isGameFinished = true; clearAllIntervals(); showGameResult(room); return; } } catch(e) { console.warn('Poll error:', e); } }, 2000); }
+
+        async function makeMove(choice) { if (!currentRoom) { alert('❌ Комната не найдена'); return; } if (!currentRoom.opponent_tg_id) { alert('⚠️ Игра не активна'); return; } var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (currentRoom[col]) return; document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; window._timerRunning = false; if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); document.getElementById('timerText').classList.remove('active'); document.getElementById('timerBarContainer').style.display = 'none'; try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } }
+
+        async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
+
+        async function showRevealAnimation(room) { var overlay = document.getElementById('revealOverlay'); var confetti = document.getElementById('confettiContainer'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myMove = isCreator ? room.creator_choice : room.opponent_choice; var oppMove = isCreator ? room.opponent_choice : room.creator_choice; document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; overlay.classList.remove('hidden'); confetti.classList.add('hidden'); confetti.innerHTML = ''; document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); var resultEl = document.getElementById('revealResult'); resultEl.className = 'reveal-result'; resultEl.textContent = ''; document.getElementById('revealCountdown').textContent = ''; var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); emDiv.classList.add('hidden'); emImg.src = ''; await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); await sleep(800); var result = calculateWinner(room); var msg = result.msg; var isWin = msg.indexOf('Победа') !== -1; var isDraw = msg.indexOf('Ничья') !== -1; resultEl.textContent = msg; resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); emDiv.classList.remove('hidden'); if (isWin) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; playWinSound(); createConfetti(); } else if (!isDraw) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; playLoseSound(); } else { emDiv.classList.add('hidden'); } var resultForHistory = 'draw'; if (result.winnerId) { resultForHistory = (result.winnerId === MY_ID) ? 'win' : 'lose'; } await saveGameHistory(resultForHistory, myMove); var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; var countdownInterval = setInterval(function() { countdown--; if (countdown > 0) countdownEl.textContent = countdown; else { clearInterval(countdownInterval); overlay.classList.add('hidden'); confetti.classList.add('hidden'); updateStats(); updateBalanceDisplay(); forceExitToLobby(); } }, 1000); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id)); var loserId = String(result.winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id; if (result.winnerId) { db('users', 'GET', null, '?telegram_id=eq.' + result.winnerId + '&select=wins', false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?telegram_id=eq.' + result.winnerId); }).catch(console.warn); } if (loserId) { db('users', 'GET', null, '?telegram_id=eq.' + loserId + '&select=losses', false).then(function(d) { return db('users', 'PATCH', { losses: ((d[0] && d[0].losses) || 0) + 1 }, '?telegram_id=eq.' + loserId); }).catch(console.warn); } }
+
+        function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+        function createConfetti() { var container = document.getElementById('confettiContainer'); container.classList.remove('hidden'); container.innerHTML = ''; var colors = ['#6366f1', '#10b981', '#fbbf24', '#ef4444', '#8b5cf6', '#f59e0b']; for (var i = 0; i < 50; i++) { var confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.left = Math.random() * 100 + '%'; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; confetti.style.animationDelay = Math.random() * 2 + 's'; confetti.style.animationDuration = (2 + Math.random() * 2) + 's'; confetti.style.width = (5 + Math.random() * 10) + 'px'; confetti.style.height = (5 + Math.random() * 10) + 'px'; confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0'; container.appendChild(confetti); } }
+        function showGameResult(room) { var msg = calculateWinner(room).msg; document.getElementById('statusMessage').innerHTML = '<div style="animation:celebrate 0.5s ease-in-out;font-size:18px;">' + escapeHtml(msg) + '</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); }
+        function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
+
+        async function loadLeaderboard() { var c = document.getElementById('leaderboardList'); if (!c) return; try { var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses&order=wins.desc.nullslast&limit=50'); var usersList = Array.isArray(allUsers) ? allUsers : []; var leaderboardData = []; for (var j = 0; j < usersList.length; j++) { var u = usersList[j]; var games = await db('game_history', 'GET', null, '?player_id=eq.' + u.telegram_id + '&order=played_at.desc&limit=50', false); var gamesList = Array.isArray(games) ? games : []; var balance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') balance += absVal; else if (game.result === 'lose') balance -= absVal; }); leaderboardData.push({ telegram_id: u.telegram_id, username: u.username, wins: u.wins || 0, balance: Math.round(balance) }); } leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); c.innerHTML = ''; var top20 = leaderboardData.slice(0, 20); top20.forEach(function(u, i) { var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; var name = escapeHtml(u.username || 'User_' + String(u.telegram_id).slice(-4)); var isMe = Number(u.telegram_id) === MY_ID; var el = document.createElement('div'); el.className = 'room-card' + (isMe ? ' my-room' : ''); el.innerHTML = '<div class="leaderboard-row">' + '<div class="leaderboard-left">' + '<div style="font-weight:700;width:30px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1) + '</div>' + '<div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div>' + '<div class="room-info"><div class="room-stake">@' + name + '</div></div>' + '</div>' + '<div class="leaderboard-right">' + '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(u.balance) + '</div>' + '</div>'; c.appendChild(el); }); var myRank = leaderboardData.findIndex(function(u) { return Number(u.telegram_id) === MY_ID; }) + 1; var myData = leaderboardData.find(function(u) { return Number(u.telegram_id) === MY_ID; }); if (myRank > 20 && myData) { var ms = SKINS[Math.min(Math.floor(Math.abs(myData.balance) / 100000), 7)] || SKINS[0]; var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4)); var el = document.createElement('div'); el.className = 'room-card my-room'; el.style.border = '1px dashed var(--gold)'; el.innerHTML = '<div class="leaderboard-row">' + '<div class="leaderboard-left">' + '<div style="font-weight:700;width:30px;color:var(--gold);">' + myRank + '</div>' + '<div class="room-icon"><img src="' + escapeHtml(ms.img) + '" alt=""></div>' + '<div class="room-info"><div class="room-stake">@' + myName + ' <span style="color:var(--success);font-size:10px;">(Вы)</span></div></div>' + '</div>' + '<div class="leaderboard-right">' + '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(myData.balance) + '</div>' + '</div>'; c.appendChild(el); } } catch(e) { c.innerHTML = '<div style="color:red;padding:15px;">' + escapeHtml(e.message) + '</div>'; } }
+
+        async function loadStats() { if (!MY_ID || MY_ID === 999999) return; var tableBody = document.getElementById('gamesTableBody'); tableBody.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>'; try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); var gamesList = Array.isArray(games) ? games : []; if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty"><div>Пока нет игр</div></div>'; document.getElementById('statsWinRate').textContent = '0%'; document.getElementById('statsFavMove').textContent = '-'; document.getElementById('statsTotalSpike').textContent = '0 Spike'; return; } var wins = 0, losses = 0, draws = 0, totalSpike = 0; var moveCounts = { rock: 0, scissors: 0, paper: 0 }; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') { wins++; totalSpike += absVal; } else if (game.result === 'lose') { losses++; totalSpike -= absVal; } else { draws++; } if (game.player_move && moveCounts[game.player_move] !== undefined) moveCounts[game.player_move]++; }); var totalGames = wins + losses + draws; var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0; var maxMoves = Object.entries(moveCounts).sort(function(a, b) { return b[1] - a[1]; }); var favMove = maxMoves[0] && maxMoves[0][1] > 0 ? maxMoves[0][0] : null; var moveEmojis = { rock: '🪨', scissors: '✂️', paper: '📄' }; var moveNames = { rock: 'Камень', scissors: 'Ножницы', paper: 'Бумага' }; document.getElementById('statsWinRate').textContent = winRate + '%'; document.getElementById('statsFavMove').textContent = favMove ? (moveEmojis[favMove] + ' ' + moveNames[favMove]) : '-'; var spikeEl = document.getElementById('statsTotalSpike'); spikeEl.textContent = formatCompactNumber(Math.round(totalSpike)) + ' Spike'; if (totalSpike < 0) spikeEl.classList.add('negative'); else spikeEl.classList.remove('negative'); var rowsHtml = ''; gamesList.slice(0, 20).forEach(function(game) { var opponentName = escapeHtml(game.opponent_name || '???'); var resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw'; var resultText = game.result === 'win' ? 'Победа' : game.result === 'lose' ? 'Поражение' : 'Ничья'; var moveEmoji = ''; if (game.player_move === 'rock') moveEmoji = '<img src="move-rock.png" width="24" height="24" alt="Камень">'; else if (game.player_move === 'scissors') moveEmoji = '<img src="move-scissors.png" width="24" height="24" alt="Ножницы">'; else if (game.player_move === 'paper') moveEmoji = '<img src="move-paper.png" width="24" height="24" alt="Бумага">'; else moveEmoji = moveEmojis[game.player_move] || ''; var absVal = Math.abs(game.stake || 0); var stakeDisplay = game.stake === 0 ? '0' : formatCompactNumber(absVal) + ' Spike'; rowsHtml += '<div class="game-row"><span class="game-opponent">' + opponentName + '</span>' + '<span class="game-stake">' + stakeDisplay + '</span>' + '<span class="game-result ' + resultClass + '">' + resultText + '</span>' + '<div class="game-move">' + moveEmoji + '</div></div>'; }); tableBody.innerHTML = rowsHtml; } catch(e) { console.error('Load stats error:', e); tableBody.innerHTML = '<div class="games-empty"><div>Ошибка загрузки</div></div>'; } }
+
+        function filterRooms() { var query = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('#roomsList .room-card').forEach(function(el) { var creatorText = (el.querySelector('.room-creator') && el.querySelector('.room-creator').textContent || '').toLowerCase(); el.style.display = creatorText.indexOf(query) !== -1 ? 'flex' : 'none'; }); }
+
+        // ============ 🔄 ИНИЦИАЛИЗАЦИЯ ============
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        window.addEventListener('load', async function() {
+            user = await getSecureUser();
+            MY_ID = Number(user.id);
+            MY_PHOTO_URL = user.photo_url || null;
+            MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
+            await loadSkinsFromDB();
+            loadOwnedSkinsLocally();
+            var savedSkin = localStorage.getItem('echidna_selected_skin');
+            if (savedSkin && isSkinOwned(savedSkin)) currentSkin = savedSkin;
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.expand();
+                window.Telegram.WebApp.setHeaderColor('#0a0a1a');
+                window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
+            }
+            loadRooms();
+        });
+    </script>
+</body>
+</html>
