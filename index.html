@@ -2,52 +2,51 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, target-densitydpi=device-dpi">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Echidna Naklz</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #0a0a1a; --card: #1a1a2e; --primary: #6366f1; --success: #10b981; --error: #ef4444; --gold: #fbbf24; --text: #f8fafc; --sec: #94a3b8; --border: #334155; }
         * { box-sizing: border-box; }
-        html { height: 100%; width: 100%; }
-        body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
         .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; padding-bottom: 100px; box-sizing: border-box; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .balance-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
+        .balance-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
         .balance-mini-icon { width: 28px; height: 28px; }
         .balance-mini-icon img { width: 100%; height: 100%; object-fit: contain; }
         .balance-mini-amount { font-size: 20px; font-weight: 700; color: var(--gold); }
         
-        .lang-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
-        .lang-mini-btn { padding: 0 8px; border: none; background: transparent; color: var(--sec); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; border-radius: 20px; }
-        .lang-mini-btn.active { background: var(--primary); color: #fff; padding: 4px 12px; }
+        .lang-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
+        .lang-mini-btn { padding: 0 8px; border: none; background: transparent; color: var(--sec); font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 20px; }
+        .lang-mini-btn.active { background: var(--primary); color: #fff; }
         
         .hero-echidna { width: 100%; max-width: 300px; margin: 0 auto 20px; text-align: center; }
-        .hero-echidna img { width: 100%; height: auto; display: block; border-radius: 0; }
+        .hero-echidna img { width: 100%; height: auto; display: block; }
         
-        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 20px; padding: 16px; border: 1px solid rgba(255,255,255,0.1); }
+        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 20px; padding: 16px; border: 1px solid rgba(255,255,255,0.1); }
         .stat-item { flex: 1; text-align: center; }
         .stat-value { font-size: 24px; font-weight: 800; color: var(--primary); }
         .stat-label { font-size: 11px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
         .skin-badge-small { display: inline-block; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
         
-        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
-        .btn-create { background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
-        .btn-open-rooms { background: rgba(99,102,241,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(99,102,241,0.5); color: var(--primary); font-size: 16px; font-weight: 700; text-transform: none; }
+        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-create { background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-open-rooms { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); color: var(--primary); font-size: 16px; font-weight: 700; text-transform: none; }
         .btn-create:active, .btn-open-rooms:active { transform: scale(0.97); opacity: 0.8; }
         
-        .rooms-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 200; padding: 15px; padding-bottom: 90px; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s ease-out; }
+        .rooms-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); z-index: 200; padding: 15px; padding-bottom: 90px; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s ease-out; }
         .rooms-screen.open { transform: translateX(0); }
         .rooms-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
-        .back-btn { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 10px 16px; color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .back-btn { background: rgba(26,26,46,0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 10px 16px; color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .back-btn:active { transform: scale(0.97); }
         .rooms-title { font-size: 20px; font-weight: 700; }
         
         .section-title { font-size: 13px; color: var(--sec); margin: 18px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-        .search-input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 12px; outline: none; box-sizing: border-box; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); color: var(--text); font-size: 12px; outline: none; box-sizing: border-box; }
         .search-input:focus { border-color: var(--primary); }
         
-        .room-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; }
+        .room-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
         .room-card:active { transform: scale(0.98); background: rgba(31,31,53,0.8); }
         .room-card.my-room { border-left: 3px solid var(--success); }
         .room-card.equipped { border: 2px solid var(--gold); }
@@ -58,7 +57,7 @@
         .room-stake { font-weight: 700; color: var(--gold); display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 13px; }
         .room-creator { font-size: 11px; color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .room-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .room-btn { padding: 6px 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 11px; white-space: nowrap; }
+        .room-btn { padding: 6px 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 11px; white-space: nowrap; }
         .room-btn.join { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
         .room-btn.cancel { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
         .room-btn.buy { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
@@ -70,16 +69,11 @@
         
         .skin-room-icon { width: 90px; height: 90px; border-radius: 14px; }
         .skin-price { font-size: 12px; color: var(--gold); margin-top: 2px; }
-        
         .lb-stats { font-size: 11px; color: var(--sec); display: flex; gap: 8px; margin-top: 4px; }
         .lb-stats span { display: flex; align-items: center; gap: 4px; }
         .lb-coin-icon { width: 14px; height: 14px; }
         .lb-coin-icon img { width: 100%; height: 100%; object-fit: contain; }
-        
         .section-header { font-size: 16px; color: var(--text); text-align: center; margin-bottom: 16px; font-weight: 600; }
-        .section-subheader { font-size: 13px; color: var(--sec); text-align: center; margin-bottom: 20px; }
-        .skin-card-name { font-size: 14px; font-weight: 700; color: var(--text); }
-        
         .header { text-align: center; margin-bottom: 20px; }
         .header h2 { font-size: 22px; margin-bottom: 8px; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header-sub { font-size: 14px; color: var(--sec); }
@@ -89,7 +83,7 @@
         .daily-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .daily-card-inner.flipped { transform: rotateY(180deg); }
         .daily-card-front, .daily-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); font-weight: 700; box-sizing: border-box; overflow: hidden; }
-        .daily-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 0; }
+        .daily-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); padding: 0; }
         .daily-card-front img.card-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
         .daily-card-front .card-overlay { position: absolute; top: 6px; left: 6px; display: flex; align-items: center; gap: 4px; z-index: 1; }
         .daily-card-front .day-badge { background: rgba(0,0,0,0.75); color: #fff; font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 8px; display: flex; align-items: center; gap: 3px; }
@@ -97,16 +91,15 @@
         .daily-card-front.today { border-color: var(--gold); box-shadow: 0 0 20px rgba(251,191,36,0.6); animation: cardPulse 1.5s ease-in-out infinite; cursor: pointer; }
         .daily-card-front.today .day-badge { background: rgba(251,191,36,0.9); color: #000; font-size: 15px; padding: 4px 10px; }
         @keyframes cardPulse { 0%, 100% { box-shadow: 0 0 20px rgba(251,191,36,0.6); transform: scale(1); } 50% { box-shadow: 0 0 35px rgba(251,191,36,0.9); transform: scale(1.03); } }
-        .daily-card-back { background: linear-gradient(135deg, rgba(31,31,53,0.9), rgba(42,42,62,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--gold); gap: 6px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .daily-card-back .reward-coin { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; animation: coinBounce 0.6s ease-out; margin-bottom: 8px; }
-        @keyframes coinBounce { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+        .daily-card-back { background: linear-gradient(135deg, rgba(31,31,53,0.9), rgba(42,42,62,0.9)); backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--gold); gap: 6px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .daily-card-back .reward-coin { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; margin-bottom: 8px; }
         .daily-card-back .reward-amount { font-size: 28px; font-weight: 800; color: var(--gold); text-shadow: 0 2px 8px rgba(251,191,36,0.4); }
-        .daily-streak-info { text-align: center; margin-bottom: 12px; font-size: 16px; color: var(--sec); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .daily-streak-info { text-align: center; margin-bottom: 12px; font-size: 16px; color: var(--sec); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); }
         .daily-streak-info span { color: var(--gold); font-weight: 700; font-size: 18px; }
         .daily-warning { margin-top: 12px; font-size: 13px; color: var(--sec); text-align: center; }
 
         .player-wrapper { display: flex; flex-direction: column; align-items: center; width: 90px; }
-        .player-avatar { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.1); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--sec); }
+        .player-avatar { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.1); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--sec); }
         .player-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .player-stats-small { font-size: 13px; margin-top: 10px; padding: 5px 10px; background: rgba(26,26,46,0.9); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center; min-width: 60px; }
         .game-players { display: flex; justify-content: space-around; align-items: flex-start; margin: 15px 0; }
@@ -115,12 +108,12 @@
         .stake-value { color: var(--gold); }
         .stake-win { color: var(--success); font-size: 16px; }
         .choices { display: flex; justify-content: space-between; gap: 12px; margin: 20px 0; width: 100%; }
-        .choice-btn { flex: 1; height: 150px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; transition: all 0.2s; }
+        .choice-btn { flex: 1; height: 150px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; transition: all 0.2s; }
         .choice-btn:active:not(:disabled) { transform: scale(0.96); background: rgba(31,31,53,0.8); }
         .choice-btn img { width: 85px; height: 85px; object-fit: contain; margin-bottom: 10px; }
         .choice-btn span { font-size: 13px; color: var(--gold); font-weight: 800; text-transform: uppercase; }
         .choice-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); }
-        .status-box { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 14px; padding: 16px 16px 24px; text-align: center; margin: 15px 0; border: 1px solid rgba(255,255,255,0.1); min-height: 50px; font-weight: 600; position: relative; }
+        .status-box { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 14px; padding: 16px 16px 24px; text-align: center; margin: 15px 0; border: 1px solid rgba(255,255,255,0.1); min-height: 50px; font-weight: 600; position: relative; }
         #statusMessage { min-height: 24px; display: flex; align-items: center; justify-content: center; }
         .timer-text { font-size: 14px; color: var(--error); font-weight: bold; margin-top: 6px; display: none; }
         .timer-text.active { display: block; animation: pulse 1s infinite; }
@@ -132,7 +125,7 @@
         .loader { text-align: center; padding: 30px; color: var(--sec); min-height: 60px; }
         .spinner { border: 3px solid rgba(51,65,85,0.3); border-top-color: var(--primary); border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(26,26,46,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; transition: opacity 0.3s, pointer-events 0.3s; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(26,26,46,0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; }
         .bottom-nav.disabled { opacity: 0.4; pointer-events: none; }
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--sec); font-size: 10px; cursor: pointer; padding: 5px 0; transition: all 0.2s; }
         .nav-btn.active { color: var(--primary); }
@@ -143,16 +136,16 @@
         .splash-title { margin-bottom: 16px; font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
         .splash-banner { width: 100%; max-width: 420px; margin: 0; border-radius: 16px; overflow: hidden; }
         .splash-banner img { width: 100%; height: auto; display: block; object-fit: cover; aspect-ratio: 7/3; }
-        .splash-rules { margin-top: 16px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; width: 100%; box-sizing: border-box; }
+        .splash-rules { margin-top: 16px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; width: 100%; box-sizing: border-box; }
         .splash-rules h3 { color: var(--gold); margin-bottom: 12px; font-size: 16px; text-align: center; }
         .splash-rules ul { list-style: none; padding: 0; margin: 0; }
         .splash-rules ul li { position: relative; padding-left: 24px; margin-bottom: 8px; color: var(--sec); font-size: 14px; }
         .splash-rules ul li::before { content: '•'; position: absolute; left: 6px; color: var(--gold); font-size: 24px; }
-        .splash-btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; color: #fff; cursor: pointer; margin-top: 16px; }
+        .splash-btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; color: #fff; cursor: pointer; margin-top: 16px; }
         .splash-btn:active { transform: scale(0.97); }
-        .skin-modal, .stake-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.3s; }
+        .skin-modal, .stake-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.3s; }
         .skin-modal.hidden, .stake-modal.hidden { display: none; }
-        .skin-modal-content, .stake-modal-content { background: rgba(26,26,46,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid rgba(255,255,255,0.2); position: relative; animation: slideUp 0.3s; }
+        .skin-modal-content, .stake-modal-content { background: rgba(26,26,46,0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid rgba(255,255,255,0.2); position: relative; animation: slideUp 0.3s; }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .skin-modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -170,11 +163,11 @@
         .stake-modal-content { max-width: 360px; }
         .stake-modal-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 16px; }
         .stake-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-        .stake-preset-btn { padding: 12px 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; white-space: nowrap; }
+        .stake-preset-btn { padding: 12px 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; white-space: nowrap; }
         .stake-preset-btn:active { transform: scale(0.95); }
         .stake-preset-btn.selected { border-color: var(--gold); background: rgba(251,191,36,0.15); color: var(--gold); }
         .stake-input-group { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 12px; width: 100%; }
-        .stake-input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 16px; text-align: center; outline: none; box-sizing: border-box; }
+        .stake-input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); color: var(--text); font-size: 16px; text-align: center; outline: none; box-sizing: border-box; }
         .stake-input:focus { border-color: var(--primary); }
         .stake-error { font-size: 12px; color: var(--error); text-align: center; min-height: 16px; }
         .stake-confirm-btn { background: linear-gradient(135deg, #10b981, #059669); width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; color: #fff; cursor: pointer; margin-top: 12px; }
@@ -183,12 +176,12 @@
         .stats-header h2 { font-size: 22px; margin-bottom: 5px; }
         .stats-header .subtitle { color: var(--sec); font-size: 13px; }
         .stats-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 16px; padding: 14px 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 16px; padding: 14px 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
         .stat-card .stat-icon { font-size: 28px; margin-bottom: 6px; }
         .stat-card .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); word-break: break-word; }
         .stat-card .stat-value.negative { color: var(--error); }
         .stat-card .stat-label { font-size: 10px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
-        .games-table { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .games-table { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
         .games-table-header { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; background: rgba(99,102,241,0.1); font-size: 11px; color: var(--sec); text-transform: uppercase; font-weight: 600; }
         .game-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; align-items: center; }
         .game-opponent { color: var(--text); font-weight: 600; }
@@ -201,10 +194,10 @@
         .game-move img { width: 24px; height: 24px; object-fit: contain; }
         .games-empty { text-align: center; padding: 30px; color: var(--sec); }
         .thinking-echidna-wrapper { display: flex; align-items: center; justify-content: center; margin: 0 10px; }
-        .thinking-echidna { width: 85px; height: 85px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; overflow: hidden; animation: bounce 2s ease-in-out infinite; transition: all 0.2s; }
+        .thinking-echidna { width: 85px; height: 85px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; overflow: hidden; animation: bounce 2s ease-in-out infinite; transition: all 0.2s; }
         .thinking-echidna img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .reveal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
+        .reveal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.98); backdrop-filter: blur(20px); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
         .reveal-overlay.hidden { display: none; }
         .reveal-title { font-size: 18px; color: var(--sec); margin-bottom: 30px; animation: slideDown 0.5s ease-out; }
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -215,9 +208,9 @@
         .reveal-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; transform: rotateY(0deg); }
         .reveal-card-inner.flipped { transform: rotateY(180deg); }
         .reveal-card-front, .reveal-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
-        .reveal-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .reveal-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); }
         .reveal-card-front .card-icon { font-size: 40px; }
-        .reveal-card-back { background: linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9)); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--primary); }
+        .reveal-card-back { background: linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9)); backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--primary); }
         .reveal-card-back img { width: 90px; height: 90px; object-fit: contain; }
         .reveal-card-back .move-name { font-size: 14px; color: #fff; margin-top: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         .reveal-vs { font-size: 24px; font-weight: 700; color: var(--error); animation: pulse 1s infinite; }
@@ -233,7 +226,6 @@
         .confetti-container { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 2001; overflow: hidden; }
         .confetti { position: absolute; width: 10px; height: 10px; animation: confettiFall 3s ease-out forwards; }
         @keyframes confettiFall { 0% { transform: translateY(-100px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
-        
         .leaderboard-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .leaderboard-left { display: flex; align-items: center; gap: 12px; }
         .leaderboard-right { display: flex; align-items: center; gap: 6px; }
@@ -273,11 +265,9 @@
                     <button class="lang-mini-btn" onclick="setLanguage('en')">EN</button>
                 </div>
             </div>
-            
             <div class="hero-echidna">
                 <img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png" alt="Echidna" id="heroEchidnaImg">
             </div>
-            
             <div class="stats-panel">
                 <div class="stat-item">
                     <div class="stat-value" id="statWins">0</div>
@@ -293,7 +283,6 @@
                     <div class="skin-badge-small" id="statSkinBadge">#1</div>
                 </div>
             </div>
-            
             <button class="btn-create" onclick="openStakeModal()">🚪 СОЗДАТЬ КОМНАТУ</button>
             <button class="btn-open-rooms" onclick="openRoomsScreen()">📋 ОТКРЫТЫЕ КОМНАТЫ</button>
         </div>
@@ -303,10 +292,8 @@
                 <button class="back-btn" onclick="closeRoomsScreen()">← Назад</button>
                 <div class="rooms-title">Комнаты</div>
             </div>
-            
             <div class="section-title">Мои комнаты</div>
             <div id="myRoomsList"><div class="loader"><div class="spinner"></div></div></div>
-            
             <div class="section-title"><span>Доступные комнаты</span></div>
             <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск по нику..." oninput="filterRooms()">
             <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
@@ -381,15 +368,12 @@
                 return soundsInitialized;
             } catch(e) { console.warn('Audio init failed:', e); return false; }
         }
-        
         function forceUnlockAudio() {
             if (!soundsInitialized && audioUnlockAttempts < 5) {
-                audioUnlockAttempts++;
-                initAudio();
+                audioUnlockAttempts++; initAudio();
                 try {
                     if (audioCtx && audioCtx.state === 'suspended') {
-                        var osc = audioCtx.createOscillator();
-                        var gain = audioCtx.createGain();
+                        var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
                         osc.connect(gain); gain.connect(audioCtx.destination);
                         gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01);
                         soundsInitialized = true;
@@ -397,26 +381,22 @@
                 } catch(e) {}
             }
         }
-        
         ['click', 'touchstart', 'touchend'].forEach(function(evt) {
             document.addEventListener(evt, function() { if (!soundsInitialized) forceUnlockAudio(); }, { passive: true });
         });
-        
         function vibrate(pattern) {
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 if (pattern === 'light' || pattern === 50) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
                 else if (pattern === 'medium' || pattern === 100) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
                 else if (pattern === 'heavy' || pattern === 200) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
-                else if (Array.isArray(pattern)) { if (navigator.vibrate) navigator.vibrate(pattern); }
+                else if (Array.isArray(pattern) && navigator.vibrate) navigator.vibrate(pattern);
             } else if (navigator.vibrate) { navigator.vibrate(pattern); }
         }
-        
         function playBeep(frequency, duration, type, volume) {
             if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
             if (!audioCtx) return;
             try {
-                var osc = audioCtx.createOscillator();
-                var gain = audioCtx.createGain();
+                var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.type = type || 'sine';
                 osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
@@ -425,27 +405,20 @@
                 osc.start(); osc.stop(audioCtx.currentTime + duration);
             } catch(e) {}
         }
-        
         function playNoise(duration, volume) {
             if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
             if (!audioCtx) return;
             try {
-                var bufferSize = audioCtx.sampleRate * duration;
-                var buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                var bufferSize = audioCtx.sampleRate * duration, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 var data = buffer.getChannelData(0);
                 for (var i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                var noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-                var filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass'; filter.frequency.value = 2000; filter.Q.value = 0.5;
-                var gain = audioCtx.createGain();
+                var noise = audioCtx.createBufferSource(), filter = audioCtx.createBiquadFilter(), gain = audioCtx.createGain();
+                noise.buffer = buffer; filter.type = 'bandpass'; filter.frequency.value = 2000; filter.Q.value = 0.5;
                 gain.gain.setValueAtTime(volume || 0.15, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-                noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-                noise.start();
+                noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); noise.start();
             } catch(e) {}
         }
-        
         function playJoinSound() { playBeep(523, 0.15, 'sine', 0.15); setTimeout(function() { playBeep(784, 0.15, 'sine', 0.1); }, 80); vibrate([30, 20, 30]); }
         function playFlipCardSound() { playNoise(0.12, 0.18); vibrate(20); }
         function playWinSound() { playBeep(523, 0.1, 'triangle', 0.15); setTimeout(function() { playBeep(659, 0.1, 'triangle', 0.12); }, 100); setTimeout(function() { playBeep(784, 0.1, 'triangle', 0.1); }, 200); setTimeout(function() { playBeep(1047, 0.2, 'triangle', 0.08); }, 300); vibrate([50, 30, 50]); }
@@ -458,13 +431,9 @@
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' };
             return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; });
         }
-        
         function sanitizeFilter(filter) {
             if (!filter) return '';
-            if (/[<>'";{}()\\]/.test(filter)) {
-                console.error('[SECURITY] Invalid characters in filter');
-                throw new Error('Invalid filter parameter');
-            }
+            if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); }
             if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); }
             return filter;
         }
@@ -492,7 +461,6 @@
             if (activeIntervals.timerInterval) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; }
             window._timerRunning = false;
         }
-        
         async function canCreateRoom() {
             try {
                 var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10');
@@ -501,7 +469,6 @@
                 return true;
             } catch(e) { console.error('Check rooms limit error:', e); return true; }
         }
-        
         function setLanguage(lang) { document.querySelectorAll('.lang-mini-btn').forEach(function(b) { b.classList.toggle('active', b.textContent.toLowerCase() === lang); }); }
         function openRoomsScreen() { document.getElementById('roomsScreen').classList.add('open'); }
         function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
@@ -518,29 +485,15 @@
             }
             try {
                 const response = await fetch('https://tejndwtckdvueufqhitu.supabase.co/functions/v1/verify-telegram', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        initData: window.Telegram.WebApp.initData,
-                        botToken: '8726495160:AAGRPV8YmMYdTlGwhlHSq6IewwGlytvq1jU'
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: window.Telegram.WebApp.initData, botToken: '8726495160:AAGRPV8YmMYdTlGwhlHSq6IewwGlytvq1jU' })
                 });
                 const result = await response.json();
                 if (result.success) {
-                    window.secureUser = { 
-                        id: result.user_id, 
-                        username: result.username,
-                        photo_url: window.Telegram.WebApp.initDataUnsafe.user?.photo_url || null
-                    };
+                    window.secureUser = { id: result.user_id, username: result.username, photo_url: window.Telegram.WebApp.initDataUnsafe.user?.photo_url || null };
                     return window.secureUser;
-                } else {
-                    console.error('Verification failed:', result.error);
-                    return { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
-                }
-            } catch (e) {
-                console.error('Edge Function error:', e);
-                return { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
-            }
+                } else { console.error('Verification failed:', result.error); return { id: Math.floor(Math.random() * 1000000), username: 'Guest' }; }
+            } catch (e) { console.error('Edge Function error:', e); return { id: Math.floor(Math.random() * 1000000), username: 'Guest' }; }
         }
         
         var SKINS = [
@@ -553,7 +506,6 @@
             { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png' },
             { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png' }
         ];
-        
         var skinNames = { 'default': 'Обычная', 'socks': 'Оборванец', 'sporty': 'Нищий', 'sneakers': 'Выживший', 'cap': 'Работяга', 'cool': 'Мажор', 'rich': 'Миллионер', 'collector': 'Магнат' };
         var ownedSkins = ['default']; var currentSkin = 'default'; var currentModalSkin = null;
         function getSkinNameById(id) { return skinNames[id] || id; }
@@ -574,7 +526,6 @@
                 } else { await saveSkinsToDB(); return false; }
             } catch(e) { console.error('[SKINS] Failed to load skins from DB:', e); playErrorSound(); alert('⚠️ Ошибка загрузки скинов.'); return false; }
         }
-        
         async function saveSkinsToDB() {
             try {
                 if (!MY_ID || MY_ID === 999999) return false;
@@ -584,11 +535,13 @@
                 return true;
             } catch(e) { console.error('[SKINS] Failed to save skins to DB:', e); return false; }
         }
-        
         function loadOwnedSkinsLocally() { try { var s = localStorage.getItem('echidna_owned_skins_v2'); if (s) ownedSkins = JSON.parse(s); if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } catch(e) {} }
         function saveOwnedSkinsLocally() { try { localStorage.setItem('echidna_owned_skins_v2', JSON.stringify(ownedSkins)); } catch(e) {} }
 
-        var selectedStake = 10; var currentRoom = null; var isGameFinished = false; var currentWins = 0; var currentBalance = 0; window.roomExpiry = {}; window._lastStatsUpdate = 0;
+        var selectedStake = 10; var currentRoom = null; var isGameFinished = false; var currentWins = 0; 
+        // ✅ ИСПРАВЛЕНИЕ 1: Глобальная переменная для синхронизации баланса
+        var currentBalance = 0; 
+        window.roomExpiry = {}; window._lastStatsUpdate = 0;
 
         function formatCompactNumber(num) { if (num === null || num === undefined) return '0'; var absNum = Math.abs(num); var sign = num < 0 ? '-' : ''; if (absNum >= 1000000000000) return sign + (absNum / 1000000000000).toFixed(1).replace(/\.0$/, '') + 'T'; if (absNum >= 1000000000) return sign + (absNum / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'; if (absNum >= 1000000) return sign + (absNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'; if (absNum >= 1000) return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, '') + 'K'; return sign + Math.round(absNum).toString(); }
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
@@ -605,21 +558,76 @@
 
         async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); currentBalance += reward; data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
 
-        async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
+        async function renderDailyCards() { 
+            var grid = document.getElementById('dailyCardsGrid'); 
+            var streakNum = document.getElementById('dailyStreakNum'); 
+            if (!grid || !streakNum) return; 
+            var data = await getDailyData(); 
+            var today = getTodayDate(); 
+            var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); 
+            var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); 
+            if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } 
+            streakNum.textContent = data.streak || 0; 
+            grid.innerHTML = ''; 
+            for (var i = 0; i < 9; i++) { 
+                var reward = getDailyReward(i); 
+                var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; 
+                var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); 
+                var isLocked = !isCollected && !isToday; 
+                var wrapper = document.createElement('div'); 
+                wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); 
+                var inner = document.createElement('div'); inner.className = 'daily-card-inner'; 
+                if (isCollected) inner.classList.add('flipped'); 
+                var front = document.createElement('div'); front.className = 'daily-card-front'; 
+                if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); 
+                var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; 
+                var lockIcon = isLocked ? ' 🔒' : ''; 
+                front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; 
+                var back = document.createElement('div'); back.className = 'daily-card-back'; 
+                // ✅ ИСПРАВЛЕНИЕ 3: Убрана анимация coinBounce из inline-стилей, чтобы монета не прыгала при каждом рендере
+                // Анимация теперь только в CSS при первом появлении
+                back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; 
+                inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); 
+                if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } 
+                grid.appendChild(wrapper); 
+            } 
+        }
 
         var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; if (tg) { tg.ready && tg.ready(); tg.expand && tg.expand(); }
-        
         async function ensureUserExists(userId, username) { try { var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); if (!existing || existing.length === 0) { await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0 }]); } } catch(e) { console.error('Failed to ensure user exists:', e); } }
-        
         function renderAvatar(elementId, photoUrl, username) { var el = document.getElementById(elementId); if (!el) return; if (photoUrl) { el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(username || 'User') + '" onerror="this.parentElement.innerHTML=\'' + escapeHtml(username ? username.charAt(0).toUpperCase() : '?') + '\'">'; } else { el.innerHTML = escapeHtml(username ? username.charAt(0).toUpperCase() : '?'); } }
+
         function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 3000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
-        
         function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
         function forceExitToLobby() { isGameFinished = true; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); updateBalanceDisplay(); showScreen('lobby'); }
 
         async function updateStats() { try { if (!MY_ID || MY_ID === 999999) return; var data = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, false); var wins = data[0] ? (data[0].wins || 0) : 0; var losses = data[0] ? (data[0].losses || 0) : 0; currentWins = wins; document.getElementById('statWins').textContent = wins; document.getElementById('statGames').textContent = wins + losses; document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); updateHeroImage(); } catch(e) { console.error(e); } }
 
-        async function updateBalanceDisplay() { try { if (!MY_ID || MY_ID === 999999) return; var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=100', false); var gamesList = Array.isArray(games) ? games : []; var balance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') balance += absVal; else if (game.result === 'lose') balance -= absVal; }); currentBalance = Math.round(balance); var el = document.getElementById('balanceSpike'); if (el) { el.textContent = formatCompactNumber(currentBalance); el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; } } catch(e) { console.error('Balance update error:', e); } }
+        // ✅ ИСПРАВЛЕНИЕ 1: Функция пересчета баланса (используется везде для синхронизации)
+        async function recalculateBalance() {
+            if (!MY_ID || MY_ID === 999999) return 0;
+            try {
+                // Запрашиваем ВСЕ игры пользователя (без лимита, чтобы точно всё посчитать)
+                var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID, false);
+                var gamesList = Array.isArray(games) ? games : [];
+                var balance = 0;
+                gamesList.forEach(function(game) {
+                    var absVal = Math.abs(game.stake || 0);
+                    if (game.result === 'win') balance += absVal;
+                    else if (game.result === 'lose') balance -= absVal;
+                });
+                return Math.round(balance);
+            } catch(e) { console.error('Balance recalculation error:', e); return 0; }
+        }
+
+        async function updateBalanceDisplay() { 
+            try { 
+                // ✅ ИСПРАВЛЕНИЕ 1: Используем единую функцию пересчета
+                currentBalance = await recalculateBalance();
+                var el = document.getElementById('balanceSpike');
+                if (el) { el.textContent = formatCompactNumber(currentBalance); el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; } 
+            } catch(e) { console.error('Balance update error:', e); } 
+        }
 
         function renderSkins() { var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; SKINS.forEach(function(s, i) { var owned = isSkinOwned(s.id); var equipped = currentSkin === s.id; var canBuy = !owned && currentBalance >= s.price; var el = document.createElement('div'); el.className = 'room-card' + (equipped ? ' equipped' : ''); el.onclick = function() { openSkinModal(s); }; var btnHtml = ''; if (equipped) { btnHtml = '<button class="room-btn equipped">Надето</button>'; } else if (owned) { btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + escapeHtml(s.id) + '\')">Надеть</button>'; } else { if (canBuy) { btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + escapeHtml(s.id) + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; } else { btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; } } el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div>' + '<div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' + '<div class="room-info"><div class="skin-card-name">' + escapeHtml(getSkinNameById(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; c.appendChild(el); }); }
 
@@ -627,7 +635,7 @@
         function closeSkinModal(e) { if (!e || e.target.id === 'skinModal' || e.target.className === 'skin-modal-close') { document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); } }
         function handleSkinAction() { if (!currentModalSkin) return; if (currentSkin === currentModalSkin.id) return; if (isSkinOwned(currentModalSkin.id)) equipSkin(currentModalSkin.id); else buySkin(currentModalSkin.id); }
 
-        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1000', false); var gamesList = Array.isArray(games) ? games : []; var realBalance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') realBalance += absVal; else if (game.result === 'lose') realBalance -= absVal; }); if (realBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } currentBalance = realBalance; } catch(e) { console.error('Balance check error:', e); } currentBalance -= price; ownedSkins.push(skinId); saveOwnedSkinsLocally(); var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
+        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); try { // ✅ ИСПРАВЛЕНИЕ 2: Пересчитываем баланс перед покупкой, чтобы избежать рассинхрона currentBalance = await recalculateBalance(); if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } } catch(e) { console.error('Balance check error:', e); } currentBalance -= price; ownedSkins.push(skinId); saveOwnedSkinsLocally(); var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
 
         async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; try { localStorage.setItem('echidna_selected_skin', id); } catch(e) {} var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); }
 
@@ -673,7 +681,83 @@
         function showGameResult(room) { var msg = calculateWinner(room).msg; document.getElementById('statusMessage').innerHTML = '<div style="animation:celebrate 0.5s ease-in-out;font-size:18px;">' + escapeHtml(msg) + '</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); }
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
 
-        async function loadLeaderboard() { var c = document.getElementById('leaderboardList'); if (!c) return; try { var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses&order=wins.desc.nullslast&limit=50'); var usersList = Array.isArray(allUsers) ? allUsers : []; var leaderboardData = []; for (var j = 0; j < usersList.length; j++) { var u = usersList[j]; var games = await db('game_history', 'GET', null, '?player_id=eq.' + u.telegram_id + '&order=played_at.desc&limit=50', false); var gamesList = Array.isArray(games) ? games : []; var balance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') balance += absVal; else if (game.result === 'lose') balance -= absVal; }); leaderboardData.push({ telegram_id: u.telegram_id, username: u.username, wins: u.wins || 0, balance: Math.round(balance) }); } leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); c.innerHTML = ''; var top20 = leaderboardData.slice(0, 20); top20.forEach(function(u, i) { var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; var name = escapeHtml(u.username || 'User_' + String(u.telegram_id).slice(-4)); var isMe = Number(u.telegram_id) === MY_ID; var el = document.createElement('div'); el.className = 'room-card' + (isMe ? ' my-room' : ''); el.innerHTML = '<div class="leaderboard-row">' + '<div class="leaderboard-left">' + '<div style="font-weight:700;width:30px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1) + '</div>' + '<div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div>' + '<div class="room-info"><div class="room-stake">@' + name + '</div></div>' + '</div>' + '<div class="leaderboard-right">' + '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(u.balance) + '</div>' + '</div>'; c.appendChild(el); }); var myRank = leaderboardData.findIndex(function(u) { return Number(u.telegram_id) === MY_ID; }) + 1; var myData = leaderboardData.find(function(u) { return Number(u.telegram_id) === MY_ID; }); if (myRank > 20 && myData) { var ms = SKINS[Math.min(Math.floor(Math.abs(myData.balance) / 100000), 7)] || SKINS[0]; var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4)); var el = document.createElement('div'); el.className = 'room-card my-room'; el.style.border = '1px dashed var(--gold)'; el.innerHTML = '<div class="leaderboard-row">' + '<div class="leaderboard-left">' + '<div style="font-weight:700;width:30px;color:var(--gold);">' + myRank + '</div>' + '<div class="room-icon"><img src="' + escapeHtml(ms.img) + '" alt=""></div>' + '<div class="room-info"><div class="room-stake">@' + myName + ' <span style="color:var(--success);font-size:10px;">(Вы)</span></div></div>' + '</div>' + '<div class="leaderboard-right">' + '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(myData.balance) + '</div>' + '</div>'; c.appendChild(el); } } catch(e) { c.innerHTML = '<div style="color:red;padding:15px;">' + escapeHtml(e.message) + '</div>'; } }
+        // ✅ ИСПРАВЛЕНИЕ 2: Полностью переписанная функция рейтинга
+        async function loadLeaderboard() { 
+            var c = document.getElementById('leaderboardList'); 
+            if (!c) return; 
+            try { 
+                // 1. Получаем ТОП-20 игроков по балансу
+                var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses&order=wins.desc.nullslast&limit=20', false);
+                var usersList = Array.isArray(allUsers) ? allUsers : []; 
+                var leaderboardData = [];
+                
+                // 2. Считаем баланс для каждого из ТОПа
+                for (var j = 0; j < usersList.length; j++) { 
+                    var u = usersList[j]; 
+                    // Используем ту же функцию пересчета, что и везде, для синхронизации
+                    var games = await db('game_history', 'GET', null, '?player_id=eq.' + u.telegram_id, false);
+                    var gamesList = Array.isArray(games) ? games : []; 
+                    var balance = 0; 
+                    gamesList.forEach(function(game) { 
+                        var absVal = Math.abs(game.stake || 0); 
+                        if (game.result === 'win') balance += absVal; 
+                        else if (game.result === 'lose') balance -= absVal; 
+                    }); 
+                    leaderboardData.push({ telegram_id: u.telegram_id, username: u.username, wins: u.wins || 0, balance: Math.round(balance) }); 
+                } 
+                
+                // 3. Сортируем по балансу
+                leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); 
+                c.innerHTML = ''; 
+                
+                // 4. Рендерим ТОП-20
+                leaderboardData.forEach(function(u, i) { 
+                    var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; 
+                    var name = escapeHtml(u.username || 'User_' + String(u.telegram_id).slice(-4)); 
+                    var isMe = Number(u.telegram_id) === MY_ID; 
+                    var el = document.createElement('div'); 
+                    el.className = 'room-card' + (isMe ? ' my-room' : ''); 
+                    el.innerHTML = '<div class="leaderboard-row">' + 
+                        '<div class="leaderboard-left">' + 
+                        '<div style="font-weight:700;width:30px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1) + '</div>' + 
+                        '<div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div>' + 
+                        '<div class="room-info"><div class="room-stake">@' + name + '</div></div>' + 
+                        '</div>' + 
+                        '<div class="leaderboard-right">' + 
+                        '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(u.balance) + 
+                        '</div>' + 
+                        '</div>'; 
+                    c.appendChild(el); 
+                }); 
+                
+                // 5. Ищем позицию текущего пользователя, если его нет в ТОПе
+                var myData = leaderboardData.find(function(u) { return Number(u.telegram_id) === MY_ID; });
+                var myRank = leaderboardData.findIndex(function(u) { return Number(u.telegram_id) === MY_ID; }) + 1;
+                
+                // Если пользователь не в ТОПе (myRank > 20 или 0), добавляем его строку внизу
+                if (MY_ID && (!myData || myRank > 20)) {
+                    // Пересчитываем баланс лично для меня, чтобы он точно совпадал с тем, что в шапке
+                    var myBalance = await recalculateBalance();
+                    var ms = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0]; 
+                    var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4)); 
+                    var el = document.createElement('div'); 
+                    el.className = 'room-card my-room'; 
+                    el.style.border = '1px dashed var(--gold)'; 
+                    el.style.marginTop = '10px';
+                    el.innerHTML = '<div class="leaderboard-row">' + 
+                        '<div class="leaderboard-left">' + 
+                        '<div style="font-weight:700;width:30px;color:var(--gold);">' + (myRank > 0 ? myRank : '?') + '</div>' + 
+                        '<div class="room-icon"><img src="' + escapeHtml(ms.img) + '" alt=""></div>' + 
+                        '<div class="room-info"><div class="room-stake">@' + myName + ' <span style="color:var(--success);font-size:10px;">(Вы)</span></div></div>' + 
+                        '</div>' + 
+                        '<div class="leaderboard-right">' + 
+                        '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt=""> ' + formatCompactNumber(myBalance) + 
+                        '</div>' + 
+                        '</div>'; 
+                    c.appendChild(el); 
+                }
+            } catch(e) { c.innerHTML = '<div style="color:red;padding:15px;">' + escapeHtml(e.message) + '</div>'; } 
+        }
 
         async function loadStats() { if (!MY_ID || MY_ID === 999999) return; var tableBody = document.getElementById('gamesTableBody'); tableBody.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>'; try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); var gamesList = Array.isArray(games) ? games : []; if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty"><div>Пока нет игр</div></div>'; document.getElementById('statsWinRate').textContent = '0%'; document.getElementById('statsFavMove').textContent = '-'; document.getElementById('statsTotalSpike').textContent = '0 Spike'; return; } var wins = 0, losses = 0, draws = 0, totalSpike = 0; var moveCounts = { rock: 0, scissors: 0, paper: 0 }; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') { wins++; totalSpike += absVal; } else if (game.result === 'lose') { losses++; totalSpike -= absVal; } else { draws++; } if (game.player_move && moveCounts[game.player_move] !== undefined) moveCounts[game.player_move]++; }); var totalGames = wins + losses + draws; var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0; var maxMoves = Object.entries(moveCounts).sort(function(a, b) { return b[1] - a[1]; }); var favMove = maxMoves[0] && maxMoves[0][1] > 0 ? maxMoves[0][0] : null; var moveEmojis = { rock: '🪨', scissors: '✂️', paper: '📄' }; var moveNames = { rock: 'Камень', scissors: 'Ножницы', paper: 'Бумага' }; document.getElementById('statsWinRate').textContent = winRate + '%'; document.getElementById('statsFavMove').textContent = favMove ? (moveEmojis[favMove] + ' ' + moveNames[favMove]) : '-'; var spikeEl = document.getElementById('statsTotalSpike'); spikeEl.textContent = formatCompactNumber(Math.round(totalSpike)) + ' Spike'; if (totalSpike < 0) spikeEl.classList.add('negative'); else spikeEl.classList.remove('negative'); var rowsHtml = ''; gamesList.slice(0, 20).forEach(function(game) { var opponentName = escapeHtml(game.opponent_name || '???'); var resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw'; var resultText = game.result === 'win' ? 'Победа' : game.result === 'lose' ? 'Поражение' : 'Ничья'; var moveEmoji = ''; if (game.player_move === 'rock') moveEmoji = '<img src="move-rock.png" width="24" height="24" alt="Камень">'; else if (game.player_move === 'scissors') moveEmoji = '<img src="move-scissors.png" width="24" height="24" alt="Ножницы">'; else if (game.player_move === 'paper') moveEmoji = '<img src="move-paper.png" width="24" height="24" alt="Бумага">'; else moveEmoji = moveEmojis[game.player_move] || ''; var absVal = Math.abs(game.stake || 0); var stakeDisplay = game.stake === 0 ? '0' : formatCompactNumber(absVal) + ' Spike'; rowsHtml += '<div class="game-row"><span class="game-opponent">' + opponentName + '</span>' + '<span class="game-stake">' + stakeDisplay + '</span>' + '<span class="game-result ' + resultClass + '">' + resultText + '</span>' + '<div class="game-move">' + moveEmoji + '</div></div>'; }); tableBody.innerHTML = rowsHtml; } catch(e) { console.error('Load stats error:', e); tableBody.innerHTML = '<div class="games-empty"><div>Ошибка загрузки</div></div>'; } }
 
@@ -682,20 +766,29 @@
         // ============ 🔄 ИНИЦИАЛИЗАЦИЯ ============
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         window.addEventListener('load', async function() {
+            // 1. Сначала безопасно получаем пользователя через Edge Function
             user = await getSecureUser();
             MY_ID = Number(user.id);
             MY_PHOTO_URL = user.photo_url || null;
             MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
+            
+            // 2. Загружаем скины и остальное
             await loadSkinsFromDB();
             loadOwnedSkinsLocally();
+            
             var savedSkin = localStorage.getItem('echidna_selected_skin');
             if (savedSkin && isSkinOwned(savedSkin)) currentSkin = savedSkin;
+            
             if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.expand();
                 window.Telegram.WebApp.setHeaderColor('#0a0a1a');
                 window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
             }
+            
+            // 3. Загружаем лобби и обновляем баланс
             loadRooms();
+            // ✅ ИСПРАВЛЕНИЕ 1: Сразу обновляем баланс при старте
+            updateBalanceDisplay();
         });
     </script>
 </body>
