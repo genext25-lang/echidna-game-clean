@@ -328,6 +328,14 @@
         var isCreatingRoom = false;
         var isJoiningRoom = false;
         
+        // Rate limiting (30 запросов в минуту)
+        var requestCount = {};
+        var RATE_LIMIT = 30;
+        
+        // Кэш для рейтинга
+        var leaderboardCache = { data: null, timestamp: 0 };
+        var CACHE_TTL = 60000; // 1 минута
+        
         // ============ ФУНКЦИИ ЗВУКА И ВИБРАЦИИ ============
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
         function forceUnlockAudio() { if (!soundsInitialized && audioUnlockAttempts < 5) { audioUnlockAttempts++; initAudio(); try { if (audioCtx && audioCtx.state === 'suspended') { var osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01); soundsInitialized = true; } } catch(e) {} } }
@@ -346,9 +354,25 @@
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        // ============ БАЗА ДАННЫХ (с проверкой офлайн) ============
+        // ============ БАЗА ДАННЫХ (с проверкой офлайн и rate limiting) ============
         async function db(table, method, payload, filters, single) { 
             if (!navigator.onLine) { throw new Error('Нет соединения с интернетом'); }
+            
+            // Rate limiting
+            if (MY_ID) {
+                var now = Date.now();
+                var minuteKey = Math.floor(now / 60000);
+                var key = MY_ID + '_' + minuteKey;
+                if (!requestCount[key]) requestCount[key] = 0;
+                requestCount[key]++;
+                if (requestCount[key] > RATE_LIMIT) {
+                    throw new Error('Слишком много запросов. Подождите немного.');
+                }
+                setTimeout(function() { 
+                    if (requestCount[key]) requestCount[key]--;
+                }, 60000);
+            }
+            
             payload = payload || null; filters = filters || ''; single = single || false; 
             var safeFilters = sanitizeFilter(filters); 
             var url = SUPABASE_URL + '/rest/v1/' + table + safeFilters; 
@@ -441,9 +465,27 @@
         
         async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
         
-        // ============ ПОЛЬЗОВАТЕЛИ ============
+        // ============ ПОЛЬЗОВАТЕЛИ (со стартовым бонусом) ============
         var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; 
-        async function ensureUserExists(userId, username) { try { var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); if (!existing || existing.length === 0) { await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0 }]); } } catch(e) { console.error('Failed to ensure user exists:', e); } }
+        async function ensureUserExists(userId, username) { 
+            try { 
+                var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); 
+                if (!existing || existing.length === 0) { 
+                    // Стартовый бонус 1000 Spike для новых игроков
+                    await db('users', 'POST', [{ 
+                        telegram_id: userId, 
+                        username: escapeHtml(username || 'User_' + userId), 
+                        wins: 0, 
+                        losses: 0,
+                        balance: 1000
+                    }]); 
+                    console.log('[USER] New user created with 1000 Spike bonus');
+                } 
+            } catch(e) { 
+                console.error('Failed to ensure user exists:', e); 
+            } 
+        }
+        
         function renderAvatar(elementId, photoUrl, username) { var el = document.getElementById(elementId); if (!el) return; if (photoUrl) { el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(username || 'User') + '" onerror="this.parentElement.innerHTML=\'' + escapeHtml(username ? username.charAt(0).toUpperCase() : '?') + '\'">'; } else { el.innerHTML = escapeHtml(username ? username.charAt(0).toUpperCase() : '?'); } }
         
         // ============ НАВИГАЦИЯ ============
@@ -605,10 +647,89 @@
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
-        // ============ РЕЙТИНГ (ТОП-20 + строка игрока) ============
+        // ============ РЕЙТИНГ (ТОП-20 + строка игрока + кэширование) ============
+        function renderLeaderboard(leaderboardData, myRank, myBalance) {
+            var c = document.getElementById('leaderboardList');
+            if (!c) return;
+            
+            var top20 = leaderboardData.slice(0, 20);
+            c.innerHTML = '';
+            
+            top20.forEach(function(u, i) { 
+                var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; 
+                var name = escapeHtml(u.username || 'User_' + String(u.telegram_id).slice(-4)); 
+                var isMe = Number(u.telegram_id) === MY_ID; 
+                var el = document.createElement('div'); 
+                el.className = 'room-card' + (isMe ? ' my-room' : ''); 
+                el.innerHTML = '<div class="leaderboard-row">' + 
+                    '<div class="leaderboard-left">' + 
+                    '<div style="font-weight:700;width:40px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1).toString()) + '</div>' + 
+                    '<div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' + 
+                    '<div class="room-info"><div class="room-stake">@' + name + '</div></div>' + 
+                    '</div>' + 
+                    '<div class="leaderboard-right">' + 
+                    '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(u.balance) + 
+                    '</div>' + 
+                    '</div>'; 
+                c.appendChild(el); 
+            }); 
+            
+            if (myRank > 20 && MY_ID) {
+                var mySk = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0];
+                var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4));
+                var myCard = document.createElement('div');
+                myCard.className = 'my-rank-card';
+                myCard.style.marginTop = '20px';
+                myCard.style.padding = '14px';
+                myCard.style.background = 'rgba(99,102,241,0.15)';
+                myCard.style.borderRadius = '14px';
+                myCard.style.border = '1px dashed var(--gold)';
+                myCard.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+                    '<div style="display:flex;align-items:center;gap:12px;">' +
+                    '<div style="font-weight:700;color:var(--gold);font-size:18px;">#' + myRank + '</div>' +
+                    '<div class="room-icon" style="width:40px;height:40px;"><img src="' + escapeHtml(mySk.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' +
+                    '<div><div style="font-weight:600;">@' + myName + '</div><div style="font-size:11px;color:var(--sec);">Ваше место</div></div>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(myBalance) +
+                    '</div>' +
+                    '</div>';
+                c.appendChild(myCard);
+            } else if (myRank > 0 && myRank <= 20 && MY_ID) {
+                var mySk2 = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0];
+                var myName2 = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4));
+                var myCard2 = document.createElement('div');
+                myCard2.className = 'my-rank-card';
+                myCard2.style.marginTop = '20px';
+                myCard2.style.padding = '14px';
+                myCard2.style.background = 'rgba(99,102,241,0.15)';
+                myCard2.style.borderRadius = '14px';
+                myCard2.style.border = '1px solid var(--success)';
+                myCard2.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+                    '<div style="display:flex;align-items:center;gap:12px;">' +
+                    '<div style="font-weight:700;color:var(--gold);font-size:18px;">#' + myRank + '</div>' +
+                    '<div class="room-icon" style="width:40px;height:40px;"><img src="' + escapeHtml(mySk2.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' +
+                    '<div><div style="font-weight:600;">@' + myName2 + '</div><div style="font-size:11px;color:var(--success);">Топ игрок! 🎉</div></div>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(myBalance) +
+                    '</div>' +
+                    '</div>';
+                c.appendChild(myCard2);
+            }
+        }
+        
         async function loadLeaderboard() { 
             var c = document.getElementById('leaderboardList'); 
             if (!c) return; 
+            
+            // Проверяем кэш
+            var now = Date.now();
+            if (leaderboardCache.data && (now - leaderboardCache.timestamp) < CACHE_TTL) {
+                renderLeaderboard(leaderboardCache.data.data, leaderboardCache.data.myRank, leaderboardCache.data.myBalance);
+                return;
+            }
+            
             c.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
             try { 
                 var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses&order=wins.desc.nullslast&limit=100', false); 
@@ -645,71 +766,11 @@
                     }
                 }
                 
-                var top20 = leaderboardData.slice(0, 20);
-                c.innerHTML = '';
+                // Сохраняем в кэш
+                leaderboardCache.data = { data: leaderboardData, myRank: myRank, myBalance: myBalance };
+                leaderboardCache.timestamp = now;
                 
-                top20.forEach(function(u, i) { 
-                    var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; 
-                    var name = escapeHtml(u.username || 'User_' + String(u.telegram_id).slice(-4)); 
-                    var isMe = Number(u.telegram_id) === MY_ID; 
-                    var el = document.createElement('div'); 
-                    el.className = 'room-card' + (isMe ? ' my-room' : ''); 
-                    el.innerHTML = '<div class="leaderboard-row">' + 
-                        '<div class="leaderboard-left">' + 
-                        '<div style="font-weight:700;width:40px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1).toString()) + '</div>' + 
-                        '<div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' + 
-                        '<div class="room-info"><div class="room-stake">@' + name + '</div></div>' + 
-                        '</div>' + 
-                        '<div class="leaderboard-right">' + 
-                        '<img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(u.balance) + 
-                        '</div>' + 
-                        '</div>'; 
-                    c.appendChild(el); 
-                }); 
-                
-                if (myRank > 20 && MY_ID) {
-                    var mySk = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0];
-                    var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4));
-                    var myCard = document.createElement('div');
-                    myCard.className = 'my-rank-card';
-                    myCard.style.marginTop = '20px';
-                    myCard.style.padding = '14px';
-                    myCard.style.background = 'rgba(99,102,241,0.15)';
-                    myCard.style.borderRadius = '14px';
-                    myCard.style.border = '1px dashed var(--gold)';
-                    myCard.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-                        '<div style="display:flex;align-items:center;gap:12px;">' +
-                        '<div style="font-weight:700;color:var(--gold);font-size:18px;">#' + myRank + '</div>' +
-                        '<div class="room-icon" style="width:40px;height:40px;"><img src="' + escapeHtml(mySk.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' +
-                        '<div><div style="font-weight:600;">@' + myName + '</div><div style="font-size:11px;color:var(--sec);">Ваше место</div></div>' +
-                        '</div>' +
-                        '<div style="display:flex;align-items:center;gap:8px;">' +
-                        '<img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(myBalance) +
-                        '</div>' +
-                        '</div>';
-                    c.appendChild(myCard);
-                } else if (myRank > 0 && myRank <= 20 && MY_ID) {
-                    var mySk2 = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0];
-                    var myName2 = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4));
-                    var myCard2 = document.createElement('div');
-                    myCard2.className = 'my-rank-card';
-                    myCard2.style.marginTop = '20px';
-                    myCard2.style.padding = '14px';
-                    myCard2.style.background = 'rgba(99,102,241,0.15)';
-                    myCard2.style.borderRadius = '14px';
-                    myCard2.style.border = '1px solid var(--success)';
-                    myCard2.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-                        '<div style="display:flex;align-items:center;gap:12px;">' +
-                        '<div style="font-weight:700;color:var(--gold);font-size:18px;">#' + myRank + '</div>' +
-                        '<div class="room-icon" style="width:40px;height:40px;"><img src="' + escapeHtml(mySk2.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' +
-                        '<div><div style="font-weight:600;">@' + myName2 + '</div><div style="font-size:11px;color:var(--success);">Топ игрок! 🎉</div></div>' +
-                        '</div>' +
-                        '<div style="display:flex;align-items:center;gap:8px;">' +
-                        '<img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(myBalance) +
-                        '</div>' +
-                        '</div>';
-                    c.appendChild(myCard2);
-                }
+                renderLeaderboard(leaderboardData, myRank, myBalance);
             } catch(e) { 
                 console.error('Leaderboard error:', e);
                 c.innerHTML = '<div style="color:red;padding:15px;">⚠️ Ошибка загрузки рейтинга: ' + escapeHtml(e.message) + '</div>'; 
