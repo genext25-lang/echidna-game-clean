@@ -318,7 +318,7 @@
         <button class="nav-btn" onclick="showScreen('skins')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>Скины</span></button>
         <button class="nav-btn" onclick="showScreen('leaderboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10c1 0 2 .5 2 2v3c0 1-1 2-2 2H7c-1 0-2-1-2-2V6c0-1.5 1-2 2-2zM6 11h12"/></svg><span>Рейтинг</span></button>
     </div>
-       <script>
+         <script>
         var moveImages = { rock: 'move-rock.png', scissors: 'move-scissors.png', paper: 'move-paper.png' };
         var audioCtx = null, soundsInitialized = false, audioUnlockAttempts = 0;
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
@@ -346,11 +346,19 @@
         var SUPABASE_URL = 'https://tejndwtckdvueufqhitu.supabase.co';
         var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
         
-        // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (инициализируем временными значениями) ============
+        // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ============
         var user = null;
         var MY_ID = null;
         var MY_PHOTO_URL = null;
         var MY_INITIAL = '?';
+        
+        // Получаем пользователя из Telegram (синхронно, без Edge Function)
+        function getUserFromTelegram() {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                return window.Telegram.WebApp.initDataUnsafe.user;
+            }
+            return null;
+        }
         
         var SKINS = [ { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png' }, { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png' }, { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png' }, { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png' }, { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png' }, { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png' }, { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png' }, { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png' } ];
         var skinNames = { 'default': 'Обычная', 'socks': 'Оборванец', 'sporty': 'Нищий', 'sneakers': 'Выживший', 'cap': 'Работяга', 'cool': 'Мажор', 'rich': 'Миллионер', 'collector': 'Магнат' };
@@ -443,53 +451,39 @@
         
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         
-        // ============ ИНИЦИАЛИЗАЦИЯ ============
+        // ============ ИНИЦИАЛИЗАЦИЯ (упрощённая, без Edge Function) ============
         window.addEventListener('load', async function() {
             console.log('[INIT] Starting initialization...');
             
-            // 1. Получаем пользователя через Edge Function
-            try {
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                    console.log('[AUTH] Sending initData to Edge Function...');
-                    
-                    const response = await fetch('https://tejndwtckdvueufqhitu.supabase.co/functions/v1/verify-telegram', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ initData: window.Telegram.WebApp.initData })
-                    });
-                    
-                    console.log('[AUTH] Response status:', response.status);
-                    const result = await response.json();
-                    console.log('[AUTH] Response body:', result);
-                    
-                    if (result.success) {
-                        user = { 
-                            id: result.user_id, 
-                            username: result.username,
-                            photo_url: window.Telegram.WebApp.initDataUnsafe?.user?.photo_url || null
-                        };
-                        console.log('[AUTH] ✅ Verified:', user.username, '(ID:', user.id, ')');
-                    } else {
-                        console.warn('[AUTH] ❌ Verification failed:', result.error);
-                        user = { id: Math.floor(Math.random() * 1000000), username: 'Guest_' + Math.floor(Math.random() * 10000) };
-                    }
-                } else {
-                    console.warn('[AUTH] ⚠️ No Telegram initData, using guest');
-                    user = { id: Math.floor(Math.random() * 1000000), username: 'Guest_' + Math.floor(Math.random() * 10000) };
-                }
-            } catch (e) {
-                console.error('[AUTH] ❌ Edge Function error:', e);
-                user = { id: Math.floor(Math.random() * 1000000), username: 'Guest_' + Math.floor(Math.random() * 10000) };
+            // 1. Получаем пользователя из Telegram (простой способ, без верификации)
+            var tgUser = getUserFromTelegram();
+            
+            if (tgUser && tgUser.id) {
+                user = {
+                    id: tgUser.id,
+                    username: tgUser.username || tgUser.first_name || 'User',
+                    photo_url: tgUser.photo_url || null
+                };
+                console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
+            } else {
+                // Генерируем гостевого пользователя
+                var guestId = Math.floor(Math.random() * 1000000) + 1000000;
+                user = {
+                    id: guestId,
+                    username: 'Guest_' + Math.floor(Math.random() * 10000),
+                    photo_url: null
+                };
+                console.log('[AUTH] ⚠️ No Telegram user, using guest:', user.username);
             }
             
-            // 2. Применяем данные пользователя в глобальные переменные
+            // 2. Применяем данные пользователя
             MY_ID = Number(user.id);
             MY_PHOTO_URL = user.photo_url || null;
             MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
             
             console.log('[INIT] User set - ID:', MY_ID, 'Username:', user.username);
             
-            // 3. Загружаем скины из БД (теперь MY_ID уже есть)
+            // 3. Загружаем скины из БД
             await loadSkinsFromDB();
             loadOwnedSkinsLocally();
             var savedSkin = localStorage.getItem('echidna_selected_skin');
@@ -502,7 +496,10 @@
                 window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
             }
             
-            // 5. Загружаем интерфейс
+            // 5. Создаём пользователя в БД, если его нет
+            await ensureUserExists(MY_ID, user.username);
+            
+            // 6. Загружаем данные интерфейса
             await updateBalanceDisplay();
             await updateStats();
             loadRooms();
@@ -512,3 +509,4 @@
     </script>
 </body>
 </html>
+       
