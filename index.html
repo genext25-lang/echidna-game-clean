@@ -416,7 +416,29 @@
         function filterRooms() { var query = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('#roomsList .room-card').forEach(function(el) { var creatorText = (el.querySelector('.room-creator') && el.querySelector('.room-creator').textContent || '').toLowerCase(); el.style.display = creatorText.indexOf(query) !== -1 ? 'flex' : 'none'; }); }
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         window.addEventListener('load', async function() {
-            user = await getSecureUser();
+            try {
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                    const response = await fetch('https://tejndwtckdvueufqhitu.supabase.co/functions/v1/verify-telegram', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: window.Telegram.WebApp.initData, botToken: '8726495160:AAGRPV8YmMYdTlGwhlHSq6IewwGlytvq1jU' })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        user = { id: result.user_id, username: result.username, photo_url: window.Telegram.WebApp.initDataUnsafe.user?.photo_url || null };
+                        console.log('[AUTH] Verified:', user.username);
+                    } else {
+                        console.warn('[AUTH] Verification failed:', result.error);
+                        user = { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+                    }
+                } else {
+                    console.warn('[AUTH] No Telegram initData, using guest');
+                    user = { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+                }
+            } catch (e) {
+                console.error('[AUTH] Edge Function error:', e);
+                user = { id: Math.floor(Math.random() * 1000000), username: 'Guest' };
+            }
             MY_ID = Number(user.id);
             MY_PHOTO_URL = user.photo_url || null;
             MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
