@@ -452,6 +452,46 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (С ХРАНЕНИЕМ В USERS) ============
+        async function updateUserBalance(amountChange) {
+            if (!MY_ID || MY_ID === 999999) return;
+            try {
+                var userData = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&select=balance', true);
+                var currentBalanceDB = userData ? (userData.balance || 0) : 0;
+                var newBalance = currentBalanceDB + amountChange;
+                await db('users', 'PATCH', { balance: newBalance }, '?telegram_id=eq.' + MY_ID);
+                currentBalance = newBalance;
+                await updateBalanceDisplay();
+                console.log('[BALANCE] Updated:', currentBalanceDB, '->', newBalance, 'Change:', amountChange);
+            } catch(e) {
+                console.error('Failed to update user balance:', e);
+            }
+        }
+        
+        async function getUserBalanceFromDB() {
+            if (!MY_ID || MY_ID === 999999) return 0;
+            try {
+                var userData = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&select=balance', true);
+                return userData ? (userData.balance || 0) : 0;
+            } catch(e) {
+                console.error('Failed to get user balance:', e);
+                return 0;
+            }
+        }
+        
+        async function updateBalanceDisplay() { 
+            try { 
+                currentBalance = await getUserBalanceFromDB();
+                var el = document.getElementById('balanceSpike'); 
+                if (el) { 
+                    el.textContent = formatCompactNumber(currentBalance); 
+                    el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; 
+                } 
+            } catch(e) { 
+                console.error('Balance update error:', e); 
+            } 
+        }
+        
         // ============ ЕЖЕДНЕВНЫЕ ЗАДАНИЯ ============
         async function loadDailyDataFromDB() { try { if (!MY_ID || MY_ID === 999999) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: result[0].collected_cards || [] }; } return null; } catch(e) { return null; } }
         async function saveDailyDataToDB(data) { try { if (!MY_ID || MY_ID === 999999) return; var existing = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, streak: data.streak || 0, last_claim_date: data.lastClaimDate || null, collected_cards: data.collectedCards || [], updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('daily_tasks', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('daily_tasks', 'POST', [payload]); } catch(e) {} }
@@ -461,7 +501,7 @@
         function getTodayDate() { var d = new Date(); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
         function getDailyReward(day) { return (day + 1) * 100; }
         
-        async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); currentBalance += reward; data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
+        async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); await updateUserBalance(reward); data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
         
         async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
         
@@ -471,7 +511,6 @@
             try { 
                 var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); 
                 if (!existing || existing.length === 0) { 
-                    // Стартовый бонус 1000 Spike для новых игроков
                     await db('users', 'POST', [{ 
                         telegram_id: userId, 
                         username: escapeHtml(username || 'User_' + userId), 
@@ -480,7 +519,12 @@
                         balance: 1000
                     }]); 
                     console.log('[USER] New user created with 1000 Spike bonus');
-                } 
+                    currentBalance = 1000;
+                    await updateBalanceDisplay();
+                } else {
+                    currentBalance = existing[0].balance || 0;
+                    await updateBalanceDisplay();
+                }
             } catch(e) { 
                 console.error('Failed to ensure user exists:', e); 
             } 
@@ -501,10 +545,6 @@
         
         async function updateStats() { try { if (!MY_ID || MY_ID === 999999) return; var data = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, false); var wins = data[0] ? (data[0].wins || 0) : 0; var losses = data[0] ? (data[0].losses || 0) : 0; currentWins = wins; document.getElementById('statWins').textContent = wins; document.getElementById('statGames').textContent = wins + losses; document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); updateHeroImage(); } catch(e) { console.error(e); } }
         
-        async function recalculateBalance() { if (!MY_ID || MY_ID === 999999) return 0; try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID, false); var gamesList = Array.isArray(games) ? games : []; var balance = 0; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') balance += absVal; else if (game.result === 'lose') balance -= absVal; }); return Math.round(balance); } catch(e) { console.error('Balance recalculation error:', e); return 0; } }
-        
-        async function updateBalanceDisplay() { try { currentBalance = await recalculateBalance(); var el = document.getElementById('balanceSpike'); if (el) { el.textContent = formatCompactNumber(currentBalance); el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; } } catch(e) { console.error('Balance update error:', e); } }
-        
         // ============ СКИНЫ ============
         function renderSkins() { var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; SKINS.forEach(function(s, i) { var owned = isSkinOwned(s.id); var equipped = currentSkin === s.id; var canBuy = !owned && currentBalance >= s.price; var el = document.createElement('div'); el.className = 'room-card' + (equipped ? ' equipped' : ''); el.onclick = function() { openSkinModal(s); }; var btnHtml = ''; if (equipped) { btnHtml = '<button class="room-btn equipped">Надето</button>'; } else if (owned) { btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + escapeHtml(s.id) + '\')">Надеть</button>'; } else { if (canBuy) { btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + escapeHtml(s.id) + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; } else { btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; } } el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div>' + '<div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' + '<div class="room-info"><div class="skin-card-name">' + escapeHtml(getSkinNameById(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; c.appendChild(el); }); }
         
@@ -512,9 +552,9 @@
         function closeSkinModal(e) { if (!e || e.target.id === 'skinModal' || e.target.className === 'skin-modal-close') { document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); } }
         function handleSkinAction() { if (!currentModalSkin) return; if (currentSkin === currentModalSkin.id) return; if (isSkinOwned(currentModalSkin.id)) equipSkin(currentModalSkin.id); else buySkin(currentModalSkin.id); }
         
-        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); try { currentBalance = await recalculateBalance(); if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } } catch(e) { console.error('Balance check error:', e); } currentBalance -= price; ownedSkins.push(skinId); saveOwnedSkinsLocally(); var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
+        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } await updateUserBalance(-price); ownedSkins.push(skinId); saveOwnedSkinsLocally(); await saveSkinsToDB(); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
         
-        async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; try { localStorage.setItem('echidna_selected_skin', id); } catch(e) {} var saved = await saveSkinsToDB(); if (!saved) console.warn('[SKINS] Could not save to DB'); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); }
+        async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; try { localStorage.setItem('echidna_selected_skin', id); } catch(e) {} await saveSkinsToDB(); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); }
         
         // ============ КОМНАТЫ И СТАВКИ ============
         async function canCreateRoom() { try { var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10'); var activeRooms = Array.isArray(myRooms) ? myRooms.filter(function(r) { return r.status !== 'finished'; }) : []; if (activeRooms.length >= 5) { playErrorSound(); alert('❌ У вас уже есть 5 активных комнат!'); return false; } return true; } catch(e) { console.error('Check rooms limit error:', e); return true; } }
@@ -638,7 +678,16 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        async function showRevealAnimation(room) { var overlay = document.getElementById('revealOverlay'); var confetti = document.getElementById('confettiContainer'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myMove = isCreator ? room.creator_choice : room.opponent_choice; var oppMove = isCreator ? room.opponent_choice : room.creator_choice; document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; overlay.classList.remove('hidden'); confetti.classList.add('hidden'); confetti.innerHTML = ''; document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); var resultEl = document.getElementById('revealResult'); resultEl.className = 'reveal-result'; resultEl.textContent = ''; document.getElementById('revealCountdown').textContent = ''; var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); emDiv.classList.add('hidden'); emImg.src = ''; await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); await sleep(800); var result = calculateWinner(room); var msg = result.msg; var isWin = msg.indexOf('Победа') !== -1; var isDraw = msg.indexOf('Ничья') !== -1; resultEl.textContent = msg; resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); emDiv.classList.remove('hidden'); if (isWin) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; playWinSound(); createConfetti(); } else if (!isDraw) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; playLoseSound(); } else { emDiv.classList.add('hidden'); } var resultForHistory = 'draw'; if (result.winnerId) { resultForHistory = (result.winnerId === MY_ID) ? 'win' : 'lose'; } await saveGameHistory(resultForHistory, myMove); var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; var countdownInterval = setInterval(function() { countdown--; if (countdown > 0) countdownEl.textContent = countdown; else { clearInterval(countdownInterval); overlay.classList.add('hidden'); confetti.classList.add('hidden'); updateStats(); updateBalanceDisplay(); forceExitToLobby(); } }, 1000); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id)); var loserId = String(result.winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id; if (result.winnerId) { db('users', 'GET', null, '?telegram_id=eq.' + result.winnerId + '&select=wins', false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?telegram_id=eq.' + result.winnerId); }).catch(console.warn); } if (loserId) { db('users', 'GET', null, '?telegram_id=eq.' + loserId + '&select=losses', false).then(function(d) { return db('users', 'PATCH', { losses: ((d[0] && d[0].losses) || 0) + 1 }, '?telegram_id=eq.' + loserId); }).catch(console.warn); } }
+        async function showRevealAnimation(room) { var overlay = document.getElementById('revealOverlay'); var confetti = document.getElementById('confettiContainer'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myMove = isCreator ? room.creator_choice : room.opponent_choice; var oppMove = isCreator ? room.opponent_choice : room.creator_choice; document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; overlay.classList.remove('hidden'); confetti.classList.add('hidden'); confetti.innerHTML = ''; document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); var resultEl = document.getElementById('revealResult'); resultEl.className = 'reveal-result'; resultEl.textContent = ''; document.getElementById('revealCountdown').textContent = ''; var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); emDiv.classList.add('hidden'); emImg.src = ''; await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); await sleep(800); var result = calculateWinner(room); var msg = result.msg; var isWin = msg.indexOf('Победа') !== -1; var isDraw = msg.indexOf('Ничья') !== -1; resultEl.textContent = msg; resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); emDiv.classList.remove('hidden'); if (isWin) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; playWinSound(); createConfetti(); } else if (!isDraw) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; playLoseSound(); } else { emDiv.classList.add('hidden'); } var resultForHistory = 'draw'; if (result.winnerId) { resultForHistory = (result.winnerId === MY_ID) ? 'win' : 'lose'; } await saveGameHistory(resultForHistory, myMove); 
+            
+            // Обновляем баланс и статистику побед/поражений после игры
+            if (result.winnerId === MY_ID) {
+                await updateUserBalance(room.stake);
+            } else if (result.winnerId !== MY_ID && result.winnerId !== null) {
+                await updateUserBalance(-room.stake);
+            }
+            
+            var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; var countdownInterval = setInterval(function() { countdown--; if (countdown > 0) countdownEl.textContent = countdown; else { clearInterval(countdownInterval); overlay.classList.add('hidden'); confetti.classList.add('hidden'); updateStats(); updateBalanceDisplay(); forceExitToLobby(); } }, 1000); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id)); var loserId = String(result.winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id; if (result.winnerId) { db('users', 'GET', null, '?telegram_id=eq.' + result.winnerId + '&select=wins', false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?telegram_id=eq.' + result.winnerId); }).catch(console.warn); } if (loserId) { db('users', 'GET', null, '?telegram_id=eq.' + loserId + '&select=losses', false).then(function(d) { return db('users', 'PATCH', { losses: ((d[0] && d[0].losses) || 0) + 1 }, '?telegram_id=eq.' + loserId); }).catch(console.warn); } }
         
         function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
         function createConfetti() { var container = document.getElementById('confettiContainer'); container.classList.remove('hidden'); container.innerHTML = ''; var colors = ['#6366f1', '#10b981', '#fbbf24', '#ef4444', '#8b5cf6', '#f59e0b']; for (var i = 0; i < 50; i++) { var confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.left = Math.random() * 100 + '%'; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; confetti.style.animationDelay = Math.random() * 2 + 's'; confetti.style.animationDuration = (2 + Math.random() * 2) + 's'; confetti.style.width = (5 + Math.random() * 10) + 'px'; confetti.style.height = (5 + Math.random() * 10) + 'px'; confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0'; container.appendChild(confetti); } }
@@ -732,24 +781,16 @@
             
             c.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
             try { 
-                var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses&order=wins.desc.nullslast&limit=100', false); 
+                var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses,balance&order=wins.desc.nullslast&limit=100', false); 
                 var usersList = Array.isArray(allUsers) ? allUsers : []; 
                 var leaderboardData = []; 
                 for (var j = 0; j < usersList.length; j++) { 
                     var u = usersList[j]; 
-                    var games = await db('game_history', 'GET', null, '?player_id=eq.' + u.telegram_id, false); 
-                    var gamesList = Array.isArray(games) ? games : []; 
-                    var balance = 0; 
-                    gamesList.forEach(function(game) { 
-                        var absVal = Math.abs(game.stake || 0); 
-                        if (game.result === 'win') balance += absVal; 
-                        else if (game.result === 'lose') balance -= absVal; 
-                    }); 
                     leaderboardData.push({ 
                         telegram_id: u.telegram_id, 
                         username: u.username, 
                         wins: u.wins || 0, 
-                        balance: Math.round(balance) 
+                        balance: u.balance || 0
                     }); 
                 } 
                 leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); 
@@ -834,4 +875,3 @@
     </script>
 </body>
 </html>
-       
