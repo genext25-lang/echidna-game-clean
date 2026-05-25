@@ -763,8 +763,9 @@
 
         function filterRooms() { var query = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('#roomsList .room-card').forEach(function(el) { var creatorText = (el.querySelector('.room-creator') && el.querySelector('.room-creator').textContent || '').toLowerCase(); el.style.display = creatorText.indexOf(query) !== -1 ? 'flex' : 'none'; }); }
 
-        // ============ 🔄 ИНИЦИАЛИЗАЦИЯ ============
+       // ============ 🔄 ИНИЦИАЛИЗАЦИЯ ============
         document.getElementById('startGameBtn').addEventListener('click', startGame);
+        
         window.addEventListener('load', async function() {
             // 1. Сначала безопасно получаем пользователя через Edge Function
             user = await getSecureUser();
@@ -787,7 +788,6 @@
             
             // 3. Загружаем лобби и обновляем баланс
             loadRooms();
-            // ✅ ИСПРАВЛЕНИЕ 1: Сразу обновляем баланс при старте
             updateBalanceDisplay();
         });
     </script>
