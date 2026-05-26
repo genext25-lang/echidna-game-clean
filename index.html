@@ -448,11 +448,10 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (РАБОТАЕТ С ВАШЕЙ БД) ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (ИСПРАВЛЕНО) ============
         async function updateUserBalance(amountChange) {
             if (!MY_ID || MY_ID === 999999) return;
             try {
-                // Используем id, а не telegram_id (у вас колонка называется id)
                 var userData = await db('users', 'GET', null, '?id=eq.' + MY_ID + '&select=balance', true);
                 var currentBalanceDB = userData ? (userData.balance || 1000) : 1000;
                 var newBalance = currentBalanceDB + amountChange;
@@ -472,7 +471,9 @@
                 return userData ? (userData.balance || 1000) : 1000;
             } catch(e) {
                 console.error('Failed to get user balance:', e);
-                return 1000;
+                // Если ошибка, пробуем получить из localStorage как fallback
+                var savedBalance = localStorage.getItem('echidna_balance_' + MY_ID);
+                return savedBalance ? parseInt(savedBalance) : 1000;
             }
         }
         
@@ -484,6 +485,8 @@
                     el.textContent = formatCompactNumber(currentBalance); 
                     el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; 
                 } 
+                // Сохраняем в localStorage как резервную копию
+                localStorage.setItem('echidna_balance_' + MY_ID, currentBalance);
             } catch(e) { 
                 console.error('Balance update error:', e); 
             } 
@@ -502,13 +505,19 @@
         
         async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
         
-        // ============ ПОЛЬЗОВАТЕЛИ ============
+        // ============ ПОЛЬЗОВАТЕЛИ (ИСПРАВЛЕНО - не создаём дубликаты) ============
         var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; 
         async function ensureUserExists(userId, username) { 
             try { 
-                // Используем id, а не telegram_id
+                // Сначала пытаемся найти пользователя по ID
                 var existing = await db('users', 'GET', null, '?id=eq.' + userId + '&limit=1'); 
+                if (!existing || existing.length === 0) {
+                    // Если не нашли, проверяем по username
+                    existing = await db('users', 'GET', null, '?username=eq.' + escapeHtml(username) + '&limit=1');
+                }
+                
                 if (!existing || existing.length === 0) { 
+                    // Создаём нового пользователя только если его нет
                     await db('users', 'POST', [{ 
                         id: userId, 
                         username: escapeHtml(username || 'User_' + userId), 
@@ -520,6 +529,10 @@
                     currentBalance = 1000;
                 } else {
                     currentBalance = existing[0].balance || 1000;
+                    // Обновляем username если изменился
+                    if (existing[0].username !== username && username) {
+                        await db('users', 'PATCH', { username: escapeHtml(username) }, '?id=eq.' + existing[0].id);
+                    }
                 }
                 await updateBalanceDisplay();
             } catch(e) { 
@@ -543,7 +556,6 @@
         async function updateStats() { 
             try { 
                 if (!MY_ID || MY_ID === 999999) return; 
-                // Используем id, а не telegram_id
                 var data = await db('users', 'GET', null, '?select=wins,losses&id=eq.' + MY_ID, false); 
                 var wins = data[0] ? (data[0].wins || 0) : 0; 
                 var losses = data[0] ? (data[0].losses || 0) : 0; 
@@ -709,7 +721,7 @@
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
-        // ============ РЕЙТИНГ ============
+        // ============ РЕЙТИНГ (ИСПРАВЛЕНО) ============
         async function loadLeaderboard() { 
             var c = document.getElementById('leaderboardList'); 
             if (!c) return; 
@@ -746,6 +758,14 @@
                         myBalance = leaderboardData[k].balance;
                         break;
                     }
+                }
+                
+                // Если пользователь не найден в рейтинге, добавляем его
+                if (myRank === -1 && MY_ID) {
+                    myBalance = await getUserBalanceFromDB();
+                    leaderboardData.push({ id: MY_ID, username: user.username, wins: currentWins, balance: myBalance });
+                    leaderboardData.sort(function(a, b) { return b.balance - a.balance; });
+                    myRank = leaderboardData.findIndex(function(u) { return Number(u.id) === myUserId; }) + 1;
                 }
                 
                 leaderboardCache.data = { data: leaderboardData, myRank: myRank, myBalance: myBalance };
