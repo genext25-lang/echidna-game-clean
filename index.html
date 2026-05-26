@@ -326,8 +326,7 @@
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
-        var isGameResultProcessed = false;
-        var isUpdatingStats = false;
+        var isProcessingGame = false;
         
         var requestCount = {};
         var RATE_LIMIT = 100;
@@ -563,31 +562,11 @@
         function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
         function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
         
-        function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; isGameResultProcessed = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
+        function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; isProcessingGame = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
         
         function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
         
-        function forceExitToLobby() { 
-            isGameFinished = true; 
-            currentRoom = null; 
-            clearAllIntervals(); 
-            document.getElementById('revealOverlay').classList.add('hidden'); 
-            document.getElementById('confettiContainer').classList.add('hidden'); 
-            updateBalanceDisplay(); 
-            updateStats();
-            showScreen('lobby'); 
-            setTimeout(function() {
-                isGameResultProcessed = false;
-            }, 1000);
-        }
-        
         async function updateStats() { 
-            if (isUpdatingStats) {
-                console.log('[STATS] Already updating, skipping');
-                return;
-            }
-            isUpdatingStats = true;
-            
             try { 
                 if (!MY_ID || MY_ID === 999999) return; 
                 var data = await db('users', 'GET', null, '?select=wins,losses&id=eq.' + MY_ID, false); 
@@ -604,9 +583,7 @@
                 console.log('[STATS] Wins:', wins, 'Losses:', losses, 'Total:', totalGames);
             } catch(e) { 
                 console.error(e); 
-            } finally {
-                isUpdatingStats = false;
-            }
+            } 
         }
         
         // ============ СКИНЫ ============
@@ -795,7 +772,7 @@
                     updateGameStatus(room); 
                     renderPlayerStats(); 
                     
-                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isGameResultProcessed) { 
+                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame) { 
                         isGameFinished = true; 
                         clearAllIntervals(); 
                         await showRevealAnimation(room); 
@@ -844,16 +821,17 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ showRevealAnimation ============
+        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ ============
         async function showRevealAnimation(room) { 
-            if (isGameResultProcessed) {
-                console.log('[GAME] Result already processed, skipping');
+            if (isProcessingGame) {
+                console.log('[GAME] Already processing, skipping');
                 return;
             }
-            isGameResultProcessed = true;
+            isProcessingGame = true;
             
             console.log('[GAME] Processing game result for room:', room.id);
             
+            // Показываем анимацию
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
             var isCreator = String(room.creator_tg_id) === String(MY_ID); 
@@ -909,48 +887,56 @@
                 emDiv.classList.add('hidden'); 
             } 
             
-            var resultForHistory = 'draw';
+            // === ОБНОВЛЯЕМ ДАННЫЕ В БД ОДИН РАЗ ===
             var stakeAmount = room.stake || 10;
             
             if (result.winnerId === MY_ID) {
-                resultForHistory = 'win';
+                // Победа
                 await updateUserBalance(stakeAmount);
-                // Обновляем победы
                 var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
                 var newWins = (userData?.wins || 0) + 1;
                 await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + MY_ID);
                 console.log('[GAME] Win! Balance +' + stakeAmount + ', Wins: ' + newWins);
+                
+                // Обновляем статистику соперника (поражение)
+                var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
+                if (opponentId) {
+                    var oppData = await db('users', 'GET', null, '?select=losses&id=eq.' + opponentId, true);
+                    var newOppLosses = (oppData?.losses || 0) + 1;
+                    await db('users', 'PATCH', { losses: newOppLosses }, '?id=eq.' + opponentId);
+                }
             } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
-                resultForHistory = 'lose';
+                // Поражение
                 await updateUserBalance(-stakeAmount);
-                // Обновляем поражения
                 var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + MY_ID, true);
                 var newLosses = (userData?.losses || 0) + 1;
                 await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + MY_ID);
                 console.log('[GAME] Lose! Balance -' + stakeAmount + ', Losses: ' + newLosses);
+                
+                // Обновляем статистику соперника (победа)
+                var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
+                if (opponentId) {
+                    var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
+                    var newOppWins = (oppData?.wins || 0) + 1;
+                    await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
+                }
             } else {
+                // Ничья - ничего не меняем
                 console.log('[GAME] Draw! No changes');
             }
             
+            // Сохраняем историю
+            var resultForHistory = isWin ? 'win' : (isDraw ? 'draw' : 'lose');
             await saveGameHistory(resultForHistory, myMove);
             
-            var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
-            if (opponentId && result.winnerId === opponentId && result.winnerId !== null) {
-                var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
-                var newOppWins = (oppData?.wins || 0) + 1;
-                await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
-            } else if (opponentId && result.winnerId === MY_ID && result.winnerId !== null) {
-                var oppData = await db('users', 'GET', null, '?select=losses&id=eq.' + opponentId, true);
-                var newOppLosses = (oppData?.losses || 0) + 1;
-                await db('users', 'PATCH', { losses: newOppLosses }, '?id=eq.' + opponentId);
-            }
-            
+            // Закрываем комнату
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             
-            // Обновляем отображение один раз
+            // ОБНОВЛЯЕМ ОТОБРАЖЕНИЕ ТОЛЬКО ОДИН РАЗ
             await updateStats();
             await updateBalanceDisplay();
             
+            // Таймер для закрытия анимации
             var countdown = 3; 
             var countdownEl = document.getElementById('revealCountdown'); 
             countdownEl.textContent = countdown; 
@@ -962,6 +948,7 @@
                     clearInterval(countdownInterval); 
                     overlay.classList.add('hidden'); 
                     confetti.classList.add('hidden'); 
+                    isProcessingGame = false;
                     forceExitToLobby(); 
                 } 
             }, 1000); 
@@ -975,6 +962,15 @@
             setTimeout(function() { 
                 forceExitToLobby(); 
             }, 3000); 
+        }
+        
+        function forceExitToLobby() { 
+            isGameFinished = true; 
+            currentRoom = null; 
+            clearAllIntervals(); 
+            document.getElementById('revealOverlay').classList.add('hidden'); 
+            document.getElementById('confettiContainer').classList.add('hidden'); 
+            showScreen('lobby'); 
         }
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
