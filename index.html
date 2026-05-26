@@ -326,7 +326,7 @@
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
-        var isProcessingResult = false;  // Защита от двойной обработки
+        var isGameResultProcessed = false;  // Флаг для предотвращения двойной обработки результата
         
         var requestCount = {};
         var RATE_LIMIT = 100;
@@ -334,7 +334,6 @@
         var leaderboardCache = { data: null, timestamp: 0 };
         var CACHE_TTL = 60000;
         
-        // Флаг для показа приветственного сообщения
         var welcomeMessageShown = false;
         
         // ============ ФУНКЦИИ ЗВУКА ============
@@ -379,7 +378,6 @@
             else if (method === 'PATCH') headers['Prefer'] = 'return=representation'; 
             
             try { 
-                console.log('[DB]', method, url, payload ? JSON.stringify(payload) : '');
                 var response = await fetch(url, { 
                     method: method, 
                     headers: headers, 
@@ -392,7 +390,6 @@
                 } 
                 if (method === 'DELETE') return true; 
                 var responseData = await response.json(); 
-                console.log('[DB] Response:', responseData);
                 return single && Array.isArray(responseData) ? responseData[0] : responseData; 
             } catch(e) { 
                 console.error('[DB ERROR]', e); 
@@ -539,7 +536,6 @@
                     currentBalance = 1000;
                     isNewUser = true;
                     
-                    // Показываем приветственное сообщение
                     if (!welcomeMessageShown) {
                         welcomeMessageShown = true;
                         setTimeout(function() {
@@ -566,10 +562,23 @@
         function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
         function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
         
-        function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
+        function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; isGameResultProcessed = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
         
         function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
-        function forceExitToLobby() { isGameFinished = true; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); updateBalanceDisplay(); showScreen('lobby'); }
+        
+        function forceExitToLobby() { 
+            isGameFinished = true; 
+            currentRoom = null; 
+            clearAllIntervals(); 
+            document.getElementById('revealOverlay').classList.add('hidden'); 
+            document.getElementById('confettiContainer').classList.add('hidden'); 
+            updateBalanceDisplay(); 
+            updateStats();
+            showScreen('lobby'); 
+            setTimeout(function() {
+                isGameResultProcessed = false;
+            }, 1000);
+        }
         
         async function updateStats() { 
             try { 
@@ -578,12 +587,14 @@
                 var wins = data[0] ? (data[0].wins || 0) : 0; 
                 var losses = data[0] ? (data[0].losses || 0) : 0; 
                 currentWins = wins; 
+                var totalGames = wins + losses;
                 document.getElementById('statWins').textContent = wins; 
-                document.getElementById('statGames').textContent = wins + losses; 
+                document.getElementById('statGames').textContent = totalGames; 
                 document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); 
                 var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); 
                 document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); 
                 updateHeroImage(); 
+                console.log('[STATS] Wins:', wins, 'Losses:', losses, 'Total:', totalGames);
             } catch(e) { 
                 console.error(e); 
             } 
@@ -775,13 +786,13 @@
                     updateGameStatus(room); 
                     renderPlayerStats(); 
                     
-                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingResult) { 
+                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isGameResultProcessed) { 
                         isGameFinished = true; 
                         clearAllIntervals(); 
                         await showRevealAnimation(room); 
                         return; 
                     } 
-                    if (room.status === 'finished' && !isProcessingResult) { 
+                    if (room.status === 'finished') { 
                         isGameFinished = true; 
                         clearAllIntervals(); 
                         return; 
@@ -826,13 +837,13 @@
         
         // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ showRevealAnimation ============
         async function showRevealAnimation(room) { 
-            if (isProcessingResult) {
-                console.log('[GAME] Already processing result, skipping');
+            if (isGameResultProcessed) {
+                console.log('[GAME] Result already processed, skipping');
                 return;
             }
-            isProcessingResult = true;
+            isGameResultProcessed = true;
             
-            console.log('[GAME] Processing game result...');
+            console.log('[GAME] Processing game result for room:', room.id);
             
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
@@ -890,44 +901,37 @@
             } 
             
             var resultForHistory = 'draw';
+            var stakeAmount = room.stake || 10;
             
             if (result.winnerId === MY_ID) {
                 resultForHistory = 'win';
-                await updateUserBalance(room.stake);
-                console.log('[GAME] Win! Balance +', room.stake);
-            } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
-                resultForHistory = 'lose';
-                await updateUserBalance(-room.stake);
-                console.log('[GAME] Lose! Balance -', room.stake);
-            } else {
-                console.log('[GAME] Draw! No balance change');
-            }
-            
-            await saveGameHistory(resultForHistory, myMove);
-            
-            if (result.winnerId === MY_ID) {
+                await updateUserBalance(stakeAmount);
                 var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
                 var newWins = (userData?.wins || 0) + 1;
                 await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + MY_ID);
-                console.log('[GAME] Wins updated:', newWins);
+                console.log('[GAME] Win! Balance +' + stakeAmount + ', Wins: ' + newWins);
             } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
+                resultForHistory = 'lose';
+                await updateUserBalance(-stakeAmount);
                 var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + MY_ID, true);
                 var newLosses = (userData?.losses || 0) + 1;
                 await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + MY_ID);
-                console.log('[GAME] Losses updated:', newLosses);
+                console.log('[GAME] Lose! Balance -' + stakeAmount + ', Losses: ' + newLosses);
+            } else {
+                console.log('[GAME] Draw! No changes');
             }
+            
+            await saveGameHistory(resultForHistory, myMove);
             
             var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
             if (opponentId && result.winnerId === opponentId && result.winnerId !== null) {
                 var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
                 var newOppWins = (oppData?.wins || 0) + 1;
                 await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
-                console.log('[GAME] Opponent wins updated:', newOppWins);
             } else if (opponentId && result.winnerId === MY_ID && result.winnerId !== null) {
                 var oppData = await db('users', 'GET', null, '?select=losses&id=eq.' + opponentId, true);
                 var newOppLosses = (oppData?.losses || 0) + 1;
                 await db('users', 'PATCH', { losses: newOppLosses }, '?id=eq.' + opponentId);
-                console.log('[GAME] Opponent losses updated:', newOppLosses);
             }
             
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
@@ -946,7 +950,6 @@
                     clearInterval(countdownInterval); 
                     overlay.classList.add('hidden'); 
                     confetti.classList.add('hidden'); 
-                    isProcessingResult = false;
                     forceExitToLobby(); 
                 } 
             }, 1000); 
@@ -1102,9 +1105,9 @@
         window.addEventListener('load', async function() {
             console.log('[INIT] Starting initialization...');
             
-            // Очищаем localStorage для теста (раскомментируйте для обнуления данных)
-            localStorage.clear();
-            console.log('[INIT] LocalStorage cleared for testing');
+            // Для тестирования: очистить localStorage (раскомментируйте при необходимости)
+            // localStorage.clear();
+            // console.log('[INIT] LocalStorage cleared for testing');
             
             var tgUser = getUserFromTelegram();
             
