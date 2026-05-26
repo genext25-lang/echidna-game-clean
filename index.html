@@ -328,7 +328,7 @@
         var isJoiningRoom = false;
         
         var requestCount = {};
-        var RATE_LIMIT = 100;  // Увеличен лимит запросов
+        var RATE_LIMIT = 100;
         
         var leaderboardCache = { data: null, timestamp: 0 };
         var CACHE_TTL = 60000;
@@ -347,45 +347,48 @@
         function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
         function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
         
+        function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+        
         // ============ БЕЗОПАСНОСТЬ ============
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
-        
         // ============ БАЗА ДАННЫХ ============
         async function db(table, method, payload, filters, single) { 
-            if (!navigator.onLine) { throw new Error('Нет соединения с интернетом'); }
-            
-            // Rate limiting - временно отключен для тестирования
-            /*
-            if (MY_ID) {
-                var now = Date.now();
-                var minuteKey = Math.floor(now / 60000);
-                var key = MY_ID + '_' + minuteKey;
-                if (!requestCount[key]) requestCount[key] = 0;
-                requestCount[key]++;
-                if (requestCount[key] > RATE_LIMIT) {
-                    throw new Error('Слишком много запросов. Подождите немного.');
-                }
-                setTimeout(function() { 
-                    if (requestCount[key]) requestCount[key]--;
-                }, 60000);
+            if (!navigator.onLine) { 
+                throw new Error('Нет соединения с интернетом'); 
             }
-            */
             
-            payload = payload || null; filters = filters || ''; single = single || false; 
+            payload = payload || null; 
+            filters = filters || ''; 
+            single = single || false; 
             var safeFilters = sanitizeFilter(filters); 
             var url = SUPABASE_URL + '/rest/v1/' + table + safeFilters; 
-            var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' }; 
+            var headers = { 
+                'apikey': SUPABASE_ANON_KEY, 
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json' 
+            }; 
             if (method === 'POST') headers['Prefer'] = 'return=representation'; 
             else if (method === 'DELETE') headers['Prefer'] = 'return=minimal'; 
             else if (method === 'PATCH') headers['Prefer'] = 'return=representation'; 
+            
             try { 
-                var response = await fetch(url, { method: method, headers: headers, body: payload ? JSON.stringify(payload) : null, cache: 'no-store' }); 
-                if (!response.ok) { var errorText = await response.text(); throw new Error(response.status + ' ' + errorText); } 
+                console.log('[DB]', method, url, payload ? JSON.stringify(payload) : '');
+                var response = await fetch(url, { 
+                    method: method, 
+                    headers: headers, 
+                    body: payload ? JSON.stringify(payload) : null, 
+                    cache: 'no-store' 
+                }); 
+                if (!response.ok) { 
+                    var errorText = await response.text(); 
+                    throw new Error(response.status + ' ' + errorText); 
+                } 
                 if (method === 'DELETE') return true; 
                 var responseData = await response.json(); 
+                console.log('[DB] Response:', responseData);
                 return single && Array.isArray(responseData) ? responseData[0] : responseData; 
             } catch(e) { 
                 console.error('[DB ERROR]', e); 
@@ -648,25 +651,42 @@
         async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
         
         async function joinRoom(roomId, btnElement) { 
-            if (isJoiningRoom) return;
+            if (isJoiningRoom) {
+                console.log('[JOIN] Already joining a room');
+                return;
+            }
             isJoiningRoom = true;
             if (!btnElement) return; 
+            
             btnElement.disabled = true; 
             btnElement.textContent = '⏳';
             
-            await sleep(500);
+            console.log('[JOIN] Attempting to join room:', roomId);
             
             try { 
                 var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), false); 
+                console.log('[JOIN] Room data:', roomData);
+                
                 if (!roomData || !roomData.length) throw new Error('Комната не найдена'); 
                 var room = roomData[0]; 
-                if (Number(room.creator_tg_id) === MY_ID || Number(room.opponent_tg_id) === MY_ID) { 
+                
+                if (Number(room.creator_tg_id) === MY_ID) {
+                    console.log('[JOIN] User is creator, resuming room');
                     resumeRoom(roomId); 
                     return; 
-                } 
+                }
+                
+                if (Number(room.opponent_tg_id) === MY_ID) {
+                    console.log('[JOIN] User already joined, resuming room');
+                    resumeRoom(roomId); 
+                    return;
+                }
+                
                 if (room.status !== 'waiting') {
+                    console.log('[JOIN] Room status is not waiting:', room.status);
                     throw new Error('Комната уже занята или игра началась');
                 }
+                
                 if (room.room_password) { 
                     var pwd = prompt('🔒 Комната защищена паролем.\nВведите пароль:'); 
                     if (pwd !== room.room_password) { 
@@ -677,19 +697,26 @@
                         return; 
                     } 
                 } 
+                
                 await ensureUserExists(MY_ID, user.username); 
+                
+                console.log('[JOIN] Updating room with opponent:', MY_ID);
                 var res = await db('rooms', 'PATCH', { 
                     opponent_tg_id: MY_ID, 
                     opponent_username: escapeHtml(user.username || 'Anonymous'), 
                     status: 'playing' 
                 }, '?id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); 
+                
                 if (!res) throw new Error('Не удалось присоединиться к комнате'); 
+                
+                console.log('[JOIN] Successfully joined, room:', res);
                 currentRoom = res; 
                 showGameScreen(); 
                 startPolling(); 
                 loadRooms(); 
                 closeRoomsScreen(); 
             } catch(e) { 
+                console.error('[JOIN] Error:', e);
                 playErrorSound(); 
                 alert('Ошибка: ' + e.message); 
                 if (btnElement) { 
