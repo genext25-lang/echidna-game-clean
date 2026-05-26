@@ -326,7 +326,8 @@
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
-        var isGameResultProcessed = false;  // Флаг для предотвращения двойной обработки результата
+        var isGameResultProcessed = false;
+        var isUpdatingStats = false;
         
         var requestCount = {};
         var RATE_LIMIT = 100;
@@ -581,6 +582,12 @@
         }
         
         async function updateStats() { 
+            if (isUpdatingStats) {
+                console.log('[STATS] Already updating, skipping');
+                return;
+            }
+            isUpdatingStats = true;
+            
             try { 
                 if (!MY_ID || MY_ID === 999999) return; 
                 var data = await db('users', 'GET', null, '?select=wins,losses&id=eq.' + MY_ID, false); 
@@ -597,7 +604,9 @@
                 console.log('[STATS] Wins:', wins, 'Losses:', losses, 'Total:', totalGames);
             } catch(e) { 
                 console.error(e); 
-            } 
+            } finally {
+                isUpdatingStats = false;
+            }
         }
         
         // ============ СКИНЫ ============
@@ -906,6 +915,7 @@
             if (result.winnerId === MY_ID) {
                 resultForHistory = 'win';
                 await updateUserBalance(stakeAmount);
+                // Обновляем победы
                 var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
                 var newWins = (userData?.wins || 0) + 1;
                 await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + MY_ID);
@@ -913,6 +923,7 @@
             } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
                 resultForHistory = 'lose';
                 await updateUserBalance(-stakeAmount);
+                // Обновляем поражения
                 var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + MY_ID, true);
                 var newLosses = (userData?.losses || 0) + 1;
                 await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + MY_ID);
@@ -936,6 +947,7 @@
             
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             
+            // Обновляем отображение один раз
             await updateStats();
             await updateBalanceDisplay();
             
@@ -1104,10 +1116,6 @@
         // ============ ИНИЦИАЛИЗАЦИЯ ============
         window.addEventListener('load', async function() {
             console.log('[INIT] Starting initialization...');
-            
-            // Для тестирования: очистить localStorage (раскомментируйте при необходимости)
-            // localStorage.clear();
-            // console.log('[INIT] LocalStorage cleared for testing');
             
             var tgUser = getUserFromTelegram();
             
