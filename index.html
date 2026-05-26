@@ -327,9 +327,8 @@
         var isCreatingRoom = false;
         var isJoiningRoom = false;
         var isProcessingGame = false;
-        var isUpdatingStats = false;
-        var lastStatsUpdate = 0;
-        var STATS_UPDATE_DELAY = 2000;
+        var statsUpdateTimer = null;
+        var pendingStatsUpdate = false;
         
         var requestCount = {};
         var RATE_LIMIT = 100;
@@ -413,7 +412,25 @@
         
         // ============ УПРАВЛЕНИЕ ИНТЕРВАЛАМИ ============
         var activeIntervals = { pollInterval: null, lobbyRefreshInterval: null, timerInterval: null };
-        function clearAllIntervals() { if (activeIntervals.pollInterval) { clearInterval(activeIntervals.pollInterval); activeIntervals.pollInterval = null; } if (activeIntervals.lobbyRefreshInterval) { clearInterval(activeIntervals.lobbyRefreshInterval); activeIntervals.lobbyRefreshInterval = null; } if (activeIntervals.timerInterval) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; } window._timerRunning = false; }
+        function clearAllIntervals() { 
+            if (activeIntervals.pollInterval) { 
+                clearInterval(activeIntervals.pollInterval); 
+                activeIntervals.pollInterval = null; 
+            } 
+            if (activeIntervals.lobbyRefreshInterval) { 
+                clearInterval(activeIntervals.lobbyRefreshInterval); 
+                activeIntervals.lobbyRefreshInterval = null; 
+            } 
+            if (activeIntervals.timerInterval) { 
+                clearInterval(activeIntervals.timerInterval); 
+                activeIntervals.timerInterval = null; 
+            } 
+            if (statsUpdateTimer) {
+                clearTimeout(statsUpdateTimer);
+                statsUpdateTimer = null;
+            }
+            window._timerRunning = false; 
+        }
         
         // ============ ОСНОВНЫЕ ПЕРЕМЕННЫЕ ============
         var SUPABASE_URL = 'https://tejndwtckdvueufqhitu.supabase.co';
@@ -470,21 +487,46 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ ============
-        async function updateUserBalance(amountChange) {
-            if (!MY_ID || MY_ID === 999999) return false;
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (АТОМАРНО) ============
+        async function updateBalanceOnly(playerId, amountChange) {
+            if (!playerId) return false;
             try {
-                var userData = await db('users', 'GET', null, '?id=eq.' + MY_ID + '&select=balance', true);
+                var userData = await db('users', 'GET', null, '?select=balance&id=eq.' + playerId, true);
                 var currentBalanceDB = userData ? (userData.balance || 1000) : 1000;
                 var newBalance = currentBalanceDB + amountChange;
-                await db('users', 'PATCH', { balance: newBalance }, '?id=eq.' + MY_ID);
-                currentBalance = newBalance;
-                await updateBalanceDisplay();
-                console.log('[BALANCE] Updated:', currentBalanceDB, '->', newBalance, 'Change:', amountChange);
+                await db('users', 'PATCH', { balance: newBalance }, '?id=eq.' + playerId);
+                if (Number(playerId) === MY_ID) {
+                    currentBalance = newBalance;
+                }
+                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance);
                 return true;
             } catch(e) {
-                console.error('Failed to update user balance:', e);
+                console.error('Failed to update balance:', e);
                 return false;
+            }
+        }
+        
+        async function updateWinsOnly(playerId) {
+            if (!playerId) return;
+            try {
+                var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + playerId, true);
+                var newWins = (userData?.wins || 0) + 1;
+                await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + playerId);
+                console.log('[STATS] Player', playerId, 'wins:', newWins);
+            } catch(e) {
+                console.error('Failed to update wins:', e);
+            }
+        }
+        
+        async function updateLossesOnly(playerId) {
+            if (!playerId) return;
+            try {
+                var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + playerId, true);
+                var newLosses = (userData?.losses || 0) + 1;
+                await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + playerId);
+                console.log('[STATS] Player', playerId, 'losses:', newLosses);
+            } catch(e) {
+                console.error('Failed to update losses:', e);
             }
         }
         
@@ -513,6 +555,39 @@
             } 
         }
         
+        // ============ ОБНОВЛЕНИЕ СТАТИСТИКИ С DEBOUNCE ============
+        function scheduleStatsUpdate() {
+            if (statsUpdateTimer) {
+                clearTimeout(statsUpdateTimer);
+            }
+            pendingStatsUpdate = true;
+            statsUpdateTimer = setTimeout(async function() {
+                pendingStatsUpdate = false;
+                await updateStats();
+                statsUpdateTimer = null;
+            }, 500);
+        }
+        
+        async function updateStats() { 
+            try { 
+                if (!MY_ID || MY_ID === 999999) return; 
+                var data = await db('users', 'GET', null, '?select=wins,losses&id=eq.' + MY_ID, false); 
+                var wins = data[0] ? (data[0].wins || 0) : 0; 
+                var losses = data[0] ? (data[0].losses || 0) : 0; 
+                currentWins = wins; 
+                var totalGames = wins + losses;
+                document.getElementById('statWins').textContent = wins; 
+                document.getElementById('statGames').textContent = totalGames; 
+                document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); 
+                var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); 
+                document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); 
+                updateHeroImage(); 
+                console.log('[STATS] Wins:', wins, 'Losses:', losses, 'Total:', totalGames);
+            } catch(e) { 
+                console.error(e); 
+            } 
+        }
+        
         // ============ ЕЖЕДНЕВНЫЕ ЗАДАНИЯ ============
         async function loadDailyDataFromDB() { try { if (!MY_ID || MY_ID === 999999) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: result[0].collected_cards || [] }; } return null; } catch(e) { return null; } }
         async function saveDailyDataToDB(data) { try { if (!MY_ID || MY_ID === 999999) return; var existing = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, streak: data.streak || 0, last_claim_date: data.lastClaimDate || null, collected_cards: data.collectedCards || [], updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('daily_tasks', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('daily_tasks', 'POST', [payload]); } catch(e) {} }
@@ -522,7 +597,7 @@
         function getTodayDate() { var d = new Date(); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
         function getDailyReward(day) { return (day + 1) * 100; }
         
-        async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); await updateUserBalance(reward); data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
+        async function claimDailyCard(cardIndex) { var today = getTodayDate(); var data = await getDailyData(); if (isSameUTCDate(data.lastClaimDate, today)) { alert('Вы уже открыли карточку сегодня!'); return; } var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; } if (data.streak !== cardIndex) { alert('Открывайте карточки по порядку!'); return; } var reward = getDailyReward(cardIndex); await updateBalanceOnly(MY_ID, reward); data.streak = cardIndex + 1; data.lastClaimDate = today; if (!data.collectedCards) data.collectedCards = []; data.collectedCards.push(cardIndex); saveDailyData(data); await updateBalanceDisplay(); var cardEl = document.querySelector('.daily-card[data-index="' + cardIndex + '"] .daily-card-inner'); if (cardEl) { cardEl.classList.add('flipped'); playFlipCardSound(); } setTimeout(async function() { await renderDailyCards(); alert('✅ +' + reward + ' Spike получено!'); }, 700); }
         
         async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
         
@@ -575,6 +650,8 @@
         function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
         function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
         
+        function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
+        
         function showScreen(name) { 
             var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
             screens.forEach(function(id) { 
@@ -607,47 +684,6 @@
             if (name === 'skins') renderSkins(); 
         }
         
-        function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
-        
-        // ============ ОБНОВЛЕНИЕ СТАТИСТИКИ С ЗАЩИТОЙ ОТ ДУБЛЕЙ ============
-        async function updateStats() { 
-            if (isUpdatingStats) {
-                console.log('[STATS] Already updating, skipping');
-                return;
-            }
-            
-            var now = Date.now();
-            if (now - lastStatsUpdate < STATS_UPDATE_DELAY) {
-                console.log('[STATS] Too frequent, skipping');
-                return;
-            }
-            
-            isUpdatingStats = true;
-            
-            try { 
-                if (!MY_ID || MY_ID === 999999) return; 
-                var data = await db('users', 'GET', null, '?select=wins,losses&id=eq.' + MY_ID, false); 
-                var wins = data[0] ? (data[0].wins || 0) : 0; 
-                var losses = data[0] ? (data[0].losses || 0) : 0; 
-                currentWins = wins; 
-                var totalGames = wins + losses;
-                document.getElementById('statWins').textContent = wins; 
-                document.getElementById('statGames').textContent = totalGames; 
-                document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); 
-                var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); 
-                document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); 
-                updateHeroImage(); 
-                console.log('[STATS] Wins:', wins, 'Losses:', losses, 'Total:', totalGames);
-                lastStatsUpdate = Date.now();
-            } catch(e) { 
-                console.error(e); 
-            } finally {
-                setTimeout(function() {
-                    isUpdatingStats = false;
-                }, 500);
-            } 
-        }
-        
         // ============ СКИНЫ ============
         function renderSkins() { var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; SKINS.forEach(function(s, i) { var owned = isSkinOwned(s.id); var equipped = currentSkin === s.id; var canBuy = !owned && currentBalance >= s.price; var el = document.createElement('div'); el.className = 'room-card' + (equipped ? ' equipped' : ''); el.onclick = function() { openSkinModal(s); }; var btnHtml = ''; if (equipped) { btnHtml = '<button class="room-btn equipped">Надето</button>'; } else if (owned) { btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + escapeHtml(s.id) + '\')">Надеть</button>'; } else { if (canBuy) { btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + escapeHtml(s.id) + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; } else { btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; } } el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div>' + '<div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div>' + '<div class="room-info"><div class="skin-card-name">' + escapeHtml(getSkinNameById(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; c.appendChild(el); }); }
         
@@ -655,9 +691,9 @@
         function closeSkinModal(e) { if (!e || e.target.id === 'skinModal' || e.target.className === 'skin-modal-close') { document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); } }
         function handleSkinAction() { if (!currentModalSkin) return; if (currentSkin === currentModalSkin.id) return; if (isSkinOwned(currentModalSkin.id)) equipSkin(currentModalSkin.id); else buySkin(currentModalSkin.id); }
         
-        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } await updateUserBalance(-price); ownedSkins.push(skinId); saveOwnedSkinsLocally(); await saveSkinsToDB(); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
+        async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); updateBalanceDisplay(); return; } await updateBalanceOnly(MY_ID, -price); ownedSkins.push(skinId); saveOwnedSkinsLocally(); await saveSkinsToDB(); await saveGameHistory('lose', 'rock', price); await updateBalanceDisplay(); renderSkins(); var s = SKINS.find(function(s) { return s.id === skinId; }); if (s) openSkinModal(s); playBuySound(); alert('✅ Скин "' + getSkinNameById(skinId) + '" куплен!'); }
         
-        async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; try { localStorage.setItem('echidna_selected_skin', id); } catch(e) {} await saveSkinsToDB(); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); }
+        async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; try { localStorage.setItem('echidna_selected_skin', id); } catch(e) {} await saveSkinsToDB(); scheduleStatsUpdate(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); }
         
         // ============ КОМНАТЫ И СТАВКИ ============
         async function canCreateRoom() { try { var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10'); var activeRooms = Array.isArray(myRooms) ? myRooms.filter(function(r) { return r.status !== 'finished'; }) : []; if (activeRooms.length >= 5) { playErrorSound(); alert('❌ У вас уже есть 5 активных комнат!'); return false; } return true; } catch(e) { console.error('Check rooms limit error:', e); return true; } }
@@ -813,7 +849,7 @@
         
         function startTimer(startTime) { if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); var timeLimit = 30000; var timerBar = document.getElementById('timerBar'); var timerText = document.getElementById('timerText'); activeIntervals.timerInterval = setInterval(function() { if (!window._timerRunning) return; var elapsed = Date.now() - startTime; var remaining = Math.max(0, timeLimit - elapsed); timerBar.style.width = (remaining / timeLimit) * 100 + '%'; timerText.textContent = Math.ceil(remaining / 1000) + 's'; if (remaining < 10000) timerBar.classList.add('urgent'); if (remaining <= 0) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; window._timerRunning = false; handleTimeout(); } }, 1000); }
         
-        async function handleTimeout() { if (!currentRoom || isGameFinished) return; var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (!currentRoom[myCol]) { isGameFinished = true; clearAllIntervals(); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?id=eq.' + opponentId); }).catch(console.warn); db('users', 'PATCH', { losses: (currentWins || 0) + 1 }, '?id=eq.' + MY_ID).catch(console.warn); document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); } }
+        async function handleTimeout() { if (!currentRoom || isGameFinished) return; var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (!currentRoom[myCol]) { isGameFinished = true; clearAllIntervals(); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; await updateWinsOnly(opponentId); await updateLossesOnly(MY_ID); await updateBalanceOnly(opponentId, currentRoom.stake); await updateBalanceOnly(MY_ID, -currentRoom.stake); document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; scheduleStatsUpdate(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); } }
         
         function startPolling() { 
             clearAllIntervals(); 
@@ -883,38 +919,9 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ============
-        async function updatePlayerStats(playerId, isWinner, stakeAmount) {
-            if (!playerId) return;
-            try {
-                if (isWinner) {
-                    // Победа: +1 к победам, +ставка к балансу
-                    var userData = await db('users', 'GET', null, '?select=wins,balance&id=eq.' + playerId, true);
-                    var newWins = (userData?.wins || 0) + 1;
-                    var newBalance = (userData?.balance || 1000) + stakeAmount;
-                    await db('users', 'PATCH', { wins: newWins, balance: newBalance }, '?id=eq.' + playerId);
-                    if (Number(playerId) === MY_ID) {
-                        currentBalance = newBalance;
-                    }
-                    console.log('[STATS] Player', playerId, 'WIN! Wins:', newWins, 'Balance:', newBalance);
-                } else {
-                    // Поражение: +1 к поражениям, -ставка от баланса
-                    var userData = await db('users', 'GET', null, '?select=losses,balance&id=eq.' + playerId, true);
-                    var newLosses = (userData?.losses || 0) + 1;
-                    var newBalance = (userData?.balance || 1000) - stakeAmount;
-                    await db('users', 'PATCH', { losses: newLosses, balance: newBalance }, '?id=eq.' + playerId);
-                    if (Number(playerId) === MY_ID) {
-                        currentBalance = newBalance;
-                    }
-                    console.log('[STATS] Player', playerId, 'LOSS! Losses:', newLosses, 'Balance:', newBalance);
-                }
-            } catch(e) {
-                console.error('Failed to update player stats:', e);
-            }
-        }
-        
         // ============ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ГЛАВНАЯ) ============
         async function showRevealAnimation(room) { 
+            // 1. Сразу устанавливаем флаги, чтобы предотвратить повторные вызовы
             if (isProcessingGame || processedGames[room.id]) {
                 console.log('[GAME] Already processing or processed, skipping');
                 return;
@@ -925,6 +932,7 @@
             
             console.log('[GAME] Processing game result for room:', room.id);
             
+            // Показываем анимацию
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
             var isCreator = String(room.creator_tg_id) === String(MY_ID); 
@@ -985,29 +993,32 @@
             var creatorId = room.creator_tg_id;
             var opponentId = room.opponent_tg_id;
             
-            // ОБНОВЛЯЕМ СТАТИСТИКУ ДЛЯ ОБОИХ ИГРОКОВ
+            // 2. ОБНОВЛЯЕМ ДАННЫЕ ПОБЕДИТЕЛЯ И ПРОИГРАВШЕГО (атомарно, раздельно)
             if (!isDraw && winnerId) {
-                // Победитель
-                await updatePlayerStats(winnerId, true, stakeAmount);
-                // Проигравший
+                // Победитель: +1 победа, +ставка к балансу
+                await updateWinsOnly(winnerId);
+                await updateBalanceOnly(winnerId, stakeAmount);
+                
+                // Проигравший: +1 поражение, -ставка от баланса
                 var loserId = winnerId === creatorId ? opponentId : creatorId;
                 if (loserId) {
-                    await updatePlayerStats(loserId, false, stakeAmount);
+                    await updateLossesOnly(loserId);
+                    await updateBalanceOnly(loserId, -stakeAmount);
                 }
                 console.log('[GAME] Winner:', winnerId, 'Loser:', loserId);
             } else if (isDraw) {
                 console.log('[GAME] Draw! No stats changes');
             }
             
-            // Сохраняем историю для текущего игрока
+            // Сохраняем историю
             var resultForHistory = isWin ? 'win' : (isDraw ? 'draw' : 'lose');
             await saveGameHistory(resultForHistory, myMove);
             
             // Закрываем комнату
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             
-            // Обновляем отображение
-            await updateStats();
+            // 3. ОБНОВЛЯЕМ ОТОБРАЖЕНИЕ (с debounce, чтобы избежать дублей)
+            scheduleStatsUpdate();
             await updateBalanceDisplay();
             
             var countdown = 3; 
