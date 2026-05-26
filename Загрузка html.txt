@@ -1,0 +1,11 @@
+# 1. Перейди в папку
+cd "C:\Users\genex\OneDrive\Рабочий стол\Ekhidna-Game V2.0"
+
+# 2. Добавь ТОЛЬКО изменённый файл
+git add index.html
+
+# 3. Сохрани изменения
+git commit -m "Update index.html"
+
+# 4. Отправь на GitHub (в ветку main!)
+git push origin main
