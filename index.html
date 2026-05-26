@@ -329,7 +329,7 @@
         var isProcessingGame = false;
         var isUpdatingStats = false;
         var lastStatsUpdate = 0;
-        var STATS_UPDATE_DELAY = 1000;
+        var STATS_UPDATE_DELAY = 2000;
         
         var requestCount = {};
         var RATE_LIMIT = 100;
@@ -355,6 +355,16 @@
         function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
         
         function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+        
+        // ============ ФОРМАТИРОВАНИЕ ЧИСЕЛ ============
+        function formatCompactNumber(num) { 
+            if (num === null || num === undefined) return '0'; 
+            var absNum = Math.abs(num); 
+            var sign = num < 0 ? '-' : ''; 
+            if (absNum >= 1000000) return sign + (absNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'; 
+            if (absNum >= 1000) return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, '') + 'K'; 
+            return sign + Math.round(absNum).toString(); 
+        }
         
         // ============ БЕЗОПАСНОСТЬ ============
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
@@ -457,7 +467,6 @@
         
         var selectedStake = 10; var currentRoom = null; var isGameFinished = false; var currentWins = 0; var currentBalance = 0; window.roomExpiry = {}; window._lastStatsUpdate = 0;
         
-        function formatCompactNumber(num) { if (num === null || num === undefined) return '0'; var absNum = Math.abs(num); var sign = num < 0 ? '-' : ''; if (absNum >= 1000000000000) return sign + (absNum / 1000000000000).toFixed(1).replace(/\.0$/, '') + 'T'; if (absNum >= 1000000000) return sign + (absNum / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B'; if (absNum >= 1000000) return sign + (absNum / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'; if (absNum >= 1000) return sign + (absNum / 1000).toFixed(1).replace(/\.0$/, '') + 'K'; return sign + Math.round(absNum).toString(); }
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
@@ -600,7 +609,7 @@
         
         function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
         
-        // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ UPDATE STATS (с защитой от дублей) ============
+        // ============ ОБНОВЛЕНИЕ СТАТИСТИКИ С ЗАЩИТОЙ ОТ ДУБЛЕЙ ============
         async function updateStats() { 
             if (isUpdatingStats) {
                 console.log('[STATS] Already updating, skipping');
@@ -633,7 +642,9 @@
             } catch(e) { 
                 console.error(e); 
             } finally {
-                isUpdatingStats = false;
+                setTimeout(function() {
+                    isUpdatingStats = false;
+                }, 500);
             } 
         }
         
@@ -872,7 +883,37 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        // ============ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ОСНОВНАЯ) ============
+        // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ============
+        async function updatePlayerStats(playerId, isWinner, stakeAmount) {
+            if (!playerId) return;
+            try {
+                if (isWinner) {
+                    // Победа: +1 к победам, +ставка к балансу
+                    var userData = await db('users', 'GET', null, '?select=wins,balance&id=eq.' + playerId, true);
+                    var newWins = (userData?.wins || 0) + 1;
+                    var newBalance = (userData?.balance || 1000) + stakeAmount;
+                    await db('users', 'PATCH', { wins: newWins, balance: newBalance }, '?id=eq.' + playerId);
+                    if (Number(playerId) === MY_ID) {
+                        currentBalance = newBalance;
+                    }
+                    console.log('[STATS] Player', playerId, 'WIN! Wins:', newWins, 'Balance:', newBalance);
+                } else {
+                    // Поражение: +1 к поражениям, -ставка от баланса
+                    var userData = await db('users', 'GET', null, '?select=losses,balance&id=eq.' + playerId, true);
+                    var newLosses = (userData?.losses || 0) + 1;
+                    var newBalance = (userData?.balance || 1000) - stakeAmount;
+                    await db('users', 'PATCH', { losses: newLosses, balance: newBalance }, '?id=eq.' + playerId);
+                    if (Number(playerId) === MY_ID) {
+                        currentBalance = newBalance;
+                    }
+                    console.log('[STATS] Player', playerId, 'LOSS! Losses:', newLosses, 'Balance:', newBalance);
+                }
+            } catch(e) {
+                console.error('Failed to update player stats:', e);
+            }
+        }
+        
+        // ============ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ГЛАВНАЯ) ============
         async function showRevealAnimation(room) { 
             if (isProcessingGame || processedGames[room.id]) {
                 console.log('[GAME] Already processing or processed, skipping');
@@ -940,42 +981,32 @@
             } 
             
             var stakeAmount = room.stake || 10;
+            var winnerId = result.winnerId;
+            var creatorId = room.creator_tg_id;
+            var opponentId = room.opponent_tg_id;
             
-            if (result.winnerId === MY_ID) {
-                await updateUserBalance(stakeAmount);
-                var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
-                var newWins = (userData?.wins || 0) + 1;
-                await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + MY_ID);
-                console.log('[GAME] Win! Balance +' + stakeAmount + ', Wins: ' + newWins);
-                
-                var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
-                if (opponentId) {
-                    var oppData = await db('users', 'GET', null, '?select=losses&id=eq.' + opponentId, true);
-                    var newOppLosses = (oppData?.losses || 0) + 1;
-                    await db('users', 'PATCH', { losses: newOppLosses }, '?id=eq.' + opponentId);
+            // ОБНОВЛЯЕМ СТАТИСТИКУ ДЛЯ ОБОИХ ИГРОКОВ
+            if (!isDraw && winnerId) {
+                // Победитель
+                await updatePlayerStats(winnerId, true, stakeAmount);
+                // Проигравший
+                var loserId = winnerId === creatorId ? opponentId : creatorId;
+                if (loserId) {
+                    await updatePlayerStats(loserId, false, stakeAmount);
                 }
-            } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
-                await updateUserBalance(-stakeAmount);
-                var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + MY_ID, true);
-                var newLosses = (userData?.losses || 0) + 1;
-                await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + MY_ID);
-                console.log('[GAME] Lose! Balance -' + stakeAmount + ', Losses: ' + newLosses);
-                
-                var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
-                if (opponentId) {
-                    var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
-                    var newOppWins = (oppData?.wins || 0) + 1;
-                    await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
-                }
-            } else {
-                console.log('[GAME] Draw! No changes');
+                console.log('[GAME] Winner:', winnerId, 'Loser:', loserId);
+            } else if (isDraw) {
+                console.log('[GAME] Draw! No stats changes');
             }
             
+            // Сохраняем историю для текущего игрока
             var resultForHistory = isWin ? 'win' : (isDraw ? 'draw' : 'lose');
             await saveGameHistory(resultForHistory, myMove);
+            
+            // Закрываем комнату
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             
-            // Обновляем отображение только один раз
+            // Обновляем отображение
             await updateStats();
             await updateBalanceDisplay();
             
@@ -992,7 +1023,6 @@
                     confetti.classList.add('hidden'); 
                     isProcessingGame = false;
                     closeRoomsScreen();
-                    // Показываем лобби без повторного обновления статистики
                     var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
                     screens.forEach(function(id) { 
                         var el = document.getElementById(id); 
