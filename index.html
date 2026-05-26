@@ -25,7 +25,7 @@
         .stat-value { font-size: 24px; font-weight: 800; color: var(--primary); }
         .stat-label { font-size: 11px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
         .skin-badge-small { display: inline-block; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
-        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
         .btn-create { background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); border: 1px solid rgba(255,255,255,0.2); }
         .btn-open-rooms { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); color: var(--primary); font-size: 16px; font-weight: 700; text-transform: none; }
         .btn-create:active, .btn-open-rooms:active { transform: scale(0.97); opacity: 0.8; }
@@ -38,7 +38,7 @@
         .section-title { font-size: 13px; color: var(--sec); margin: 18px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
         .search-input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); color: var(--text); font-size: 12px; outline: none; box-sizing: border-box; }
         .search-input:focus { border-color: var(--primary); }
-        .room-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
+        .room-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; }
         .room-card:active { transform: scale(0.98); background: rgba(31,31,53,0.8); }
         .room-card.my-room { border-left: 3px solid var(--success); }
         .room-card.equipped { border: 2px solid var(--gold); }
@@ -49,7 +49,7 @@
         .room-stake { font-weight: 700; color: var(--gold); display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 13px; }
         .room-creator { font-size: 11px; color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .room-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .room-btn { padding: 6px 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 11px; white-space: nowrap; }
+        .room-btn { padding: 6px 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 11px; white-space: nowrap; }
         .room-btn.join { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
         .room-btn.cancel { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
         .room-btn.buy { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
@@ -114,7 +114,7 @@
         .loader { text-align: center; padding: 30px; color: var(--sec); min-height: 60px; }
         .spinner { border: 3px solid rgba(51,65,85,0.3); border-top-color: var(--primary); border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(26,26,46,0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(26,26,46,0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; transition: opacity 0.3s, pointer-events 0.3s; }
         .bottom-nav.disabled { opacity: 0.4; pointer-events: none; }
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--sec); font-size: 10px; cursor: pointer; padding: 5px 0; transition: all 0.2s; }
         .nav-btn.active { color: var(--primary); }
@@ -326,12 +326,19 @@
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
+        var isProcessingGame = false;
+        var isUpdatingStats = false;
+        var lastStatsUpdate = 0;
+        var STATS_UPDATE_DELAY = 1000;
         
         var requestCount = {};
-        var RATE_LIMIT = 30;
+        var RATE_LIMIT = 100;
         
         var leaderboardCache = { data: null, timestamp: 0 };
         var CACHE_TTL = 60000;
+        
+        var welcomeMessageShown = false;
+        var processedGames = {};
         
         // ============ ФУНКЦИИ ЗВУКА ============
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
@@ -347,38 +354,44 @@
         function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
         function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
         
+        function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+        
         // ============ БЕЗОПАСНОСТЬ ============
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
         // ============ БАЗА ДАННЫХ ============
         async function db(table, method, payload, filters, single) { 
-            if (!navigator.onLine) { throw new Error('Нет соединения с интернетом'); }
-            
-            if (MY_ID) {
-                var now = Date.now();
-                var minuteKey = Math.floor(now / 60000);
-                var key = MY_ID + '_' + minuteKey;
-                if (!requestCount[key]) requestCount[key] = 0;
-                requestCount[key]++;
-                if (requestCount[key] > RATE_LIMIT) {
-                    throw new Error('Слишком много запросов. Подождите немного.');
-                }
-                setTimeout(function() { 
-                    if (requestCount[key]) requestCount[key]--;
-                }, 60000);
+            if (!navigator.onLine) { 
+                throw new Error('Нет соединения с интернетом'); 
             }
             
-            payload = payload || null; filters = filters || ''; single = single || false; 
+            payload = payload || null; 
+            filters = filters || ''; 
+            single = single || false; 
             var safeFilters = sanitizeFilter(filters); 
             var url = SUPABASE_URL + '/rest/v1/' + table + safeFilters; 
-            var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' }; 
+            var headers = { 
+                'apikey': SUPABASE_ANON_KEY, 
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json' 
+            }; 
             if (method === 'POST') headers['Prefer'] = 'return=representation'; 
             else if (method === 'DELETE') headers['Prefer'] = 'return=minimal'; 
             else if (method === 'PATCH') headers['Prefer'] = 'return=representation'; 
+            
             try { 
-                var response = await fetch(url, { method: method, headers: headers, body: payload ? JSON.stringify(payload) : null, cache: 'no-store' }); 
-                if (!response.ok) { var errorText = await response.text(); throw new Error(response.status + ' ' + errorText); } 
+                var response = await fetch(url, { 
+                    method: method, 
+                    headers: headers, 
+                    body: payload ? JSON.stringify(payload) : null, 
+                    cache: 'no-store' 
+                }); 
+                if (!response.ok) { 
+                    var errorText = await response.text(); 
+                    throw new Error(response.status + ' ' + errorText); 
+                } 
                 if (method === 'DELETE') return true; 
                 var responseData = await response.json(); 
                 return single && Array.isArray(responseData) ? responseData[0] : responseData; 
@@ -448,9 +461,9 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (ИСПРАВЛЕНО) ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ ============
         async function updateUserBalance(amountChange) {
-            if (!MY_ID || MY_ID === 999999) return;
+            if (!MY_ID || MY_ID === 999999) return false;
             try {
                 var userData = await db('users', 'GET', null, '?id=eq.' + MY_ID + '&select=balance', true);
                 var currentBalanceDB = userData ? (userData.balance || 1000) : 1000;
@@ -458,9 +471,11 @@
                 await db('users', 'PATCH', { balance: newBalance }, '?id=eq.' + MY_ID);
                 currentBalance = newBalance;
                 await updateBalanceDisplay();
-                console.log('[BALANCE] Updated:', currentBalanceDB, '->', newBalance);
+                console.log('[BALANCE] Updated:', currentBalanceDB, '->', newBalance, 'Change:', amountChange);
+                return true;
             } catch(e) {
                 console.error('Failed to update user balance:', e);
+                return false;
             }
         }
         
@@ -471,9 +486,7 @@
                 return userData ? (userData.balance || 1000) : 1000;
             } catch(e) {
                 console.error('Failed to get user balance:', e);
-                // Если ошибка, пробуем получить из localStorage как fallback
-                var savedBalance = localStorage.getItem('echidna_balance_' + MY_ID);
-                return savedBalance ? parseInt(savedBalance) : 1000;
+                return 1000;
             }
         }
         
@@ -485,7 +498,6 @@
                     el.textContent = formatCompactNumber(currentBalance); 
                     el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)'; 
                 } 
-                // Сохраняем в localStorage как резервную копию
                 localStorage.setItem('echidna_balance_' + MY_ID, currentBalance);
             } catch(e) { 
                 console.error('Balance update error:', e); 
@@ -505,19 +517,18 @@
         
         async function renderDailyCards() { var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); if (!grid || !streakNum) return; var data = await getDailyData(); var today = getTodayDate(); var yesterday = new Date(); yesterday.setUTCDate(yesterday.getUTCDate() - 1); var yesterdayStr = yesterday.getUTCFullYear() + '-' + String(yesterday.getUTCMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getUTCDate()).padStart(2, '0'); if (data.lastClaimDate && !isSameUTCDate(data.lastClaimDate, today) && !isSameUTCDate(data.lastClaimDate, yesterdayStr)) { data.streak = 0; data.collectedCards = []; saveDailyData(data); } streakNum.textContent = data.streak || 0; grid.innerHTML = ''; for (var i = 0; i < 9; i++) { var reward = getDailyReward(i); var isCollected = data.collectedCards && data.collectedCards.indexOf(i) !== -1; var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, today)); var isLocked = !isCollected && !isToday; var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i)); var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png'; var lockIcon = isLocked ? ' 🔒' : ''; front.innerHTML = '<img class="card-cover" src="' + escapeHtml(cardImgUrl) + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : ('#' + (i + 1))) + escapeHtml(lockIcon) + '</div></div>'; var back = document.createElement('div'); back.className = 'daily-card-back'; back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' + '<div class="reward-amount">+' + reward + '</div>'; inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner); if (isToday) { wrapper.addEventListener('click', (function(index) { return function() { var innerEl = wrapper.querySelector('.daily-card-inner'); if (!innerEl.classList.contains('flipped')) { claimDailyCard(index); } }; })(i)); } grid.appendChild(wrapper); } }
         
-        // ============ ПОЛЬЗОВАТЕЛИ (ИСПРАВЛЕНО - не создаём дубликаты) ============
+        // ============ ПОЛЬЗОВАТЕЛИ ============
         var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null; 
         async function ensureUserExists(userId, username) { 
             try { 
-                // Сначала пытаемся найти пользователя по ID
                 var existing = await db('users', 'GET', null, '?id=eq.' + userId + '&limit=1'); 
+                var isNewUser = false;
+                
                 if (!existing || existing.length === 0) {
-                    // Если не нашли, проверяем по username
                     existing = await db('users', 'GET', null, '?username=eq.' + escapeHtml(username) + '&limit=1');
                 }
                 
                 if (!existing || existing.length === 0) { 
-                    // Создаём нового пользователя только если его нет
                     await db('users', 'POST', [{ 
                         id: userId, 
                         username: escapeHtml(username || 'User_' + userId), 
@@ -527,9 +538,16 @@
                     }]); 
                     console.log('[USER] New user created with 1000 Spike bonus');
                     currentBalance = 1000;
+                    isNewUser = true;
+                    
+                    if (!welcomeMessageShown) {
+                        welcomeMessageShown = true;
+                        setTimeout(function() {
+                            alert('🎉 Добро пожаловать в Echidna Naklz!\n\n💎 Вам начислено 1000 Spike для старта!\n\n🔥 Удачи в победах!');
+                        }, 500);
+                    }
                 } else {
                     currentBalance = existing[0].balance || 1000;
-                    // Обновляем username если изменился
                     if (existing[0].username !== username && username) {
                         await db('users', 'PATCH', { username: escapeHtml(username) }, '?id=eq.' + existing[0].id);
                     }
@@ -548,26 +566,74 @@
         function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
         function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
         
-        function showScreen(name) { var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; document.querySelectorAll('.nav-btn').forEach(function(b, i) { b.classList.toggle('active', navOrder[i] === name); }); clearAllIntervals(); if (name === 'lobby') { currentRoom = null; isGameFinished = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 3000); loadRooms(); updateStats(); updateBalanceDisplay(); updateHeroImage(); } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 100); } else if (name === 'stats') { loadStats(); } else if (name === 'leaderboard') { loadLeaderboard(); } if (name === 'skins') renderSkins(); }
+        function showScreen(name) { 
+            var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
+            screens.forEach(function(id) { 
+                var el = document.getElementById(id); 
+                if (el) el.classList.add('hidden'); 
+            }); 
+            var target = document.getElementById(name + 'Screen'); 
+            if (target) target.classList.remove('hidden'); 
+            var navOrder = ['lobby', 'tasks', 'stats', 'skins', 'leaderboard']; 
+            document.querySelectorAll('.nav-btn').forEach(function(b, i) { 
+                b.classList.toggle('active', navOrder[i] === name); 
+            }); 
+            clearAllIntervals(); 
+            if (name === 'lobby') { 
+                currentRoom = null; 
+                isGameFinished = false; 
+                isProcessingGame = false; 
+                activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
+                loadRooms(); 
+                updateBalanceDisplay(); 
+                updateStats();
+                updateHeroImage(); 
+            } else if (name === 'tasks') { 
+                setTimeout(function() { renderDailyCards(); }, 100); 
+            } else if (name === 'stats') { 
+                loadStats(); 
+            } else if (name === 'leaderboard') { 
+                loadLeaderboard(); 
+            } 
+            if (name === 'skins') renderSkins(); 
+        }
         
         function updateHeroImage() { var heroImg = document.getElementById('heroEchidnaImg'); if (heroImg) { heroImg.src = getSkinImg(currentSkin); } }
-        function forceExitToLobby() { isGameFinished = true; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); updateBalanceDisplay(); showScreen('lobby'); }
         
+        // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ UPDATE STATS (с защитой от дублей) ============
         async function updateStats() { 
+            if (isUpdatingStats) {
+                console.log('[STATS] Already updating, skipping');
+                return;
+            }
+            
+            var now = Date.now();
+            if (now - lastStatsUpdate < STATS_UPDATE_DELAY) {
+                console.log('[STATS] Too frequent, skipping');
+                return;
+            }
+            
+            isUpdatingStats = true;
+            
             try { 
                 if (!MY_ID || MY_ID === 999999) return; 
                 var data = await db('users', 'GET', null, '?select=wins,losses&id=eq.' + MY_ID, false); 
                 var wins = data[0] ? (data[0].wins || 0) : 0; 
                 var losses = data[0] ? (data[0].losses || 0) : 0; 
                 currentWins = wins; 
+                var totalGames = wins + losses;
                 document.getElementById('statWins').textContent = wins; 
-                document.getElementById('statGames').textContent = wins + losses; 
+                document.getElementById('statGames').textContent = totalGames; 
                 document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); 
                 var skinIndex = SKINS.findIndex(function(s) { return s.id === currentSkin; }); 
                 document.getElementById('statSkinBadge').textContent = '#' + (skinIndex + 1); 
                 updateHeroImage(); 
+                console.log('[STATS] Wins:', wins, 'Losses:', losses, 'Total:', totalGames);
+                lastStatsUpdate = Date.now();
             } catch(e) { 
                 console.error(e); 
+            } finally {
+                isUpdatingStats = false;
             } 
         }
         
@@ -650,16 +716,42 @@
         async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
         
         async function joinRoom(roomId, btnElement) { 
-            if (isJoiningRoom) return;
+            if (isJoiningRoom) {
+                console.log('[JOIN] Already joining a room');
+                return;
+            }
             isJoiningRoom = true;
             if (!btnElement) return; 
+            
             btnElement.disabled = true; 
-            btnElement.textContent = '⏳'; 
+            btnElement.textContent = '⏳';
+            
+            console.log('[JOIN] Attempting to join room:', roomId);
+            
             try { 
                 var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), false); 
-                if (!roomData || !roomData.length) throw new Error('Комната занята'); 
+                console.log('[JOIN] Room data:', roomData);
+                
+                if (!roomData || !roomData.length) throw new Error('Комната не найдена'); 
                 var room = roomData[0]; 
-                if (Number(room.creator_tg_id) === MY_ID || Number(room.opponent_tg_id) === MY_ID) { resumeRoom(roomId); return; } 
+                
+                if (Number(room.creator_tg_id) === MY_ID) {
+                    console.log('[JOIN] User is creator, resuming room');
+                    resumeRoom(roomId); 
+                    return; 
+                }
+                
+                if (Number(room.opponent_tg_id) === MY_ID) {
+                    console.log('[JOIN] User already joined, resuming room');
+                    resumeRoom(roomId); 
+                    return;
+                }
+                
+                if (room.status !== 'waiting') {
+                    console.log('[JOIN] Room status is not waiting:', room.status);
+                    throw new Error('Комната уже занята или игра началась');
+                }
+                
                 if (room.room_password) { 
                     var pwd = prompt('🔒 Комната защищена паролем.\nВведите пароль:'); 
                     if (pwd !== room.room_password) { 
@@ -670,21 +762,35 @@
                         return; 
                     } 
                 } 
+                
                 await ensureUserExists(MY_ID, user.username); 
-                var res = await db('rooms', 'PATCH', { opponent_tg_id: MY_ID, opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' }, '?id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); 
-                if (!res) throw new Error('Ошибка'); 
+                
+                console.log('[JOIN] Updating room with opponent:', MY_ID);
+                var res = await db('rooms', 'PATCH', { 
+                    opponent_tg_id: MY_ID, 
+                    opponent_username: escapeHtml(user.username || 'Anonymous'), 
+                    status: 'playing' 
+                }, '?id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); 
+                
+                if (!res) throw new Error('Не удалось присоединиться к комнате'); 
+                
+                console.log('[JOIN] Successfully joined, room:', res);
                 currentRoom = res; 
                 showGameScreen(); 
                 startPolling(); 
                 loadRooms(); 
                 closeRoomsScreen(); 
             } catch(e) { 
+                console.error('[JOIN] Error:', e);
                 playErrorSound(); 
                 alert('Ошибка: ' + e.message); 
-                if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+                if (btnElement) { 
+                    btnElement.disabled = false; 
+                    btnElement.textContent = 'Войти'; 
+                } 
             } finally {
                 isJoiningRoom = false;
-            }
+            } 
         }
         
         // ============ ИГРОВАЯ ЛОГИКА ============
@@ -698,30 +804,232 @@
         
         async function handleTimeout() { if (!currentRoom || isGameFinished) return; var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (!currentRoom[myCol]) { isGameFinished = true; clearAllIntervals(); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?id=eq.' + opponentId); }).catch(console.warn); db('users', 'PATCH', { losses: (currentWins || 0) + 1 }, '?id=eq.' + MY_ID).catch(console.warn); document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); } }
         
-        function startPolling() { clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; activeIntervals.pollInterval = setInterval(async function() { if (!currentRoom || isGameFinished) return; try { var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); var room = res[0]; if (!room) return; if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } currentRoom = room; updateGameStatus(room); renderPlayerStats(); if (room.creator_choice && room.opponent_choice && room.status !== 'finished') { isGameFinished = true; clearAllIntervals(); await showRevealAnimation(room); return; } if (room.status === 'finished') { isGameFinished = true; clearAllIntervals(); showGameResult(room); return; } } catch(e) { console.warn('Poll error:', e); } }, 2000); }
+        function startPolling() { 
+            clearAllIntervals(); 
+            if (!currentRoom) return; 
+            isGameFinished = false; 
+            var opponentJoined = false; 
+            activeIntervals.pollInterval = setInterval(async function() { 
+                if (!currentRoom || isGameFinished) return; 
+                try { 
+                    var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); 
+                    var room = res[0]; 
+                    if (!room) return; 
+                    if (room.opponent_tg_id && !opponentJoined) { 
+                        opponentJoined = true; 
+                        playJoinSound(); 
+                    } 
+                    currentRoom = room; 
+                    updateGameStatus(room); 
+                    renderPlayerStats(); 
+                    
+                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame && !processedGames[room.id]) { 
+                        isGameFinished = true; 
+                        clearAllIntervals(); 
+                        await showRevealAnimation(room); 
+                        return; 
+                    } 
+                    if (room.status === 'finished') { 
+                        isGameFinished = true; 
+                        clearAllIntervals(); 
+                        return; 
+                    } 
+                } catch(e) { 
+                    console.warn('Poll error:', e); 
+                } 
+            }, 3000); 
+        }
         
-        async function makeMove(choice) { if (!currentRoom) { alert('❌ Комната не найдена'); return; } if (!currentRoom.opponent_tg_id) { alert('⚠️ Игра не активна'); return; } var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (currentRoom[col]) return; document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; window._timerRunning = false; if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); document.getElementById('timerText').classList.remove('active'); document.getElementById('timerBarContainer').style.display = 'none'; try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } }
+        async function makeMove(choice) { 
+            if (!currentRoom) { 
+                alert('❌ Комната не найдена'); 
+                return; 
+            } 
+            if (!currentRoom.opponent_tg_id) { 
+                alert('⚠️ Игра не активна'); 
+                return; 
+            } 
+            var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
+            if (currentRoom[col]) return; 
+            
+            document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); 
+            document.getElementById('statusMessage').textContent = '✅ Ход записан'; 
+            window._timerRunning = false; 
+            if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); 
+            document.getElementById('timerText').classList.remove('active'); 
+            document.getElementById('timerBarContainer').style.display = 'none'; 
+            
+            try { 
+                await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); 
+                currentRoom[col] = choice; 
+                console.log('[MOVE] Move recorded:', choice);
+            } catch(e) { 
+                playErrorSound(); 
+                alert('Ошибка: ' + e.message); 
+                document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); 
+            } 
+        }
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        async function showRevealAnimation(room) { var overlay = document.getElementById('revealOverlay'); var confetti = document.getElementById('confettiContainer'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myMove = isCreator ? room.creator_choice : room.opponent_choice; var oppMove = isCreator ? room.opponent_choice : room.creator_choice; document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; overlay.classList.remove('hidden'); confetti.classList.add('hidden'); confetti.innerHTML = ''; document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); var resultEl = document.getElementById('revealResult'); resultEl.className = 'reveal-result'; resultEl.textContent = ''; document.getElementById('revealCountdown').textContent = ''; var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); emDiv.classList.add('hidden'); emImg.src = ''; await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); await sleep(800); var result = calculateWinner(room); var msg = result.msg; var isWin = msg.indexOf('Победа') !== -1; var isDraw = msg.indexOf('Ничья') !== -1; resultEl.textContent = msg; resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); emDiv.classList.remove('hidden'); if (isWin) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; playWinSound(); createConfetti(); } else if (!isDraw) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; playLoseSound(); } else { emDiv.classList.add('hidden'); } var resultForHistory = 'draw'; if (result.winnerId) { resultForHistory = (result.winnerId === MY_ID) ? 'win' : 'lose'; } await saveGameHistory(resultForHistory, myMove); 
-            
-            if (result.winnerId === MY_ID) {
-                await updateUserBalance(room.stake);
-            } else if (result.winnerId !== MY_ID && result.winnerId !== null) {
-                await updateUserBalance(-room.stake);
+        // ============ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ОСНОВНАЯ) ============
+        async function showRevealAnimation(room) { 
+            if (isProcessingGame || processedGames[room.id]) {
+                console.log('[GAME] Already processing or processed, skipping');
+                return;
             }
             
-            var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; var countdownInterval = setInterval(function() { countdown--; if (countdown > 0) countdownEl.textContent = countdown; else { clearInterval(countdownInterval); overlay.classList.add('hidden'); confetti.classList.add('hidden'); updateStats(); updateBalanceDisplay(); forceExitToLobby(); } }, 1000); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id)); var loserId = String(result.winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id; if (result.winnerId) { db('users', 'GET', null, '?select=wins&id=eq.' + result.winnerId, false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?id=eq.' + result.winnerId); }).catch(console.warn); } if (loserId) { db('users', 'GET', null, '?select=losses&id=eq.' + loserId, false).then(function(d) { return db('users', 'PATCH', { losses: ((d[0] && d[0].losses) || 0) + 1 }, '?id=eq.' + loserId); }).catch(console.warn); } }
+            isProcessingGame = true;
+            processedGames[room.id] = true;
+            
+            console.log('[GAME] Processing game result for room:', room.id);
+            
+            var overlay = document.getElementById('revealOverlay'); 
+            var confetti = document.getElementById('confettiContainer'); 
+            var isCreator = String(room.creator_tg_id) === String(MY_ID); 
+            var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
+            var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
+            
+            document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
+            document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
+            document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); 
+            document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); 
+            document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            
+            overlay.classList.remove('hidden'); 
+            confetti.classList.add('hidden'); 
+            confetti.innerHTML = ''; 
+            document.getElementById('card1').classList.remove('flipped'); 
+            document.getElementById('card2').classList.remove('flipped'); 
+            var resultEl = document.getElementById('revealResult'); 
+            resultEl.className = 'reveal-result'; 
+            resultEl.textContent = ''; 
+            document.getElementById('revealCountdown').textContent = ''; 
+            var emDiv = document.getElementById('revealEmotion'); 
+            var emImg = document.getElementById('emotionImg'); 
+            emDiv.classList.add('hidden'); 
+            emImg.src = ''; 
+            
+            await sleep(500); 
+            document.getElementById('card1').classList.add('flipped'); 
+            playFlipCardSound(); 
+            await sleep(1000); 
+            document.getElementById('card2').classList.add('flipped'); 
+            playFlipCardSound(); 
+            await sleep(800); 
+            
+            var result = calculateWinner(room); 
+            var msg = result.msg; 
+            var isWin = msg.indexOf('Победа') !== -1; 
+            var isDraw = msg.indexOf('Ничья') !== -1; 
+            
+            resultEl.textContent = msg; 
+            resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); 
+            emDiv.classList.remove('hidden'); 
+            
+            if (isWin) { 
+                emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; 
+                playWinSound(); 
+                createConfetti(); 
+            } else if (!isDraw) { 
+                emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; 
+                playLoseSound(); 
+            } else { 
+                emDiv.classList.add('hidden'); 
+            } 
+            
+            var stakeAmount = room.stake || 10;
+            
+            if (result.winnerId === MY_ID) {
+                await updateUserBalance(stakeAmount);
+                var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
+                var newWins = (userData?.wins || 0) + 1;
+                await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + MY_ID);
+                console.log('[GAME] Win! Balance +' + stakeAmount + ', Wins: ' + newWins);
+                
+                var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
+                if (opponentId) {
+                    var oppData = await db('users', 'GET', null, '?select=losses&id=eq.' + opponentId, true);
+                    var newOppLosses = (oppData?.losses || 0) + 1;
+                    await db('users', 'PATCH', { losses: newOppLosses }, '?id=eq.' + opponentId);
+                }
+            } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
+                await updateUserBalance(-stakeAmount);
+                var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + MY_ID, true);
+                var newLosses = (userData?.losses || 0) + 1;
+                await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + MY_ID);
+                console.log('[GAME] Lose! Balance -' + stakeAmount + ', Losses: ' + newLosses);
+                
+                var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
+                if (opponentId) {
+                    var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
+                    var newOppWins = (oppData?.wins || 0) + 1;
+                    await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
+                }
+            } else {
+                console.log('[GAME] Draw! No changes');
+            }
+            
+            var resultForHistory = isWin ? 'win' : (isDraw ? 'draw' : 'lose');
+            await saveGameHistory(resultForHistory, myMove);
+            await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+            
+            // Обновляем отображение только один раз
+            await updateStats();
+            await updateBalanceDisplay();
+            
+            var countdown = 3; 
+            var countdownEl = document.getElementById('revealCountdown'); 
+            countdownEl.textContent = countdown; 
+            var countdownInterval = setInterval(function() { 
+                countdown--; 
+                if (countdown > 0) { 
+                    countdownEl.textContent = countdown; 
+                } else { 
+                    clearInterval(countdownInterval); 
+                    overlay.classList.add('hidden'); 
+                    confetti.classList.add('hidden'); 
+                    isProcessingGame = false;
+                    closeRoomsScreen();
+                    // Показываем лобби без повторного обновления статистики
+                    var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
+                    screens.forEach(function(id) { 
+                        var el = document.getElementById(id); 
+                        if (el) el.classList.add('hidden'); 
+                    }); 
+                    document.getElementById('lobbyScreen').classList.remove('hidden');
+                    updateBalanceDisplay();
+                    updateHeroImage();
+                    clearAllIntervals();
+                    activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
+                    loadRooms(); 
+                } 
+            }, 1000); 
+        }
         
-        function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
         function createConfetti() { var container = document.getElementById('confettiContainer'); container.classList.remove('hidden'); container.innerHTML = ''; var colors = ['#6366f1', '#10b981', '#fbbf24', '#ef4444', '#8b5cf6', '#f59e0b']; for (var i = 0; i < 50; i++) { var confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.left = Math.random() * 100 + '%'; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; confetti.style.animationDelay = Math.random() * 2 + 's'; confetti.style.animationDuration = (2 + Math.random() * 2) + 's'; confetti.style.width = (5 + Math.random() * 10) + 'px'; confetti.style.height = (5 + Math.random() * 10) + 'px'; confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0'; container.appendChild(confetti); } }
         
-        function showGameResult(room) { var msg = calculateWinner(room).msg; document.getElementById('statusMessage').innerHTML = '<div style="animation:celebrate 0.5s ease-in-out;font-size:18px;">' + escapeHtml(msg) + '</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); }
+        function showGameResult(room) { 
+            var msg = calculateWinner(room).msg; 
+            document.getElementById('statusMessage').innerHTML = '<div style="animation:celebrate 0.5s ease-in-out;font-size:18px;">' + escapeHtml(msg) + '</div>'; 
+            setTimeout(function() { 
+                showScreen('lobby');
+            }, 3000); 
+        }
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
-        // ============ РЕЙТИНГ (ИСПРАВЛЕНО) ============
+        function forceExitToLobby() { 
+            isGameFinished = true; 
+            currentRoom = null; 
+            clearAllIntervals(); 
+            document.getElementById('revealOverlay').classList.add('hidden'); 
+            document.getElementById('confettiContainer').classList.add('hidden'); 
+            showScreen('lobby'); 
+        }
+        
+        // ============ РЕЙТИНГ ============
         async function loadLeaderboard() { 
             var c = document.getElementById('leaderboardList'); 
             if (!c) return; 
@@ -760,7 +1068,6 @@
                     }
                 }
                 
-                // Если пользователь не найден в рейтинге, добавляем его
                 if (myRank === -1 && MY_ID) {
                     myBalance = await getUserBalanceFromDB();
                     leaderboardData.push({ id: MY_ID, username: user.username, wins: currentWins, balance: myBalance });
