@@ -336,6 +336,9 @@
         
         var welcomeMessageShown = false;
         
+        // Храним ID уже обработанных игр, чтобы избежать дублей
+        var processedGames = {};
+        
         // ============ ФУНКЦИИ ЗВУКА ============
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
         function forceUnlockAudio() { if (!soundsInitialized && audioUnlockAttempts < 5) { audioUnlockAttempts++; initAudio(); try { if (audioCtx && audioCtx.state === 'suspended') { var osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01); soundsInitialized = true; } } catch(e) {} } }
@@ -581,8 +584,8 @@
                 isProcessingGame = false; 
                 activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
                 loadRooms(); 
-                // Не обновляем статистику здесь, чтобы избежать дублей
                 updateBalanceDisplay(); 
+                updateStats();
                 updateHeroImage(); 
             } else if (name === 'tasks') { 
                 setTimeout(function() { renderDailyCards(); }, 100); 
@@ -802,7 +805,7 @@
                     updateGameStatus(room); 
                     renderPlayerStats(); 
                     
-                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame) { 
+                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame && !processedGames[room.id]) { 
                         isGameFinished = true; 
                         clearAllIntervals(); 
                         await showRevealAnimation(room); 
@@ -853,11 +856,15 @@
         
         // ============ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ОСНОВНАЯ) ============
         async function showRevealAnimation(room) { 
-            if (isProcessingGame) {
-                console.log('[GAME] Already processing, skipping');
+            // Проверяем, не обработана ли уже эта игра
+            if (isProcessingGame || processedGames[room.id]) {
+                console.log('[GAME] Already processing or processed, skipping');
                 return;
             }
+            
+            // Отмечаем игру как обрабатываемую
             isProcessingGame = true;
+            processedGames[room.id] = true;
             
             console.log('[GAME] Processing game result for room:', room.id);
             
@@ -979,7 +986,7 @@
                     overlay.classList.add('hidden'); 
                     confetti.classList.add('hidden'); 
                     isProcessingGame = false;
-                    // Просто закрываем анимацию и показываем лобби без обновления статистики
+                    // Закрываем анимацию и показываем лобби
                     closeRoomsScreen();
                     showScreen('lobby');
                 } 
@@ -997,6 +1004,15 @@
         }
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
+        
+        function forceExitToLobby() { 
+            isGameFinished = true; 
+            currentRoom = null; 
+            clearAllIntervals(); 
+            document.getElementById('revealOverlay').classList.add('hidden'); 
+            document.getElementById('confettiContainer').classList.add('hidden'); 
+            showScreen('lobby'); 
+        }
         
         // ============ РЕЙТИНГ ============
         async function loadLeaderboard() { 
