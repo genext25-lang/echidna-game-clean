@@ -456,9 +456,9 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (ИСПРАВЛЕНО) ============
         async function updateUserBalance(amountChange) {
-            if (!MY_ID || MY_ID === 999999) return;
+            if (!MY_ID || MY_ID === 999999) return false;
             try {
                 var userData = await db('users', 'GET', null, '?id=eq.' + MY_ID + '&select=balance', true);
                 var currentBalanceDB = userData ? (userData.balance || 1000) : 1000;
@@ -466,9 +466,11 @@
                 await db('users', 'PATCH', { balance: newBalance }, '?id=eq.' + MY_ID);
                 currentBalance = newBalance;
                 await updateBalanceDisplay();
-                console.log('[BALANCE] Updated:', currentBalanceDB, '->', newBalance);
+                console.log('[BALANCE] Updated:', currentBalanceDB, '->', newBalance, 'Change:', amountChange);
+                return true;
             } catch(e) {
                 console.error('Failed to update user balance:', e);
+                return false;
             }
         }
         
@@ -739,25 +741,145 @@
         
         async function handleTimeout() { if (!currentRoom || isGameFinished) return; var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (!currentRoom[myCol]) { isGameFinished = true; clearAllIntervals(); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?id=eq.' + opponentId); }).catch(console.warn); db('users', 'PATCH', { losses: (currentWins || 0) + 1 }, '?id=eq.' + MY_ID).catch(console.warn); document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); } }
         
-        function startPolling() { clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; activeIntervals.pollInterval = setInterval(async function() { if (!currentRoom || isGameFinished) return; try { var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); var room = res[0]; if (!room) return; if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } currentRoom = room; updateGameStatus(room); renderPlayerStats(); if (room.creator_choice && room.opponent_choice && room.status !== 'finished') { isGameFinished = true; clearAllIntervals(); await showRevealAnimation(room); return; } if (room.status === 'finished') { isGameFinished = true; clearAllIntervals(); showGameResult(room); return; } } catch(e) { console.warn('Poll error:', e); } }, 3000); }
+        function startPolling() { clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; activeIntervals.pollInterval = setInterval(async function() { if (!currentRoom || isGameFinished) return; try { var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); var room = res[0]; if (!room) return; if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } currentRoom = room; updateGameStatus(room); renderPlayerStats(); if (room.creator_choice && room.opponent_choice && room.status !== 'finished') { isGameFinished = true; clearAllIntervals(); await showRevealAnimation(room); return; } if (room.status === 'finished') { isGameFinished = true; clearAllIntervals(); return; } } catch(e) { console.warn('Poll error:', e); } }, 3000); }
         
         async function makeMove(choice) { if (!currentRoom) { alert('❌ Комната не найдена'); return; } if (!currentRoom.opponent_tg_id) { alert('⚠️ Игра не активна'); return; } var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (currentRoom[col]) return; document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; window._timerRunning = false; if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); document.getElementById('timerText').classList.remove('active'); document.getElementById('timerBarContainer').style.display = 'none'; try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } }
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        async function showRevealAnimation(room) { var overlay = document.getElementById('revealOverlay'); var confetti = document.getElementById('confettiContainer'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myMove = isCreator ? room.creator_choice : room.opponent_choice; var oppMove = isCreator ? room.opponent_choice : room.creator_choice; document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; overlay.classList.remove('hidden'); confetti.classList.add('hidden'); confetti.innerHTML = ''; document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); var resultEl = document.getElementById('revealResult'); resultEl.className = 'reveal-result'; resultEl.textContent = ''; document.getElementById('revealCountdown').textContent = ''; var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); emDiv.classList.add('hidden'); emImg.src = ''; await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); await sleep(800); var result = calculateWinner(room); var msg = result.msg; var isWin = msg.indexOf('Победа') !== -1; var isDraw = msg.indexOf('Ничья') !== -1; resultEl.textContent = msg; resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); emDiv.classList.remove('hidden'); if (isWin) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; playWinSound(); createConfetti(); } else if (!isDraw) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; playLoseSound(); } else { emDiv.classList.add('hidden'); } var resultForHistory = 'draw'; if (result.winnerId) { resultForHistory = (result.winnerId === MY_ID) ? 'win' : 'lose'; } await saveGameHistory(resultForHistory, myMove); 
+        // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ showRevealAnimation ============
+        async function showRevealAnimation(room) { 
+            var overlay = document.getElementById('revealOverlay'); 
+            var confetti = document.getElementById('confettiContainer'); 
+            var isCreator = String(room.creator_tg_id) === String(MY_ID); 
+            var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
+            var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
+            
+            document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
+            document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
+            document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); 
+            document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); 
+            document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            
+            overlay.classList.remove('hidden'); 
+            confetti.classList.add('hidden'); 
+            confetti.innerHTML = ''; 
+            document.getElementById('card1').classList.remove('flipped'); 
+            document.getElementById('card2').classList.remove('flipped'); 
+            var resultEl = document.getElementById('revealResult'); 
+            resultEl.className = 'reveal-result'; 
+            resultEl.textContent = ''; 
+            document.getElementById('revealCountdown').textContent = ''; 
+            var emDiv = document.getElementById('revealEmotion'); 
+            var emImg = document.getElementById('emotionImg'); 
+            emDiv.classList.add('hidden'); 
+            emImg.src = ''; 
+            
+            await sleep(500); 
+            document.getElementById('card1').classList.add('flipped'); 
+            playFlipCardSound(); 
+            await sleep(1000); 
+            document.getElementById('card2').classList.add('flipped'); 
+            playFlipCardSound(); 
+            await sleep(800); 
+            
+            var result = calculateWinner(room); 
+            var msg = result.msg; 
+            var isWin = msg.indexOf('Победа') !== -1; 
+            var isDraw = msg.indexOf('Ничья') !== -1; 
+            
+            resultEl.textContent = msg; 
+            resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); 
+            emDiv.classList.remove('hidden'); 
+            
+            if (isWin) { 
+                emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; 
+                playWinSound(); 
+                createConfetti(); 
+            } else if (!isDraw) { 
+                emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; 
+                playLoseSound(); 
+            } else { 
+                emDiv.classList.add('hidden'); 
+            } 
+            
+            // Сохраняем историю игры
+            var resultForHistory = 'draw';
             
             if (result.winnerId === MY_ID) {
+                resultForHistory = 'win';
                 await updateUserBalance(room.stake);
-            } else if (result.winnerId !== MY_ID && result.winnerId !== null) {
+                console.log('[GAME] Win! Balance +', room.stake);
+            } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
+                resultForHistory = 'lose';
                 await updateUserBalance(-room.stake);
+                console.log('[GAME] Lose! Balance -', room.stake);
+            } else {
+                console.log('[GAME] Draw! No balance change');
             }
             
-            var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; var countdownInterval = setInterval(function() { countdown--; if (countdown > 0) countdownEl.textContent = countdown; else { clearInterval(countdownInterval); overlay.classList.add('hidden'); confetti.classList.add('hidden'); updateStats(); updateBalanceDisplay(); forceExitToLobby(); } }, 1000); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id)); var loserId = String(result.winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id; if (result.winnerId) { db('users', 'GET', null, '?select=wins&id=eq.' + result.winnerId, false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?id=eq.' + result.winnerId); }).catch(console.warn); } if (loserId) { db('users', 'GET', null, '?select=losses&id=eq.' + loserId, false).then(function(d) { return db('users', 'PATCH', { losses: ((d[0] && d[0].losses) || 0) + 1 }, '?id=eq.' + loserId); }).catch(console.warn); } }
+            await saveGameHistory(resultForHistory, myMove);
+            
+            // Обновляем статистику побед/поражений в БД (только если не ничья)
+            if (result.winnerId === MY_ID) {
+                var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
+                var newWins = (userData?.wins || 0) + 1;
+                await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + MY_ID);
+                console.log('[GAME] Wins updated:', newWins);
+            } else if (result.winnerId !== null && result.winnerId !== MY_ID) {
+                var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + MY_ID, true);
+                var newLosses = (userData?.losses || 0) + 1;
+                await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + MY_ID);
+                console.log('[GAME] Losses updated:', newLosses);
+            }
+            
+            // Обновляем статистику соперника
+            var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
+            if (opponentId && result.winnerId === opponentId) {
+                var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
+                var newOppWins = (oppData?.wins || 0) + 1;
+                await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
+                console.log('[GAME] Opponent wins updated:', newOppWins);
+            } else if (opponentId && result.winnerId === MY_ID && result.winnerId !== null) {
+                var oppData = await db('users', 'GET', null, '?select=losses&id=eq.' + opponentId, true);
+                var newOppLosses = (oppData?.losses || 0) + 1;
+                await db('users', 'PATCH', { losses: newOppLosses }, '?id=eq.' + opponentId);
+                console.log('[GAME] Opponent losses updated:', newOppLosses);
+            }
+            
+            // Обновляем статус комнаты
+            await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+            
+            // Обновляем отображение на экране
+            await updateStats();
+            await updateBalanceDisplay();
+            
+            var countdown = 3; 
+            var countdownEl = document.getElementById('revealCountdown'); 
+            countdownEl.textContent = countdown; 
+            var countdownInterval = setInterval(function() { 
+                countdown--; 
+                if (countdown > 0) { 
+                    countdownEl.textContent = countdown; 
+                } else { 
+                    clearInterval(countdownInterval); 
+                    overlay.classList.add('hidden'); 
+                    confetti.classList.add('hidden'); 
+                    forceExitToLobby(); 
+                } 
+            }, 1000); 
+        }
         
         function createConfetti() { var container = document.getElementById('confettiContainer'); container.classList.remove('hidden'); container.innerHTML = ''; var colors = ['#6366f1', '#10b981', '#fbbf24', '#ef4444', '#8b5cf6', '#f59e0b']; for (var i = 0; i < 50; i++) { var confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.left = Math.random() * 100 + '%'; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; confetti.style.animationDelay = Math.random() * 2 + 's'; confetti.style.animationDuration = (2 + Math.random() * 2) + 's'; confetti.style.width = (5 + Math.random() * 10) + 'px'; confetti.style.height = (5 + Math.random() * 10) + 'px'; confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0'; container.appendChild(confetti); } }
         
-        function showGameResult(room) { var msg = calculateWinner(room).msg; document.getElementById('statusMessage').innerHTML = '<div style="animation:celebrate 0.5s ease-in-out;font-size:18px;">' + escapeHtml(msg) + '</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); }
+        function showGameResult(room) { 
+            var msg = calculateWinner(room).msg; 
+            document.getElementById('statusMessage').innerHTML = '<div style="animation:celebrate 0.5s ease-in-out;font-size:18px;">' + escapeHtml(msg) + '</div>'; 
+            setTimeout(function() { 
+                forceExitToLobby(); 
+            }, 3000); 
+        }
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
