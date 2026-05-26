@@ -326,12 +326,16 @@
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
+        var isProcessingResult = false;  // Защита от двойной обработки
         
         var requestCount = {};
         var RATE_LIMIT = 100;
         
         var leaderboardCache = { data: null, timestamp: 0 };
         var CACHE_TTL = 60000;
+        
+        // Флаг для показа приветственного сообщения
+        var welcomeMessageShown = false;
         
         // ============ ФУНКЦИИ ЗВУКА ============
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
@@ -456,7 +460,7 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (ИСПРАВЛЕНО) ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ ============
         async function updateUserBalance(amountChange) {
             if (!MY_ID || MY_ID === 999999) return false;
             try {
@@ -517,6 +521,8 @@
         async function ensureUserExists(userId, username) { 
             try { 
                 var existing = await db('users', 'GET', null, '?id=eq.' + userId + '&limit=1'); 
+                var isNewUser = false;
+                
                 if (!existing || existing.length === 0) {
                     existing = await db('users', 'GET', null, '?username=eq.' + escapeHtml(username) + '&limit=1');
                 }
@@ -531,6 +537,15 @@
                     }]); 
                     console.log('[USER] New user created with 1000 Spike bonus');
                     currentBalance = 1000;
+                    isNewUser = true;
+                    
+                    // Показываем приветственное сообщение
+                    if (!welcomeMessageShown) {
+                        welcomeMessageShown = true;
+                        setTimeout(function() {
+                            alert('🎉 Добро пожаловать в Echidna Naklz!\n\n💎 Вам начислено 1000 Spike для старта!\n\n🔥 Удачи в победах!');
+                        }, 500);
+                    }
                 } else {
                     currentBalance = existing[0].balance || 1000;
                     if (existing[0].username !== username && username) {
@@ -741,14 +756,84 @@
         
         async function handleTimeout() { if (!currentRoom || isGameFinished) return; var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (!currentRoom[myCol]) { isGameFinished = true; clearAllIntervals(); await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, false).then(function(d) { return db('users', 'PATCH', { wins: ((d[0] && d[0].wins) || 0) + 1 }, '?id=eq.' + opponentId); }).catch(console.warn); db('users', 'PATCH', { losses: (currentWins || 0) + 1 }, '?id=eq.' + MY_ID).catch(console.warn); document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; updateStats(); updateBalanceDisplay(); setTimeout(function() { forceExitToLobby(); }, 3000); } }
         
-        function startPolling() { clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; activeIntervals.pollInterval = setInterval(async function() { if (!currentRoom || isGameFinished) return; try { var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); var room = res[0]; if (!room) return; if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } currentRoom = room; updateGameStatus(room); renderPlayerStats(); if (room.creator_choice && room.opponent_choice && room.status !== 'finished') { isGameFinished = true; clearAllIntervals(); await showRevealAnimation(room); return; } if (room.status === 'finished') { isGameFinished = true; clearAllIntervals(); return; } } catch(e) { console.warn('Poll error:', e); } }, 3000); }
+        function startPolling() { 
+            clearAllIntervals(); 
+            if (!currentRoom) return; 
+            isGameFinished = false; 
+            var opponentJoined = false; 
+            activeIntervals.pollInterval = setInterval(async function() { 
+                if (!currentRoom || isGameFinished) return; 
+                try { 
+                    var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); 
+                    var room = res[0]; 
+                    if (!room) return; 
+                    if (room.opponent_tg_id && !opponentJoined) { 
+                        opponentJoined = true; 
+                        playJoinSound(); 
+                    } 
+                    currentRoom = room; 
+                    updateGameStatus(room); 
+                    renderPlayerStats(); 
+                    
+                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingResult) { 
+                        isGameFinished = true; 
+                        clearAllIntervals(); 
+                        await showRevealAnimation(room); 
+                        return; 
+                    } 
+                    if (room.status === 'finished' && !isProcessingResult) { 
+                        isGameFinished = true; 
+                        clearAllIntervals(); 
+                        return; 
+                    } 
+                } catch(e) { 
+                    console.warn('Poll error:', e); 
+                } 
+            }, 3000); 
+        }
         
-        async function makeMove(choice) { if (!currentRoom) { alert('❌ Комната не найдена'); return; } if (!currentRoom.opponent_tg_id) { alert('⚠️ Игра не активна'); return; } var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (currentRoom[col]) return; document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; window._timerRunning = false; if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); document.getElementById('timerText').classList.remove('active'); document.getElementById('timerBarContainer').style.display = 'none'; try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } }
+        async function makeMove(choice) { 
+            if (!currentRoom) { 
+                alert('❌ Комната не найдена'); 
+                return; 
+            } 
+            if (!currentRoom.opponent_tg_id) { 
+                alert('⚠️ Игра не активна'); 
+                return; 
+            } 
+            var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
+            if (currentRoom[col]) return; 
+            
+            document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); 
+            document.getElementById('statusMessage').textContent = '✅ Ход записан'; 
+            window._timerRunning = false; 
+            if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); 
+            document.getElementById('timerText').classList.remove('active'); 
+            document.getElementById('timerBarContainer').style.display = 'none'; 
+            
+            try { 
+                await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); 
+                currentRoom[col] = choice; 
+                console.log('[MOVE] Move recorded:', choice);
+            } catch(e) { 
+                playErrorSound(); 
+                alert('Ошибка: ' + e.message); 
+                document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); 
+            } 
+        }
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = getSkinPrice(currentModalSkin && currentModalSkin.id) || 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
         // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ showRevealAnimation ============
         async function showRevealAnimation(room) { 
+            if (isProcessingResult) {
+                console.log('[GAME] Already processing result, skipping');
+                return;
+            }
+            isProcessingResult = true;
+            
+            console.log('[GAME] Processing game result...');
+            
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
             var isCreator = String(room.creator_tg_id) === String(MY_ID); 
@@ -804,7 +889,6 @@
                 emDiv.classList.add('hidden'); 
             } 
             
-            // Сохраняем историю игры
             var resultForHistory = 'draw';
             
             if (result.winnerId === MY_ID) {
@@ -821,7 +905,6 @@
             
             await saveGameHistory(resultForHistory, myMove);
             
-            // Обновляем статистику побед/поражений в БД (только если не ничья)
             if (result.winnerId === MY_ID) {
                 var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + MY_ID, true);
                 var newWins = (userData?.wins || 0) + 1;
@@ -834,9 +917,8 @@
                 console.log('[GAME] Losses updated:', newLosses);
             }
             
-            // Обновляем статистику соперника
             var opponentId = isCreator ? room.opponent_tg_id : room.creator_tg_id;
-            if (opponentId && result.winnerId === opponentId) {
+            if (opponentId && result.winnerId === opponentId && result.winnerId !== null) {
                 var oppData = await db('users', 'GET', null, '?select=wins&id=eq.' + opponentId, true);
                 var newOppWins = (oppData?.wins || 0) + 1;
                 await db('users', 'PATCH', { wins: newOppWins }, '?id=eq.' + opponentId);
@@ -848,10 +930,8 @@
                 console.log('[GAME] Opponent losses updated:', newOppLosses);
             }
             
-            // Обновляем статус комнаты
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             
-            // Обновляем отображение на экране
             await updateStats();
             await updateBalanceDisplay();
             
@@ -866,6 +946,7 @@
                     clearInterval(countdownInterval); 
                     overlay.classList.add('hidden'); 
                     confetti.classList.add('hidden'); 
+                    isProcessingResult = false;
                     forceExitToLobby(); 
                 } 
             }, 1000); 
@@ -1020,6 +1101,10 @@
         // ============ ИНИЦИАЛИЗАЦИЯ ============
         window.addEventListener('load', async function() {
             console.log('[INIT] Starting initialization...');
+            
+            // Очищаем localStorage для теста (раскомментируйте для обнуления данных)
+            localStorage.clear();
+            console.log('[INIT] LocalStorage cleared for testing');
             
             var tgUser = getUserFromTelegram();
             
