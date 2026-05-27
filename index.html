@@ -339,7 +339,6 @@
         
         var welcomeMessageShown = false;
         var processedGames = {};
-        
         // ============ ФУНКЦИИ ЗВУКА ============
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
         function forceUnlockAudio() { if (!soundsInitialized && audioUnlockAttempts < 5) { audioUnlockAttempts++; initAudio(); try { if (audioCtx && audioCtx.state === 'suspended') { var osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01); soundsInitialized = true; } } catch(e) {} } }
@@ -513,14 +512,15 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ И СТАТИСТИКОЙ (ИСПРАВЛЕННЫЕ) ============
         var balanceLock = {};
+        var winsUpdateLock = {};
+        var lossesUpdateLock = {};
         
         async function updateBalanceOnly(playerId, amountChange) {
             if (!playerId) return false;
             
             var lockKey = 'bal_lock_' + playerId;
-            
             if (window[lockKey] === true) {
                 console.log('[BALANCE] Locked, skipping for', playerId);
                 return false;
@@ -538,7 +538,7 @@
                     var balanceEl = document.getElementById('balanceSpike');
                     if (balanceEl) balanceEl.textContent = formatBalance(newBalance);
                 }
-                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance);
+                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance, 'change:', amountChange);
                 return true;
             } catch(e) {
                 console.error('Failed to update balance:', e);
@@ -550,22 +550,48 @@
         
         async function updateWinsOnly(playerId) {
             if (!playerId) return;
+            
+            var lockKey = 'wins_lock_' + playerId;
+            if (window[lockKey] === true) {
+                console.log('[STATS] Wins update locked for', playerId);
+                return;
+            }
+            window[lockKey] = true;
+            
             try {
                 var userData = await db('users', 'GET', null, '?select=wins&id=eq.' + playerId, true);
-                var newWins = (userData?.wins || 0) + 1;
+                var currentWins = userData?.wins || 0;
+                var newWins = currentWins + 1;
                 await db('users', 'PATCH', { wins: newWins }, '?id=eq.' + playerId);
-                console.log('[STATS] Player', playerId, 'wins:', newWins);
-            } catch(e) { console.error('Failed to update wins:', e); }
+                console.log('[STATS] Player', playerId, 'wins:', currentWins, '->', newWins);
+            } catch(e) { 
+                console.error('Failed to update wins:', e); 
+            } finally {
+                window[lockKey] = false;
+            }
         }
         
         async function updateLossesOnly(playerId) {
             if (!playerId) return;
+            
+            var lockKey = 'losses_lock_' + playerId;
+            if (window[lockKey] === true) {
+                console.log('[STATS] Losses update locked for', playerId);
+                return;
+            }
+            window[lockKey] = true;
+            
             try {
                 var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + playerId, true);
-                var newLosses = (userData?.losses || 0) + 1;
+                var currentLosses = userData?.losses || 0;
+                var newLosses = currentLosses + 1;
                 await db('users', 'PATCH', { losses: newLosses }, '?id=eq.' + playerId);
-                console.log('[STATS] Player', playerId, 'losses:', newLosses);
-            } catch(e) { console.error('Failed to update losses:', e); }
+                console.log('[STATS] Player', playerId, 'losses:', currentLosses, '->', newLosses);
+            } catch(e) { 
+                console.error('Failed to update losses:', e); 
+            } finally {
+                window[lockKey] = false;
+            }
         }
         
         async function getUserBalanceFromDB() {
@@ -946,9 +972,17 @@
             // Защита от повторной обработки
             var roomKey = 'game_processed_' + room.id;
             if (window[roomKey] === true) {
-                console.log('[GAME] Room already processed, skipping duplicate');
+                console.log('[GAME] Room already processed locally, skipping duplicate');
                 return;
             }
+            
+            // Проверяем в БД, не завершена ли уже комната
+            var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
+            if (freshRoom && freshRoom.status === 'finished') {
+                console.log('[GAME] Room already finished in DB, skipping');
+                return;
+            }
+            
             window[roomKey] = true;
             
             console.log('[GAME] Processing game result for room:', room.id);
@@ -1014,17 +1048,18 @@
             var opponentId = room.opponent_tg_id;
             var loserId = winnerId === creatorId ? opponentId : creatorId;
             
-            // ОБНОВЛЯЕМ ТОЛЬКО ОДИН РАЗ
-            if (!isDraw && winnerId) {
+            // ЕЩЁ РАЗ ПРОВЕРЯЕМ СТАТУС КОМНАТЫ ПЕРЕД ОБНОВЛЕНИЕМ СТАТИСТИКИ
+            var finalCheck = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
+            if (finalCheck && finalCheck.status === 'finished') {
+                console.log('[GAME] Room became finished before stats update, skipping');
+            } else if (!isDraw && winnerId) {
                 console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
                 
-                // Параллельное обновление
-                await Promise.all([
-                    updateWinsOnly(winnerId),
-                    updateLossesOnly(loserId),
-                    updateBalanceOnly(winnerId, stakeAmount),
-                    updateBalanceOnly(loserId, -stakeAmount)
-                ]);
+                // Последовательное обновление (не параллельное) чтобы избежать гонки
+                await updateWinsOnly(winnerId);
+                await updateLossesOnly(loserId);
+                await updateBalanceOnly(winnerId, stakeAmount);
+                await updateBalanceOnly(loserId, -stakeAmount);
                 
                 await saveGameHistory('win', myMove);
             } else if (isDraw) {
