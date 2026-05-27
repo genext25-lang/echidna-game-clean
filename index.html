@@ -762,11 +762,22 @@
             }
         }
         
+        // ============ ИСПРАВЛЕНО: подсветка активной кнопки навигации ============
         function showScreen(name) { 
             try {
                 var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
                 screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); 
                 var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); 
+                
+                // Переключаем активную кнопку в нижней панели
+                document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) {
+                    btn.classList.remove('active');
+                    var onclick = btn.getAttribute('onclick') || '';
+                    if (onclick.indexOf("showScreen('" + name + "')") !== -1) {
+                        btn.classList.add('active');
+                    }
+                });
+                
                 clearAllIntervals(); 
                 if (name === 'lobby') { 
                     currentRoom = null; isGameFinished = false; isProcessingGame = false; 
@@ -985,7 +996,6 @@
                 isProcessingGame = true;
                 clearAllIntervals(); 
                 
-                // АТОМАРНО пытаемся завершить комнату (только если ещё не finished)
                 var finalizeResult = null;
                 try {
                     finalizeResult = await db('rooms', 'PATCH', 
@@ -1000,7 +1010,6 @@
                 
                 var weFinalized = finalizeResult && Array.isArray(finalizeResult) && finalizeResult.length > 0;
                 
-                // Обновляем статистику ТОЛЬКО если мы первые завершили комнату
                 if (weFinalized) {
                     console.log('[TIMEOUT] We finalized room, updating stats');
                     var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; 
@@ -1009,7 +1018,6 @@
                     await updateBalanceOnly(opponentId, currentRoom.stake); 
                     await updateBalanceOnly(MY_ID, -currentRoom.stake); 
                     
-                    // Сохраняем историю (проигравший по таймауту)
                     try {
                         await saveGameHistory('lose', 'timeout');
                     } catch(e) {}
@@ -1084,7 +1092,6 @@
             } 
         }
         
-        // ============ ОСНОВНАЯ ФУНКЦИЯ С АТОМАРНЫМ ЗАВЕРШЕНИЕМ ============
         async function showRevealAnimation(room) { 
             var roomKey = 'game_processed_' + room.id;
 
@@ -1166,12 +1173,6 @@
             var opponentId = room.opponent_tg_id;
             var loserId = winnerId === creatorId ? opponentId : creatorId;
             
-            // ================================================================
-            // АТОМАРНОЕ ЗАВЕРШЕНИЕ КОМНАТЫ НА УРОВНЕ БД
-            // Только тот клиент, чей PATCH первым обновит статус, получит 
-            // непустой массив в ответе. Второй клиент получит [] и пропустит 
-            // обновление статистики. ЭТО РЕШАЕТ ПРОБЛЕМУ УДВОЕНИЯ.
-            // ================================================================
             var finalizeResult = null;
             try {
                 finalizeResult = await db('rooms', 'PATCH', 
@@ -1189,7 +1190,6 @@
             if (weFinalized) {
                 console.log('[GAME] ✅ We finalized the room FIRST — updating stats for both players');
                 
-                // Только ОДИН клиент обновляет статистику и баланс
                 if (!isDraw && winnerId) {
                     console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
                     await updateWinsOnly(winnerId);
@@ -1201,8 +1201,6 @@
                 console.log('[GAME] ⏭️ Room already finalized by other client — skipping stats update');
             }
             
-            // Каждый игрок сохраняет СВОЮ историю (это не вызывает удвоения, 
-            // так как у каждого игрока своя отдельная запись)
             try {
                 if (!isDraw && winnerId) {
                     if (Number(winnerId) === MY_ID) {
@@ -1217,7 +1215,6 @@
                 console.warn('[GAME] History save error:', e);
             }
             
-            // Обновляем локальное отображение
             await updateBalanceDisplay();
             await updateStats();
             
