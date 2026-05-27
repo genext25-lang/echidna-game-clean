@@ -513,7 +513,7 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (ИСПРАВЛЕННОЕ) ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ ============
         var balanceLock = {};
         
         async function updateBalanceOnly(playerId, amountChange) {
@@ -521,27 +521,24 @@
             
             var lockKey = 'bal_lock_' + playerId;
             
-            // Ждём освобождения блокировки
-            while (window[lockKey] === true) {
-                await sleep(100);
+            if (window[lockKey] === true) {
+                console.log('[BALANCE] Locked, skipping for', playerId);
+                return false;
             }
             window[lockKey] = true;
             
             try {
-                // Всегда читаем свежий баланс с сервера
                 var userData = await db('users', 'GET', null, '?select=balance&id=eq.' + playerId, true);
                 var currentBalanceDB = userData ? (userData.balance || 1000) : 1000;
                 var newBalance = currentBalanceDB + amountChange;
-                
-                // Обновляем на сервере
                 await db('users', 'PATCH', { balance: newBalance }, '?id=eq.' + playerId);
                 
                 if (Number(playerId) === MY_ID) {
-                    // Принудительно перезагружаем баланс
                     currentBalance = newBalance;
-                    updateBalanceDisplay();
+                    var balanceEl = document.getElementById('balanceSpike');
+                    if (balanceEl) balanceEl.textContent = formatBalance(newBalance);
                 }
-                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance, 'change:', amountChange);
+                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance);
                 return true;
             } catch(e) {
                 console.error('Failed to update balance:', e);
@@ -885,7 +882,7 @@
         
         async function renderPlayerStats() { if (!currentRoom || !currentRoom.id) return; try { var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id), true); if (!roomData) return; var creatorId = roomData.creator_tg_id; var opponentId = roomData.opponent_tg_id; var isCreator = String(creatorId) === String(MY_ID); if (isCreator) { renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); if (opponentId) renderAvatar('opponentAvatar', null, roomData.opponent_username || '?'); } else { renderAvatar('opponentAvatar', MY_PHOTO_URL, user.username || '?'); if (creatorId) renderAvatar('playerAvatar', null, roomData.creator_username || '?'); } if (!creatorId || !opponentId) { document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; return; } var results = await Promise.allSettled([ db('users', 'GET', null, '?select=wins,losses&id=eq.' + String(creatorId), false), db('users', 'GET', null, '?select=wins,losses&id=eq.' + String(opponentId), false) ]); var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; } catch(e) { console.warn('Stats load error:', e); } }
         
-        function showGameScreen() { closeRoomsScreen(); ['lobbyScreen', 'statsScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); }); document.getElementById('gameScreen').classList.remove('hidden'); if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; } var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID); var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; var choices = document.querySelectorAll('.choice-btn'); if (currentRoom[myCol] && currentRoom[myCol === 'creator_choice' ? 'opponent_choice' : 'creator_choice']) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '⏳ Итоги...'; } else if (currentRoom[myCol]) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; } else { choices.forEach(function(b) { b.disabled = false; }); document.getElementById('statusMessage').innerHTML = '<div class="spinner"></div>'; } isGameFinished = false; window._timerRunning = false; var stake = currentRoom.stake || 10; document.getElementById('stakeAmount').textContent = stake + ' Spike'; document.getElementById('winAmount').textContent = (stake * 2) + ' Spike'; renderPlayerStats(); updateGameStatus(currentRoom); }
+        function showGameScreen() { closeRoomsScreen(); ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); }); document.getElementById('gameScreen').classList.remove('hidden'); if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; } var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID); var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; var choices = document.querySelectorAll('.choice-btn'); if (currentRoom[myCol] && currentRoom[myCol === 'creator_choice' ? 'opponent_choice' : 'creator_choice']) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '⏳ Итоги...'; } else if (currentRoom[myCol]) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; } else { choices.forEach(function(b) { b.disabled = false; }); document.getElementById('statusMessage').innerHTML = '<div class="spinner"></div>'; } isGameFinished = false; window._timerRunning = false; var stake = currentRoom.stake || 10; document.getElementById('stakeAmount').textContent = stake + ' Spike'; document.getElementById('winAmount').textContent = (stake * 2) + ' Spike'; renderPlayerStats(); updateGameStatus(currentRoom); }
         
         function updateGameStatus(room) { if (!room || isGameFinished) return; var msgEl = document.getElementById('statusMessage'); var timerText = document.getElementById('timerText'); var timerBarContainer = document.getElementById('timerBarContainer'); var timerBar = document.getElementById('timerBar'); var isCreator = String(room.creator_tg_id) === String(MY_ID); var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; if (room[myCol] && room[myCol === 'creator_choice' ? 'opponent_choice' : 'creator_choice']) { msgEl.textContent = '⏳ Итоги...'; timerText.classList.remove('active'); timerBarContainer.style.display = 'none'; window._timerRunning = false; if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); return; } timerText.classList.remove('active'); timerBarContainer.style.display = 'none'; timerBar.style.width = '100%'; timerBar.classList.remove('urgent'); if (room.status === 'waiting') { msgEl.textContent = '⏳ Ждём соперника...'; } else if (room.status === 'playing') { if (room[myCol]) { msgEl.textContent = '✅ Ход записан'; window._timerRunning = false; } else { msgEl.innerHTML = '<span style="color:var(--error)">⚠️ Ваш ход!</span>'; timerText.classList.add('active'); timerBarContainer.style.display = 'block'; if (!window._timerRunning) { window._timerRunning = true; window._timerStart = Date.now(); startTimer(window._timerStart); } } } else { msgEl.textContent = '🏁 Игра окончена'; window._timerRunning = false; } }
         
@@ -941,78 +938,131 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ ============
+        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ИСПРАВЛЕННАЯ) ============
         async function showRevealAnimation(room) { 
             window._timerRunning = false;
             if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval);
             
-            var roomKey = 'processed_' + room.id;
-            var resultKey = 'result_' + room.id;
-            if (window[roomKey] === true || window[resultKey] === true) {
+            // Защита от повторной обработки
+            var roomKey = 'game_processed_' + room.id;
+            if (window[roomKey] === true) {
                 console.log('[GAME] Room already processed, skipping duplicate');
                 return;
             }
             window[roomKey] = true;
             
-            if (isProcessingGame) { console.log('[GAME] Already processing, skipping'); return; }
-            isProcessingGame = true;
-            
             console.log('[GAME] Processing game result for room:', room.id);
             
-            var overlay = document.getElementById('revealOverlay'); var confetti = document.getElementById('confettiContainer'); 
+            var overlay = document.getElementById('revealOverlay'); 
+            var confetti = document.getElementById('confettiContainer'); 
             var isCreator = String(room.creator_tg_id) === String(MY_ID); 
             var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
             var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
             
-            document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
-            document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
-            document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
+            document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
+            document.getElementById('card1Img').src = escapeHtml(moveImages[myMove]); 
+            document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            document.getElementById('card2Img').src = escapeHtml(moveImages[oppMove]); 
+            document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
             
-            overlay.classList.remove('hidden'); confetti.classList.add('hidden'); confetti.innerHTML = ''; 
-            document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); 
-            var resultEl = document.getElementById('revealResult'); resultEl.className = 'reveal-result'; resultEl.textContent = ''; 
+            overlay.classList.remove('hidden'); 
+            confetti.classList.add('hidden'); 
+            confetti.innerHTML = ''; 
+            document.getElementById('card1').classList.remove('flipped'); 
+            document.getElementById('card2').classList.remove('flipped'); 
+            var resultEl = document.getElementById('revealResult'); 
+            resultEl.className = 'reveal-result'; 
+            resultEl.textContent = ''; 
             document.getElementById('revealCountdown').textContent = ''; 
-            var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
-            emDiv.classList.add('hidden'); emImg.src = ''; 
+            var emDiv = document.getElementById('revealEmotion'); 
+            var emImg = document.getElementById('emotionImg'); 
+            emDiv.classList.add('hidden'); 
+            emImg.src = ''; 
             
-            await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); 
-            await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); 
+            await sleep(500); 
+            document.getElementById('card1').classList.add('flipped'); 
+            playFlipCardSound(); 
+            await sleep(1000); 
+            document.getElementById('card2').classList.add('flipped'); 
+            playFlipCardSound(); 
             await sleep(800); 
             
-            var result = calculateWinner(room); var msg = result.msg; var isWin = msg.indexOf('Победа') !== -1; var isDraw = msg.indexOf('Ничья') !== -1; 
-            resultEl.textContent = msg; resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); 
+            var result = calculateWinner(room); 
+            var msg = result.msg; 
+            var isWin = msg.indexOf('Победа') !== -1; 
+            var isDraw = msg.indexOf('Ничья') !== -1; 
+            
+            resultEl.textContent = msg; 
+            resultEl.className = 'reveal-result show ' + (isWin ? 'victory' : isDraw ? 'draw' : 'defeat'); 
             emDiv.classList.remove('hidden'); 
-            if (isWin) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; playWinSound(); createConfetti(); } 
-            else if (!isDraw) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; playLoseSound(); } 
-            else { emDiv.classList.add('hidden'); } 
             
-            var stakeAmount = room.stake || 10; var winnerId = result.winnerId; var creatorId = room.creator_tg_id; var opponentId = room.opponent_tg_id;
+            if (isWin) { 
+                emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; 
+                playWinSound(); 
+                createConfetti(); 
+            } else if (!isDraw) { 
+                emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; 
+                playLoseSound(); 
+            } else { 
+                emDiv.classList.add('hidden'); 
+            } 
             
-            if (!isDraw && winnerId && window[resultKey] !== true) {
-                window[resultKey] = true;
-                await updateWinsOnly(winnerId);
-                await updateBalanceOnly(winnerId, stakeAmount);
-                var loserId = winnerId === creatorId ? opponentId : creatorId;
-                if (loserId) { await updateLossesOnly(loserId); await updateBalanceOnly(loserId, -stakeAmount); }
+            var stakeAmount = room.stake || 10;
+            var winnerId = result.winnerId;
+            var creatorId = room.creator_tg_id;
+            var opponentId = room.opponent_tg_id;
+            var loserId = winnerId === creatorId ? opponentId : creatorId;
+            
+            // ОБНОВЛЯЕМ ТОЛЬКО ОДИН РАЗ
+            if (!isDraw && winnerId) {
                 console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
-                await saveGameHistory(isWin ? 'win' : 'lose', myMove);
-                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
-                await updateStats(); await updateBalanceDisplay();
-            } else if (isDraw && window[resultKey] !== true) {
-                window[resultKey] = true;
+                
+                // Параллельное обновление
+                await Promise.all([
+                    updateWinsOnly(winnerId),
+                    updateLossesOnly(loserId),
+                    updateBalanceOnly(winnerId, stakeAmount),
+                    updateBalanceOnly(loserId, -stakeAmount)
+                ]);
+                
+                await saveGameHistory('win', myMove);
+            } else if (isDraw) {
                 console.log('[GAME] Draw! No stats changes');
                 await saveGameHistory('draw', myMove);
-                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             }
             
-            var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; 
+            // Закрываем комнату
+            await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+            
+            // Обновляем отображение
+            await updateBalanceDisplay();
+            await updateStats();
+            
+            var countdown = 3; 
+            var countdownEl = document.getElementById('revealCountdown'); 
+            countdownEl.textContent = countdown; 
             var countdownInterval = setInterval(function() { 
-                countdown--; if (countdown > 0) { countdownEl.textContent = countdown; } 
-                else { clearInterval(countdownInterval); overlay.classList.add('hidden'); confetti.classList.add('hidden'); isProcessingGame = false;
-                    closeRoomsScreen(); var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
-                    screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); 
-                    document.getElementById('lobbyScreen').classList.remove('hidden'); updateBalanceDisplay(); updateHeroImage(); 
-                    clearAllIntervals(); activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); } 
+                countdown--; 
+                if (countdown > 0) { 
+                    countdownEl.textContent = countdown; 
+                } else { 
+                    clearInterval(countdownInterval); 
+                    overlay.classList.add('hidden'); 
+                    confetti.classList.add('hidden'); 
+                    closeRoomsScreen();
+                    var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
+                    screens.forEach(function(id) { 
+                        var el = document.getElementById(id); 
+                        if (el) el.classList.add('hidden'); 
+                    }); 
+                    document.getElementById('lobbyScreen').classList.remove('hidden');
+                    updateBalanceDisplay();
+                    updateHeroImage();
+                    clearAllIntervals();
+                    activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
+                    loadRooms(); 
+                } 
             }, 1000); 
         }
         
@@ -1024,10 +1074,81 @@
         
         function forceExitToLobby() { isGameFinished = true; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); showScreen('lobby'); }
         
-        // ============ РЕЙТИНГ ============
-        async function loadLeaderboard() { var c = document.getElementById('leaderboardList'); if (!c) return; c.innerHTML = '<div class="loader"><div class="spinner"></div></div>'; try { var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=wins.desc.nullslast&limit=100', false); var usersList = Array.isArray(allUsers) ? allUsers : []; var leaderboardData = []; for (var j = 0; j < usersList.length; j++) { var u = usersList[j]; leaderboardData.push({ id: u.id, username: u.username, wins: u.wins || 0, balance: u.balance || 1000 }); } leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); var myUserId = MY_ID; var myRank = -1; var myBalance = 1000; for (var k = 0; k < leaderboardData.length; k++) { if (Number(leaderboardData[k].id) === myUserId) { myRank = k + 1; myBalance = leaderboardData[k].balance; break; } } if (myRank === -1 && MY_ID) { myBalance = await getUserBalanceFromDB(); leaderboardData.push({ id: MY_ID, username: user.username, wins: currentWins, balance: myBalance }); leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); myRank = leaderboardData.findIndex(function(u) { return Number(u.id) === myUserId; }) + 1; } renderLeaderboard(leaderboardData, myRank, myBalance); } catch(e) { console.error('Leaderboard error:', e); c.innerHTML = '<div style="color:red;padding:15px;">⚠️ Ошибка загрузки рейтинга</div>'; } }
+        // ============ РЕЙТИНГ (с фильтром гостей) ============
+        async function loadLeaderboard() { 
+            var c = document.getElementById('leaderboardList'); 
+            if (!c) return; 
+            c.innerHTML = '<div class="loader"><div class="spinner"></div></div>'; 
+            try { 
+                var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=wins.desc.nullslast&limit=100', false); 
+                var usersList = Array.isArray(allUsers) ? allUsers : [];
+                // Фильтруем гостей из рейтинга
+                usersList = usersList.filter(function(u) {
+                    return u.username && u.username.indexOf('Guest_') !== 0;
+                });
+                var leaderboardData = []; 
+                for (var j = 0; j < usersList.length; j++) { 
+                    var u = usersList[j];
+                    leaderboardData.push({ 
+                        id: u.id, 
+                        username: u.username, 
+                        wins: u.wins || 0, 
+                        balance: u.balance || 1000
+                    }); 
+                } 
+                leaderboardData.sort(function(a, b) { return b.balance - a.balance; }); 
+                
+                var myUserId = MY_ID;
+                var myRank = -1;
+                var myBalance = 1000;
+                
+                for (var k = 0; k < leaderboardData.length; k++) {
+                    if (Number(leaderboardData[k].id) === myUserId) {
+                        myRank = k + 1;
+                        myBalance = leaderboardData[k].balance;
+                        break;
+                    }
+                }
+                
+                if (myRank === -1 && MY_ID) {
+                    myBalance = await getUserBalanceFromDB();
+                }
+                
+                renderLeaderboard(leaderboardData, myRank, myBalance);
+            } catch(e) { 
+                console.error('Leaderboard error:', e);
+                c.innerHTML = '<div style="color:red;padding:15px;">⚠️ Ошибка загрузки рейтинга</div>'; 
+            } 
+        }
         
-        function renderLeaderboard(leaderboardData, myRank, myBalance) { var c = document.getElementById('leaderboardList'); if (!c) return; var top20 = leaderboardData.slice(0, 20); c.innerHTML = ''; top20.forEach(function(u, i) { var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; var name = escapeHtml(u.username || 'User_' + String(u.id).slice(-4)); var isMe = Number(u.id) === MY_ID; var el = document.createElement('div'); el.className = 'room-card' + (isMe ? ' my-room' : ''); el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1).toString()) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div><div class="room-info"><div class="room-stake">@' + name + '</div></div></div><div class="leaderboard-right"><img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(u.balance) + '</div></div>'; c.appendChild(el); }); if (myRank > 0 && MY_ID) { var mySk = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0]; var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4)); var myCard = document.createElement('div'); myCard.className = 'my-rank-card'; myCard.style.marginTop = '20px'; myCard.style.padding = '14px'; myCard.style.background = 'rgba(99,102,241,0.15)'; myCard.style.borderRadius = '14px'; myCard.style.border = myRank <= 20 ? '1px solid var(--success)' : '1px dashed var(--gold)'; myCard.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:12px;"><div style="font-weight:700;color:var(--gold);font-size:18px;">#' + myRank + '</div><div class="room-icon" style="width:40px;height:40px;"><img src="' + escapeHtml(mySk.img) + '" alt=""></div><div><div style="font-weight:600;">@' + myName + '</div><div style="font-size:11px;color:var(--sec);">' + (myRank <= 20 ? 'Топ игрок! 🎉' : 'Ваше место') + '</div></div></div><div style="display:flex;align-items:center;gap:8px;"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(myBalance) + '</div></div>'; c.appendChild(myCard); } }
+        function renderLeaderboard(leaderboardData, myRank, myBalance) { 
+            var c = document.getElementById('leaderboardList'); 
+            if (!c) return; 
+            var top20 = leaderboardData.slice(0, 20); 
+            c.innerHTML = ''; 
+            top20.forEach(function(u, i) { 
+                var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance) / 100000), 7)] || SKINS[0]; 
+                var name = escapeHtml(u.username || 'User_' + String(u.id).slice(-4)); 
+                var isMe = Number(u.id) === MY_ID; 
+                var el = document.createElement('div'); 
+                el.className = 'room-card' + (isMe ? ' my-room' : ''); 
+                el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1).toString()) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt="" onerror="this.src=\'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png\'"></div><div class="room-info"><div class="room-stake">@' + name + '</div></div></div><div class="leaderboard-right"><img class="lb-coin-icon" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(u.balance) + '</div></div>'; 
+                c.appendChild(el); 
+            }); 
+            if (myRank > 0 && MY_ID) { 
+                var mySk = SKINS[Math.min(Math.floor(Math.abs(myBalance) / 100000), 7)] || SKINS[0]; 
+                var myName = escapeHtml(user.username || 'User_' + String(MY_ID).slice(-4)); 
+                var myCard = document.createElement('div'); 
+                myCard.className = 'my-rank-card'; 
+                myCard.style.marginTop = '20px'; 
+                myCard.style.padding = '14px'; 
+                myCard.style.background = 'rgba(99,102,241,0.15)'; 
+                myCard.style.borderRadius = '14px'; 
+                myCard.style.border = myRank <= 20 ? '1px solid var(--success)' : '1px dashed var(--gold)'; 
+                myCard.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:12px;"><div style="font-weight:700;color:var(--gold);font-size:18px;">#' + myRank + '</div><div class="room-icon" style="width:40px;height:40px;"><img src="' + escapeHtml(mySk.img) + '" alt=""></div><div><div style="font-weight:600;">@' + myName + '</div><div style="font-size:11px;color:var(--sec);">' + (myRank <= 20 ? 'Топ игрок! 🎉' : 'Ваше место') + '</div></div></div><div style="display:flex;align-items:center;gap:8px;"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="" style="width:24px;height:24px;"> ' + formatCompactNumber(myBalance) + '</div></div>'; 
+                c.appendChild(myCard); 
+            } 
+        }
         
         // ============ СТАТИСТИКА ============
         async function loadStats() { if (!MY_ID || MY_ID === 999999) return; var tableBody = document.getElementById('gamesTableBody'); tableBody.innerHTML = '<div class="loader" style="padding:20px;"><div class="spinner"></div></div>'; try { var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); var gamesList = Array.isArray(games) ? games : []; if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty"><div>Пока нет игр</div></div>'; document.getElementById('statsWinRate').textContent = '0%'; document.getElementById('statsFavMove').textContent = '-'; document.getElementById('statsTotalSpike').textContent = '0 Spike'; return; } var wins = 0, losses = 0, draws = 0, totalSpike = 0; var moveCounts = { rock: 0, scissors: 0, paper: 0 }; gamesList.forEach(function(game) { var absVal = Math.abs(game.stake || 0); if (game.result === 'win') { wins++; totalSpike += absVal; } else if (game.result === 'lose') { losses++; totalSpike -= absVal; } else { draws++; } if (game.player_move && moveCounts[game.player_move] !== undefined) moveCounts[game.player_move]++; }); var totalGames = wins + losses + draws; var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0; var maxMoves = Object.entries(moveCounts).sort(function(a, b) { return b[1] - a[1]; }); var favMove = maxMoves[0] && maxMoves[0][1] > 0 ? maxMoves[0][0] : null; var moveEmojis = { rock: '🪨', scissors: '✂️', paper: '📄' }; var moveNames = { rock: 'Камень', scissors: 'Ножницы', paper: 'Бумага' }; document.getElementById('statsWinRate').textContent = winRate + '%'; document.getElementById('statsFavMove').textContent = favMove ? (moveEmojis[favMove] + ' ' + moveNames[favMove]) : '-'; var spikeEl = document.getElementById('statsTotalSpike'); spikeEl.textContent = formatCompactNumber(Math.round(totalSpike)) + ' Spike'; if (totalSpike < 0) spikeEl.classList.add('negative'); else spikeEl.classList.remove('negative'); var rowsHtml = ''; gamesList.slice(0, 20).forEach(function(game) { var opponentName = escapeHtml(game.opponent_name || '???'); var resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw'; var resultText = game.result === 'win' ? 'Победа' : game.result === 'lose' ? 'Поражение' : 'Ничья'; var moveEmoji = ''; if (game.player_move === 'rock') moveEmoji = '<img src="move-rock.png" width="24" height="24" alt="Камень">'; else if (game.player_move === 'scissors') moveEmoji = '<img src="move-scissors.png" width="24" height="24" alt="Ножницы">'; else if (game.player_move === 'paper') moveEmoji = '<img src="move-paper.png" width="24" height="24" alt="Бумага">'; else moveEmoji = moveEmojis[game.player_move] || ''; var absVal = Math.abs(game.stake || 0); var stakeDisplay = game.stake === 0 ? '0' : formatCompactNumber(absVal) + ' Spike'; rowsHtml += '<div class="game-row"><span class="game-opponent">' + opponentName + '</span><span class="game-stake">' + stakeDisplay + '</span><span class="game-result ' + resultClass + '">' + resultText + '</span><div class="game-move">' + moveEmoji + '</div></div>'; }); tableBody.innerHTML = rowsHtml; } catch(e) { console.error('Load stats error:', e); tableBody.innerHTML = '<div class="games-empty"><div>Ошибка загрузки</div></div>'; } }
@@ -1040,14 +1161,16 @@
         window.addEventListener('load', async function() {
             console.log('[INIT] Starting initialization...');
             var tgUser = getUserFromTelegram();
+            
+            // ТОЛЬКО ТЕЛЕГРАМ, БЕЗ ГОСТЕЙ
             if (tgUser && tgUser.id) {
                 user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
                 console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
             } else {
-                var guestId = Math.floor(Math.random() * 1000000) + 1000000;
-                user = { id: guestId, username: 'Guest_' + Math.floor(Math.random() * 10000), photo_url: null };
-                console.log('[AUTH] ⚠️ No Telegram user, using guest:', user.username);
+                alert('❌ Игра работает только в Telegram!\n\nПожалуйста, откройте бота через Telegram.');
+                return;
             }
+            
             MY_ID = Number(user.id);
             MY_PHOTO_URL = user.photo_url || null;
             MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
