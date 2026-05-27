@@ -322,13 +322,21 @@
         <button class="nav-btn" onclick="showScreen('leaderboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10c1 0 2 .5 2 2v3c0 1-1 2-2 2H7c-1 0-2-1-2-2V6c0-1.5 1-2 2-2zM6 11h12"/></svg><span>Рейтинг</span></button>
     </div>
     <script>
+        // ============ ОБРАБОТКА ОШИБОК TELEGRAM ============
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && event.reason.message && event.reason.message.indexOf('message channel closed') !== -1) {
+                console.warn('[Telegram] Message channel closed error suppressed');
+                event.preventDefault();
+            }
+        });
+
         // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ============
         var moveImages = { rock: 'move-rock.png', scissors: 'move-scissors.png', paper: 'move-paper.png' };
         var audioCtx = null, soundsInitialized = false, audioUnlockAttempts = 0;
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
-        var isProcessingGame = false;
+        var isProcessingGame = false; // ФИКС: Глобальный флаг обработки игры
         var statsUpdateTimer = null;
         
         var requestCount = {};
@@ -751,7 +759,7 @@
             var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); 
             clearAllIntervals(); 
             if (name === 'lobby') { 
-                currentRoom = null; isGameFinished = false; isProcessingGame = false; 
+                currentRoom = null; isGameFinished = false; isProcessingGame = false; // ФИКС: Сбрасываем флаг
                 activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); updateBalanceDisplay(); updateStats(); updateHeroImage(); 
             } else if (name === 'tasks') { setTimeout(async function() { await renderDailyCards(); }, 50); } 
             else if (name === 'stats') loadStats(); 
@@ -915,17 +923,18 @@
         function startTimer(startTime) { if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); var timeLimit = 30000; var timerBar = document.getElementById('timerBar'); var timerText = document.getElementById('timerText'); activeIntervals.timerInterval = setInterval(function() { if (!window._timerRunning) return; var elapsed = Date.now() - startTime; var remaining = Math.max(0, timeLimit - elapsed); timerBar.style.width = (remaining / timeLimit) * 100 + '%'; timerText.textContent = Math.ceil(remaining / 1000) + 's'; if (remaining < 10000) timerBar.classList.add('urgent'); if (remaining <= 0) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; window._timerRunning = false; handleTimeout(); } }, 1000); }
         
         async function handleTimeout() { 
-            // FIX: Проверка на уже обработанную игру
+            // ФИКС: Проверка на уже обработанную игру
             if (!currentRoom || isGameFinished || isProcessingGame || processedGames[currentRoom?.id]) return;
             
             var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
             if (!currentRoom[myCol]) { 
-                // FIX: Сразу помечаем как обработанную
+                // ФИКС: Сразу помечаем как обработанную и устанавливаем глобальный флаг
                 processedGames[currentRoom.id] = true;
-                isGameFinished = true; 
+                isGameFinished = true;
+                isProcessingGame = true;
                 clearAllIntervals(); 
                 
-                // FIX: Сначала обновляем статус в БД
+                // ФИКС: Сначала обновляем статус в БД
                 await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); 
                 
                 var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; 
@@ -944,14 +953,16 @@
         function startPolling() { 
             clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; 
             activeIntervals.pollInterval = setInterval(async function() { 
-                if (!currentRoom || isGameFinished) return; 
+                if (!currentRoom || isGameFinished || isProcessingGame) return; // ФИКС: Добавлена проверка isProcessingGame
                 try { 
                     var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); 
                     var room = res[0]; if (!room) return; 
                     if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } 
                     currentRoom = room; updateGameStatus(room); renderPlayerStats(); 
                     if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame && !processedGames[room.id]) { 
-                        isGameFinished = true; clearAllIntervals(); 
+                        isGameFinished = true; 
+                        isProcessingGame = true; // ФИКС: Устанавливаем флаг ДО очистки интервалов
+                        clearAllIntervals(); 
                         await showRevealAnimation(room); 
                         return; 
                     } 
@@ -978,37 +989,41 @@
         
         // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ИСПРАВЛЕННАЯ) ============
         async function showRevealAnimation(room) { 
+            // === ФИКС: Немедленная проверка глобального флага ===
+            if (isProcessingGame) {
+                console.log('[GAME] Already processing game, skipping duplicate call');
+                return;
+            }
+            
             window._timerRunning = false;
             if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval);
             
-            // === FIX: Проверка и установка флагов обработки НЕМЕДЛЕННО ===
             var roomKey = 'game_processed_' + room.id;
-            
-            // Проверяем, не обрабатывалась ли уже эта комната
+
             if (window[roomKey] === true || processedGames[room.id] === true) {
                 console.log('[GAME] Room already processed locally, skipping duplicate');
                 return;
             }
-            
-            // Устанавливаем флаги ДО любых асинхронных операций
+
+            // === ФИКС: Устанавливаем все флаги ДО любых асинхронных операций ===
             window[roomKey] = true;
             processedGames[room.id] = true;
-            
-            // Останавливаем интервал опроса НЕМЕДЛЕННО
+            isProcessingGame = true;
+
+            // Немедленно останавливаем интервал
             if (activeIntervals.pollInterval) {
                 clearInterval(activeIntervals.pollInterval);
                 activeIntervals.pollInterval = null;
             }
-            
+
             console.log('[GAME] Processing game result for room:', room.id);
-            
-            // Проверяем статус в БД ещё раз после установки локальных флагов
+
             var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
             if (freshRoom && freshRoom.status === 'finished') {
                 console.log('[GAME] Room already finished in DB, skipping');
                 return;
             }
-            
+
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
             var isCreator = String(room.creator_tg_id) === String(MY_ID); 
@@ -1070,15 +1085,12 @@
             var opponentId = room.opponent_tg_id;
             var loserId = winnerId === creatorId ? opponentId : creatorId;
             
-            // === FIX: Обновляем статус комнаты в БД ПЕРЕД обновлением статистики ===
-            // Это гарантирует, что любые последующие запросы (polling) увидят статус 'finished' и не будут повторять обработку
+            // === ФИКС: Обновляем статус комнаты в БД ПЕРЕД обновлением статистики ===
             await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
             
-            // Теперь безопасно обновляем статистику и баланс
             if (!isDraw && winnerId) {
                 console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
                 
-                // Последовательное обновление (не параллельное) чтобы избежать гонки
                 await updateWinsOnly(winnerId);
                 await updateLossesOnly(loserId);
                 await updateBalanceOnly(winnerId, stakeAmount);
@@ -1090,7 +1102,6 @@
                 await saveGameHistory('draw', myMove);
             }
             
-            // Обновляем отображение (читает из БД, поэтому покажет актуальные значения)
             await updateBalanceDisplay();
             await updateStats();
             
@@ -1115,6 +1126,7 @@
                     updateBalanceDisplay();
                     updateHeroImage();
                     clearAllIntervals();
+                    isProcessingGame = false; // ФИКС: Сбрасываем флаг при выходе
                     activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
                     loadRooms(); 
                 } 
@@ -1127,7 +1139,7 @@
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
-        function forceExitToLobby() { isGameFinished = true; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); showScreen('lobby'); }
+        function forceExitToLobby() { isGameFinished = true; isProcessingGame = false; // ФИКС: Сбрасываем флаг currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); showScreen('lobby'); }
         
         // ============ РЕЙТИНГ (с фильтром гостей) ============
         async function loadLeaderboard() { 
@@ -1137,7 +1149,6 @@
             try { 
                 var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=wins.desc.nullslast&limit=100', false); 
                 var usersList = Array.isArray(allUsers) ? allUsers : [];
-                // Фильтруем гостей из рейтинга
                 usersList = usersList.filter(function(u) {
                     return u.username && u.username.indexOf('Guest_') !== 0;
                 });
@@ -1217,7 +1228,6 @@
             console.log('[INIT] Starting initialization...');
             var tgUser = getUserFromTelegram();
             
-            // ТОЛЬКО ТЕЛЕГРАМ, БЕЗ ГОСТЕЙ
             if (tgUser && tgUser.id) {
                 user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
                 console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
