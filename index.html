@@ -513,52 +513,41 @@
         function disableBottomNav() { document.getElementById('bottomNav').classList.add('disabled'); }
         function enableBottomNav() { document.getElementById('bottomNav').classList.remove('disabled'); }
         
-        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (С ОЧЕРЕДЬЮ) ============
+        // ============ УПРАВЛЕНИЕ БАЛАНСОМ (ИСПРАВЛЕННОЕ) ============
         var balanceLock = {};
-        var balanceQueue = {};
         
         async function updateBalanceOnly(playerId, amountChange) {
             if (!playerId) return false;
             
             var lockKey = 'bal_lock_' + playerId;
-            var queueKey = 'bal_queue_' + playerId;
             
-            if (window[lockKey] === true) {
-                if (!window[queueKey]) window[queueKey] = 0;
-                window[queueKey] += amountChange;
-                console.log('[BALANCE] Queued for', playerId, 'total:', window[queueKey]);
-                return false;
+            // Ждём освобождения блокировки
+            while (window[lockKey] === true) {
+                await sleep(100);
             }
-            
             window[lockKey] = true;
             
             try {
-                var totalChange = amountChange;
-                if (window[queueKey] && window[queueKey] !== 0) {
-                    totalChange += window[queueKey];
-                    console.log('[BALANCE] Applying queued for', playerId, window[queueKey]);
-                    window[queueKey] = 0;
-                }
-                
+                // Всегда читаем свежий баланс с сервера
                 var userData = await db('users', 'GET', null, '?select=balance&id=eq.' + playerId, true);
                 var currentBalanceDB = userData ? (userData.balance || 1000) : 1000;
-                var newBalance = currentBalanceDB + totalChange;
+                var newBalance = currentBalanceDB + amountChange;
+                
+                // Обновляем на сервере
                 await db('users', 'PATCH', { balance: newBalance }, '?id=eq.' + playerId);
-                if (Number(playerId) === MY_ID) currentBalance = newBalance;
-                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance);
+                
+                if (Number(playerId) === MY_ID) {
+                    // Принудительно перезагружаем баланс
+                    currentBalance = newBalance;
+                    updateBalanceDisplay();
+                }
+                console.log('[BALANCE] Player', playerId, 'balance:', currentBalanceDB, '->', newBalance, 'change:', amountChange);
                 return true;
             } catch(e) {
                 console.error('Failed to update balance:', e);
                 return false;
             } finally {
-                setTimeout(function() { 
-                    window[lockKey] = false;
-                    if (window[queueKey] && window[queueKey] !== 0) {
-                        var queued = window[queueKey];
-                        window[queueKey] = 0;
-                        updateBalanceOnly(playerId, queued);
-                    }
-                }, 800);
+                window[lockKey] = false;
             }
         }
         
@@ -587,15 +576,23 @@
             try {
                 var userData = await db('users', 'GET', null, '?id=eq.' + MY_ID + '&select=balance', true);
                 return userData ? (userData.balance || 1000) : 1000;
-            } catch(e) { return 1000; }
+            } catch(e) {
+                console.error('Failed to get user balance:', e);
+                return 1000;
+            }
         }
         
         async function updateBalanceDisplay() { 
             try { 
                 currentBalance = await getUserBalanceFromDB();
                 var el = document.getElementById('balanceSpike'); 
-                if (el) el.textContent = formatBalance(currentBalance);
-            } catch(e) { console.error('Balance display error:', e); } 
+                if (el) {
+                    el.textContent = formatBalance(currentBalance);
+                    el.style.color = currentBalance < 0 ? 'var(--error)' : currentBalance > 0 ? 'var(--success)' : 'var(--gold)';
+                }
+            } catch(e) { 
+                console.error('Balance display error:', e); 
+            } 
         }
         
         async function updateStats() { 
@@ -944,12 +941,11 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (С ЗАЩИТОЙ ОТ ДУБЛЕЙ) ============
+        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ ============
         async function showRevealAnimation(room) { 
             window._timerRunning = false;
             if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval);
             
-            // Защита от повторной обработки той же комнаты
             var roomKey = 'processed_' + room.id;
             var resultKey = 'result_' + room.id;
             if (window[roomKey] === true || window[resultKey] === true) {
@@ -992,14 +988,13 @@
             
             var stakeAmount = room.stake || 10; var winnerId = result.winnerId; var creatorId = room.creator_tg_id; var opponentId = room.opponent_tg_id;
             
-            // Обновляем данные ТОЛЬКО ОДИН РАЗ
             if (!isDraw && winnerId && window[resultKey] !== true) {
                 window[resultKey] = true;
                 await updateWinsOnly(winnerId);
                 await updateBalanceOnly(winnerId, stakeAmount);
                 var loserId = winnerId === creatorId ? opponentId : creatorId;
                 if (loserId) { await updateLossesOnly(loserId); await updateBalanceOnly(loserId, -stakeAmount); }
-                console.log('[GAME] Winner:', winnerId, 'Loser:', loserId);
+                console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
                 await saveGameHistory(isWin ? 'win' : 'lose', myMove);
                 await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
                 await updateStats(); await updateBalanceDisplay();
