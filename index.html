@@ -743,7 +743,6 @@
         
         function startGame() { 
             try {
-                // ФИКС: Сбрасываем флаг при нажатии "Играть"
                 isProcessingGame = false;
                 document.getElementById('splashScreen').classList.add('hidden'); 
                 forceUnlockAudio(); 
@@ -851,7 +850,6 @@
         
         async function confirmStake() { 
             if (isCreatingRoom) return;
-            // ФИКС: Сбрасываем флаг перед созданием комнаты
             isProcessingGame = false;
             isCreatingRoom = true;
             try {
@@ -915,7 +913,6 @@
         }
         
         async function resumeRoom(roomId) { 
-            // ФИКС: Сбрасываем флаг при возврате в комнату
             isProcessingGame = false;
             try { 
                 var room = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), true); 
@@ -931,7 +928,6 @@
         
         async function joinRoom(roomId, btnElement) { 
             if (isJoiningRoom) return;
-            // ФИКС: Сбрасываем флаг перед присоединением
             isProcessingGame = false;
             isJoiningRoom = true;
             if (!btnElement) return; 
@@ -1047,14 +1043,6 @@
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
         async function showRevealAnimation(room) { 
-            if (isProcessingGame) {
-                console.log('[GAME] Already processing game, skipping duplicate call');
-                return;
-            }
-            
-            window._timerRunning = false;
-            if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval);
-            
             var roomKey = 'game_processed_' + room.id;
 
             if (window[roomKey] === true || processedGames[room.id] === true) {
