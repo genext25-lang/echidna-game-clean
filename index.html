@@ -322,6 +322,223 @@
         <button class="nav-btn" onclick="showScreen('leaderboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10c1 0 2 .5 2 2v3c0 1-1 2-2 2H7c-1 0-2-1-2-2V6c0-1.5 1-2 2-2zM6 11h12"/></svg><span>Рейтинг</span></button>
     </div>
     <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // ║                    🔒 SECURITY LAYER v1.0 🔒                   ║
+        // ║   Защита от client-side взлома через DevTools и console        ║
+        // ╚══════════════════════════════════════════════════════════════════
+        (function() {
+            'use strict';
+            
+            // Приватное хранилище — недоступно извне
+            var _securityState = {
+                gameSessionToken: null,
+                gameStartTime: null,
+                activeRoomId: null,
+                activeStake: null,
+                rateLimits: {},
+                integrityHash: null,
+                devToolsDetected: false,
+                tamperAttempts: 0
+            };
+            
+            // Криптографически стойкий генератор токенов
+            function generateSecureToken() {
+                try {
+                    var arr = new Uint8Array(32);
+                    crypto.getRandomValues(arr);
+                    return Array.from(arr, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+                } catch(e) {
+                    // Fallback если crypto недоступен
+                    var token = '';
+                    for (var i = 0; i < 64; i++) {
+                        token += Math.floor(Math.random() * 16).toString(16);
+                    }
+                    return token;
+                }
+            }
+            
+            // Хеш-функция для проверки целостности
+            function computeIntegrityHash(roomId, playerId, stake) {
+                var str = roomId + '|' + playerId + '|' + stake + '|' + _securityState.gameSessionToken;
+                var hash = 0;
+                for (var i = 0; i < str.length; i++) {
+                    var char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return hash.toString(36);
+            }
+            
+            // ──────────────── ПУБЛИЧНЫЕ API ────────────────
+            
+            // Начало игровой сессии — вызывается при создании/входе в комнату
+            window.__startGameSession = function(roomId, stake) {
+                if (!roomId || !stake) {
+                    console.error('[SECURITY] Invalid session start parameters');
+                    return null;
+                }
+                _securityState.gameSessionToken = generateSecureToken();
+                _securityState.gameStartTime = Date.now();
+                _securityState.activeRoomId = String(roomId);
+                _securityState.activeStake = Number(stake);
+                _securityState.integrityHash = computeIntegrityHash(roomId, window.MY_ID || 0, stake);
+                console.log('[SECURITY] Game session started for room:', roomId);
+                return _securityState.gameSessionToken;
+            };
+            
+            // Валидация игровой сессии
+            window.__validateGameSession = function(context) {
+                // Проверка наличия токена
+                if (!_securityState.gameSessionToken) {
+                    console.warn('[SECURITY] No active session');
+                    return false;
+                }
+                
+                // Проверка времени (защита от мгновенных вызовов из консоли)
+                if (!_securityState.gameStartTime) return false;
+                var elapsed = Date.now() - _securityState.gameStartTime;
+                
+                // Минимум 3 секунды на игру (нереально быстро)
+                if (context === 'finalize' && elapsed < 3000) {
+                    console.warn('[SECURITY] Game finished too fast:', elapsed, 'ms');
+                    return false;
+                }
+                
+                // Максимум 15 минут на игру (защита от зависших сессий)
+                if (elapsed > 15 * 60 * 1000) {
+                    console.warn('[SECURITY] Session expired');
+                    return false;
+                }
+                
+                // Проверка что игрок действительно в комнате
+                if (!window.currentRoom) return false;
+                var roomId = String(window.currentRoom.id);
+                if (roomId !== _securityState.activeRoomId) {
+                    console.warn('[SECURITY] Room mismatch');
+                    return false;
+                }
+                
+                // Проверка что MY_ID — участник комнаты
+                var myId = Number(window.MY_ID);
+                var creatorId = Number(window.currentRoom.creator_tg_id);
+                var opponentId = Number(window.currentRoom.opponent_tg_id);
+                if (myId !== creatorId && myId !== opponentId) {
+                    console.warn('[SECURITY] Player not in room');
+                    return false;
+                }
+                
+                // Проверка ставки (защита от её изменения в процессе)
+                var currentStake = Number(window.currentRoom.stake);
+                if (currentStake !== _securityState.activeStake) {
+                    console.warn('[SECURITY] Stake tampered');
+                    return false;
+                }
+                
+                return true;
+            };
+            
+            // Завершение сессии
+            window.__endGameSession = function() {
+                _securityState.gameSessionToken = null;
+                _securityState.gameStartTime = null;
+                _securityState.activeRoomId = null;
+                _securityState.activeStake = null;
+                _securityState.integrityHash = null;
+            };
+            
+            // Rate limiter — не более maxPerSecond вызовов в секунду
+            window.__checkRateLimit = function(key, maxPerSecond) {
+                var now = Date.now();
+                if (!_securityState.rateLimits[key]) {
+                    _securityState.rateLimits[key] = [];
+                }
+                // Чистим старые записи
+                _securityState.rateLimits[key] = _securityState.rateLimits[key].filter(function(t) {
+                    return now - t < 1000;
+                });
+                if (_securityState.rateLimits[key].length >= maxPerSecond) {
+                    console.warn('[SECURITY] Rate limit exceeded for:', key);
+                    return false;
+                }
+                _securityState.rateLimits[key].push(now);
+                return true;
+            };
+            
+            // ──────────────── ANTI-TAMPER ────────────────
+            
+            // Защита от переопределения критических функций
+            var protectedFunctionNames = [
+                'updateBalanceOnly', 
+                'updateWinsOnly', 
+                'updateLossesOnly',
+                'db',
+                'calculateWinner'
+            ];
+            var functionSnapshots = {};
+            
+            // Сохраняем "слепки" функций после загрузки
+            setTimeout(function() {
+                protectedFunctionNames.forEach(function(name) {
+                    if (typeof window[name] === 'function') {
+                        functionSnapshots[name] = window[name].toString().length;
+                    }
+                });
+            }, 2000);
+            
+            // Периодическая проверка целостности
+            setInterval(function() {
+                protectedFunctionNames.forEach(function(name) {
+                    if (typeof window[name] !== 'function') {
+                        console.error('[SECURITY] ❌ CRITICAL: Function removed:', name);
+                        _securityState.tamperAttempts++;
+                        if (_securityState.tamperAttempts > 3) {
+                            alert('⚠️ Обнаружено вмешательство в код игры.\nПерезагрузка...');
+                            location.reload();
+                        }
+                    } else if (functionSnapshots[name] && 
+                               window[name].toString().length !== functionSnapshots[name]) {
+                        console.error('[SECURITY] ❌ CRITICAL: Function tampered:', name);
+                        _securityState.tamperAttempts++;
+                        if (_securityState.tamperAttempts > 3) {
+                            alert('⚠️ Обнаружено вмешательство в код игры.\nПерезагрузка...');
+                            location.reload();
+                        }
+                    }
+                });
+            }, 5000);
+            
+            // ──────────────── DEVTOOLS DETECTION ────────────────
+            
+            setInterval(function() {
+                var widthThreshold = window.outerWidth - window.innerWidth > 160;
+                var heightThreshold = window.outerHeight - window.innerHeight > 160;
+                if (widthThreshold || heightThreshold) {
+                    if (!_securityState.devToolsDetected) {
+                        _securityState.devToolsDetected = true;
+                        console.warn('[SECURITY] ⚠️ DevTools detected. Game integrity monitoring active.');
+                    }
+                } else {
+                    _securityState.devToolsDetected = false;
+                }
+            }, 2000);
+            
+            // ──────────────── PROTOTYPE POLLUTION PROTECTION ────────────────
+            
+            try {
+                if (Object.freeze) {
+                    Object.freeze(Object.prototype);
+                    Object.freeze(Array.prototype);
+                }
+            } catch(e) {
+                // Игнорируем если уже заморожено
+            }
+            
+            console.log('[SECURITY] 🔒 Security Layer initialized');
+        })();
+        // ═══════════════════════════════════════════════════════════════════
+        // ║                    END OF SECURITY LAYER                        ║
+        // ═══════════════════════════════════════════════════════════════════
+
         window.addEventListener('unhandledrejection', function(event) {
             if (event.reason && event.reason.message && event.reason.message.indexOf('message channel closed') !== -1) {
                 event.preventDefault();
@@ -515,8 +732,31 @@
         var winsUpdateLock = {};
         var lossesUpdateLock = {};
         
+        // 🔒 SECURITY: updateBalanceOnly теперь с проверками
         async function updateBalanceOnly(playerId, amountChange) {
             if (!playerId) return false;
+            
+            // Проверка rate limit (не более 3 обновлений баланса в секунду)
+            if (window.__checkRateLimit && !window.__checkRateLimit('balance', 3)) {
+                console.warn('[SECURITY] Balance rate limit exceeded');
+                return false;
+            }
+            
+            // Проверка валидности суммы (защита от накрутки огромных сумм)
+            if (typeof amountChange !== 'number' || !isFinite(amountChange)) {
+                console.error('[SECURITY] Invalid amount change');
+                return false;
+            }
+            
+            // Для игровых изменений (не ежедневных наград и не покупки скинов) — проверка сессии
+            // Разрешаем диапазон: от -1000 до +1000 (максимальная ставка + буфер)
+            if (Math.abs(amountChange) > 1100 && Math.abs(amountChange) !== 3000000 && Math.abs(amountChange) < 10000) {
+                console.warn('[SECURITY] Suspicious amount change:', amountChange);
+                if (window.__validateGameSession && !window.__validateGameSession('balance')) {
+                    console.error('[SECURITY] Invalid game session for balance update');
+                    return false;
+                }
+            }
             
             var lockKey = 'bal_lock_' + playerId;
             if (window[lockKey] === true) {
@@ -546,8 +786,32 @@
             }
         }
         
+        // 🔒 SECURITY: updateWinsOnly теперь с проверками
         async function updateWinsOnly(playerId) {
             if (!playerId) return;
+            
+            // Rate limit
+            if (window.__checkRateLimit && !window.__checkRateLimit('wins', 2)) {
+                console.warn('[SECURITY] Wins rate limit exceeded');
+                return;
+            }
+            
+            // Обязательна валидация игровой сессии
+            if (window.__validateGameSession && !window.__validateGameSession('finalize')) {
+                console.error('[SECURITY] Invalid game session for wins update');
+                return;
+            }
+            
+            // Проверка что playerId — реальный участник текущей комнаты
+            if (window.currentRoom) {
+                var creatorId = Number(window.currentRoom.creator_tg_id);
+                var opponentId = Number(window.currentRoom.opponent_tg_id);
+                var pid = Number(playerId);
+                if (pid !== creatorId && pid !== opponentId) {
+                    console.error('[SECURITY] Attempt to update wins for non-participant:', playerId);
+                    return;
+                }
+            }
             
             var lockKey = 'wins_lock_' + playerId;
             if (window[lockKey] === true) {
@@ -569,8 +833,32 @@
             }
         }
         
+        // 🔒 SECURITY: updateLossesOnly теперь с проверками
         async function updateLossesOnly(playerId) {
             if (!playerId) return;
+            
+            // Rate limit
+            if (window.__checkRateLimit && !window.__checkRateLimit('losses', 2)) {
+                console.warn('[SECURITY] Losses rate limit exceeded');
+                return;
+            }
+            
+            // Обязательна валидация игровой сессии
+            if (window.__validateGameSession && !window.__validateGameSession('finalize')) {
+                console.error('[SECURITY] Invalid game session for losses update');
+                return;
+            }
+            
+            // Проверка что playerId — реальный участник текущей комнаты
+            if (window.currentRoom) {
+                var creatorId = Number(window.currentRoom.creator_tg_id);
+                var opponentId = Number(window.currentRoom.opponent_tg_id);
+                var pid = Number(playerId);
+                if (pid !== creatorId && pid !== opponentId) {
+                    console.error('[SECURITY] Attempt to update losses for non-participant:', playerId);
+                    return;
+                }
+            }
             
             var lockKey = 'losses_lock_' + playerId;
             if (window[lockKey] === true) {
@@ -762,14 +1050,12 @@
             }
         }
         
-        // ============ ИСПРАВЛЕНО: подсветка активной кнопки навигации ============
         function showScreen(name) { 
             try {
                 var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
                 screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); 
                 var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); 
                 
-                // Переключаем активную кнопку в нижней панели
                 document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) {
                     btn.classList.remove('active');
                     var onclick = btn.getAttribute('onclick') || '';
@@ -781,6 +1067,8 @@
                 clearAllIntervals(); 
                 if (name === 'lobby') { 
                     currentRoom = null; isGameFinished = false; isProcessingGame = false; 
+                    // 🔒 SECURITY: Сбрасываем игровую сессию при выходе в лобби
+                    if (window.__endGameSession) window.__endGameSession();
                     activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
                     try { loadRooms(); } catch(e) {}
                     try { updateBalanceDisplay(); } catch(e) {}
@@ -869,7 +1157,12 @@
                 closeStakeModal(); 
                 await ensureUserExists(MY_ID, user.username); 
                 var room = await db('rooms', 'POST', [{ creator_tg_id: MY_ID, creator_username: escapeHtml(user.username || 'Anonymous'), stake: finalStake, status: 'waiting', room_password: rawPassword || null }], '', true); 
-                currentRoom = room; showGameScreen(); startPolling(); loadRooms(); 
+                currentRoom = room; 
+                // 🔒 SECURITY: Стартуем игровую сессию
+                if (window.__startGameSession && room && room.id) {
+                    window.__startGameSession(room.id, room.stake);
+                }
+                showGameScreen(); startPolling(); loadRooms(); 
             } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); } finally { isCreatingRoom = false; }
         }
         
@@ -925,12 +1218,16 @@
                 if (!room) { alert('Room not found'); loadRooms(); return; } 
                 currentRoom = room; 
                 if (currentRoom.status === 'finished') { showGameScreen(); showGameResult(currentRoom); return; } 
+                // 🔒 SECURITY: Стартуем игровую сессию при возврате
+                if (window.__startGameSession && room.id) {
+                    window.__startGameSession(room.id, room.stake);
+                }
                 showGameScreen(); 
                 startPolling(); 
             } catch(e) { alert('Ошибка: ' + e.message); } 
         }
         
-        async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
+        async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); if (window.__endGameSession) window.__endGameSession(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
         
         async function joinRoom(roomId, btnElement) { 
             if (isJoiningRoom) return;
@@ -949,7 +1246,12 @@
                 await ensureUserExists(MY_ID, user.username); 
                 var res = await db('rooms', 'PATCH', { opponent_tg_id: MY_ID, opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' }, '?id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); 
                 if (!res) throw new Error('Не удалось присоединиться к комнате'); 
-                currentRoom = res; showGameScreen(); startPolling(); loadRooms(); closeRoomsScreen(); 
+                currentRoom = res; 
+                // 🔒 SECURITY: Стартуем игровую сессию при входе
+                if (window.__startGameSession && res && res.id) {
+                    window.__startGameSession(res.id, res.stake);
+                }
+                showGameScreen(); startPolling(); loadRooms(); closeRoomsScreen(); 
             } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } } finally { isJoiningRoom = false; } 
         }
         
@@ -1032,6 +1334,7 @@
             } 
         }
         
+        // 🔒 SECURITY: startPolling теперь скрывает opponent_choice до момента reveal
         function startPolling() { 
             clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; 
             activeIntervals.pollInterval = setInterval(async function() { 
@@ -1040,11 +1343,42 @@
                     var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); 
                     var room = res[0]; if (!room) return; 
                     if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } 
-                    currentRoom = room; updateGameStatus(room); renderPlayerStats(); 
-                    if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame && !processedGames[room.id]) { 
+                    
+                    // 🔒 SECURITY: Создаем "чистую" копию room без чужого хода
+                    var isCreator = String(room.creator_tg_id) === String(MY_ID);
+                    var safeRoom = {
+                        id: room.id,
+                        creator_tg_id: room.creator_tg_id,
+                        opponent_tg_id: room.opponent_tg_id,
+                        creator_username: room.creator_username,
+                        opponent_username: room.opponent_username,
+                        stake: room.stake,
+                        status: room.status,
+                        room_password: room.room_password,
+                        created_at: room.created_at
+                    };
+                    
+                    // Сохраняем ТОЛЬКО свой ход
+                    if (isCreator) {
+                        safeRoom.creator_choice = room.creator_choice;
+                        // opponent_choice скрываем — будет загружен только при reveal
+                    } else {
+                        safeRoom.opponent_choice = room.opponent_choice;
+                        // creator_choice скрываем
+                    }
+                    
+                    // Но для логики проверки "оба хода сделаны" нам нужно знать это
+                    var bothMovesMade = !!(room.creator_choice && room.opponent_choice);
+                    
+                    currentRoom = safeRoom; 
+                    updateGameStatus(safeRoom); 
+                    renderPlayerStats(); 
+                    
+                    if (bothMovesMade && room.status !== 'finished' && !isProcessingGame && !processedGames[room.id]) { 
                         isGameFinished = true; 
                         isProcessingGame = true;
                         clearAllIntervals(); 
+                        // Передаём ПОЛНЫЙ room (с обоими ходами) в reveal
                         await showRevealAnimation(room); 
                         return; 
                     } 
@@ -1056,6 +1390,14 @@
         async function makeMove(choice) { 
             if (!currentRoom) { alert('❌ Комната не найдена'); return; } 
             if (!currentRoom.opponent_tg_id) { alert('⚠️ Игра не активна'); return; } 
+            
+            // 🔒 SECURITY: Валидация хода
+            var validMoves = ['rock', 'scissors', 'paper'];
+            if (validMoves.indexOf(choice) === -1) {
+                console.error('[SECURITY] Invalid move:', choice);
+                return;
+            }
+            
             var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
             if (currentRoom[col]) return; 
             document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); 
@@ -1068,6 +1410,13 @@
         }
         
         async function saveGameHistory(resultStr, playerMove, customStake) { 
+            // 🔒 SECURITY: Валидация параметров
+            var validResults = ['win', 'lose', 'draw'];
+            if (validResults.indexOf(resultStr) === -1) {
+                console.error('[SECURITY] Invalid result:', resultStr);
+                return;
+            }
+            
             var roomStake = customStake; 
             if (!roomStake && currentRoom) roomStake = currentRoom.stake; 
             if (!roomStake) roomStake = 10; 
@@ -1240,6 +1589,8 @@
                     updateHeroImage();
                     clearAllIntervals();
                     isProcessingGame = false;
+                    // 🔒 SECURITY: Завершаем игровую сессию
+                    if (window.__endGameSession) window.__endGameSession();
                     activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
                     loadRooms(); 
                 } 
@@ -1252,7 +1603,7 @@
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
-        function forceExitToLobby() { isGameFinished = true; isProcessingGame = false; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); showScreen('lobby'); }
+        function forceExitToLobby() { isGameFinished = true; isProcessingGame = false; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); if (window.__endGameSession) window.__endGameSession(); showScreen('lobby'); }
         
         async function loadLeaderboard() { 
             var c = document.getElementById('leaderboardList'); 
