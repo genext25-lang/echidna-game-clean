@@ -915,16 +915,28 @@
         function startTimer(startTime) { if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); var timeLimit = 30000; var timerBar = document.getElementById('timerBar'); var timerText = document.getElementById('timerText'); activeIntervals.timerInterval = setInterval(function() { if (!window._timerRunning) return; var elapsed = Date.now() - startTime; var remaining = Math.max(0, timeLimit - elapsed); timerBar.style.width = (remaining / timeLimit) * 100 + '%'; timerText.textContent = Math.ceil(remaining / 1000) + 's'; if (remaining < 10000) timerBar.classList.add('urgent'); if (remaining <= 0) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; window._timerRunning = false; handleTimeout(); } }, 1000); }
         
         async function handleTimeout() { 
+            // FIX: Проверка на уже обработанную игру
             if (!currentRoom || isGameFinished || isProcessingGame || processedGames[currentRoom?.id]) return;
+            
             var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
             if (!currentRoom[myCol]) { 
-                isGameFinished = true; clearAllIntervals(); 
+                // FIX: Сразу помечаем как обработанную
+                processedGames[currentRoom.id] = true;
+                isGameFinished = true; 
+                clearAllIntervals(); 
+                
+                // FIX: Сначала обновляем статус в БД
                 await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); 
+                
                 var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; 
-                await updateWinsOnly(opponentId); await updateLossesOnly(MY_ID); 
-                await updateBalanceOnly(opponentId, currentRoom.stake); await updateBalanceOnly(MY_ID, -currentRoom.stake); 
+                await updateWinsOnly(opponentId); 
+                await updateLossesOnly(MY_ID); 
+                await updateBalanceOnly(opponentId, currentRoom.stake); 
+                await updateBalanceOnly(MY_ID, -currentRoom.stake); 
+                
                 document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; 
-                updateStats(); updateBalanceDisplay(); 
+                updateStats(); 
+                updateBalanceDisplay(); 
                 setTimeout(function() { forceExitToLobby(); }, 3000); 
             } 
         }
@@ -969,23 +981,33 @@
             window._timerRunning = false;
             if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval);
             
-            // Защита от повторной обработки
+            // === FIX: Проверка и установка флагов обработки НЕМЕДЛЕННО ===
             var roomKey = 'game_processed_' + room.id;
-            if (window[roomKey] === true) {
+            
+            // Проверяем, не обрабатывалась ли уже эта комната
+            if (window[roomKey] === true || processedGames[room.id] === true) {
                 console.log('[GAME] Room already processed locally, skipping duplicate');
                 return;
             }
             
-            // Проверяем в БД, не завершена ли уже комната
+            // Устанавливаем флаги ДО любых асинхронных операций
+            window[roomKey] = true;
+            processedGames[room.id] = true;
+            
+            // Останавливаем интервал опроса НЕМЕДЛЕННО
+            if (activeIntervals.pollInterval) {
+                clearInterval(activeIntervals.pollInterval);
+                activeIntervals.pollInterval = null;
+            }
+            
+            console.log('[GAME] Processing game result for room:', room.id);
+            
+            // Проверяем статус в БД ещё раз после установки локальных флагов
             var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
             if (freshRoom && freshRoom.status === 'finished') {
                 console.log('[GAME] Room already finished in DB, skipping');
                 return;
             }
-            
-            window[roomKey] = true;
-            
-            console.log('[GAME] Processing game result for room:', room.id);
             
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
@@ -1048,11 +1070,12 @@
             var opponentId = room.opponent_tg_id;
             var loserId = winnerId === creatorId ? opponentId : creatorId;
             
-            // ЕЩЁ РАЗ ПРОВЕРЯЕМ СТАТУС КОМНАТЫ ПЕРЕД ОБНОВЛЕНИЕМ СТАТИСТИКИ
-            var finalCheck = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
-            if (finalCheck && finalCheck.status === 'finished') {
-                console.log('[GAME] Room became finished before stats update, skipping');
-            } else if (!isDraw && winnerId) {
+            // === FIX: Обновляем статус комнаты в БД ПЕРЕД обновлением статистики ===
+            // Это гарантирует, что любые последующие запросы (polling) увидят статус 'finished' и не будут повторять обработку
+            await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+            
+            // Теперь безопасно обновляем статистику и баланс
+            if (!isDraw && winnerId) {
                 console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
                 
                 // Последовательное обновление (не параллельное) чтобы избежать гонки
@@ -1067,10 +1090,7 @@
                 await saveGameHistory('draw', myMove);
             }
             
-            // Закрываем комнату
-            await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
-            
-            // Обновляем отображение
+            // Обновляем отображение (читает из БД, поэтому покажет актуальные значения)
             await updateBalanceDisplay();
             await updateStats();
             
