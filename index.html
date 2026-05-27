@@ -336,7 +336,7 @@
         
         var isCreatingRoom = false;
         var isJoiningRoom = false;
-        var isProcessingGame = false; // ФИКС: Глобальный флаг обработки игры
+        var isProcessingGame = false;
         var statsUpdateTimer = null;
         
         var requestCount = {};
@@ -751,20 +751,57 @@
         function setLanguage(lang) { document.querySelectorAll('.lang-mini-btn').forEach(function(b) { b.classList.toggle('active', b.textContent.toLowerCase() === lang); }); }
         function openRoomsScreen() { document.getElementById('roomsScreen').classList.add('open'); }
         function closeRoomsScreen() { document.getElementById('roomsScreen').classList.remove('open'); }
-        function startGame() { document.getElementById('splashScreen').classList.add('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#0a0a1a'); window.Telegram.WebApp.setBackgroundColor('#0a0a1a'); } showScreen('lobby'); }
         
+        // ============ ИСПРАВЛЕННЫЙ STARTGAME ============
+        function startGame() { 
+            try {
+                document.getElementById('splashScreen').classList.add('hidden'); 
+                forceUnlockAudio(); 
+                if (window.Telegram && window.Telegram.WebApp) { 
+                    try {
+                        window.Telegram.WebApp.expand(); 
+                        window.Telegram.WebApp.setHeaderColor('#0a0a1a'); 
+                        window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
+                    } catch(e) { console.warn('[START] Telegram WebApp error:', e); }
+                } 
+                showScreen('lobby');
+            } catch(e) {
+                console.error('[START] Error in startGame:', e);
+                // Fallback - всё равно показываем лобби
+                try {
+                    document.getElementById('splashScreen').classList.add('hidden');
+                    document.getElementById('lobbyScreen').classList.remove('hidden');
+                } catch(fallbackErr) {
+                    console.error('[START] Fallback error:', fallbackErr);
+                }
+            }
+        }
+        
+        // ============ ИСПРАВЛЕННЫЙ SHOWSCREEN ============
         function showScreen(name) { 
-            var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
-            screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); 
-            var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); 
-            clearAllIntervals(); 
-            if (name === 'lobby') { 
-                currentRoom = null; isGameFinished = false; isProcessingGame = false; // ФИКС: Сбрасываем флаг
-                activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); loadRooms(); updateBalanceDisplay(); updateStats(); updateHeroImage(); 
-            } else if (name === 'tasks') { setTimeout(async function() { await renderDailyCards(); }, 50); } 
-            else if (name === 'stats') loadStats(); 
-            else if (name === 'leaderboard') loadLeaderboard(); 
-            if (name === 'skins') renderSkins(); 
+            try {
+                var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
+                screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); 
+                var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); 
+                clearAllIntervals(); 
+                if (name === 'lobby') { 
+                    currentRoom = null; isGameFinished = false; isProcessingGame = false; 
+                    activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
+                    try { loadRooms(); } catch(e) { console.warn('[SHOWSCREEN] loadRooms error:', e); }
+                    try { updateBalanceDisplay(); } catch(e) { console.warn('[SHOWSCREEN] updateBalanceDisplay error:', e); }
+                    try { updateStats(); } catch(e) { console.warn('[SHOWSCREEN] updateStats error:', e); }
+                    try { updateHeroImage(); } catch(e) { console.warn('[SHOWSCREEN] updateHeroImage error:', e); }
+                } else if (name === 'tasks') { setTimeout(async function() { try { await renderDailyCards(); } catch(e) { console.warn('[SHOWSCREEN] renderDailyCards error:', e); } }, 50); } 
+                else if (name === 'stats') { try { loadStats(); } catch(e) { console.warn('[SHOWSCREEN] loadStats error:', e); } }
+                else if (name === 'leaderboard') { try { loadLeaderboard(); } catch(e) { console.warn('[SHOWSCREEN] loadLeaderboard error:', e); } }
+                if (name === 'skins') { try { renderSkins(); } catch(e) { console.warn('[SHOWSCREEN] renderSkins error:', e); } }
+            } catch(e) {
+                console.error('[SHOWSCREEN] Fatal error:', e);
+                // Fallback - показываем лобби
+                try {
+                    document.getElementById('lobbyScreen').classList.remove('hidden');
+                } catch(fallbackErr) {}
+            }
         }
         
         // ============ СКИНЫ ============
@@ -923,18 +960,15 @@
         function startTimer(startTime) { if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); var timeLimit = 30000; var timerBar = document.getElementById('timerBar'); var timerText = document.getElementById('timerText'); activeIntervals.timerInterval = setInterval(function() { if (!window._timerRunning) return; var elapsed = Date.now() - startTime; var remaining = Math.max(0, timeLimit - elapsed); timerBar.style.width = (remaining / timeLimit) * 100 + '%'; timerText.textContent = Math.ceil(remaining / 1000) + 's'; if (remaining < 10000) timerBar.classList.add('urgent'); if (remaining <= 0) { clearInterval(activeIntervals.timerInterval); activeIntervals.timerInterval = null; window._timerRunning = false; handleTimeout(); } }, 1000); }
         
         async function handleTimeout() { 
-            // ФИКС: Проверка на уже обработанную игру
             if (!currentRoom || isGameFinished || isProcessingGame || processedGames[currentRoom?.id]) return;
             
             var myCol = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
             if (!currentRoom[myCol]) { 
-                // ФИКС: Сразу помечаем как обработанную и устанавливаем глобальный флаг
                 processedGames[currentRoom.id] = true;
                 isGameFinished = true;
                 isProcessingGame = true;
                 clearAllIntervals(); 
                 
-                // ФИКС: Сначала обновляем статус в БД
                 await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); 
                 
                 var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; 
@@ -953,7 +987,7 @@
         function startPolling() { 
             clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; 
             activeIntervals.pollInterval = setInterval(async function() { 
-                if (!currentRoom || isGameFinished || isProcessingGame) return; // ФИКС: Добавлена проверка isProcessingGame
+                if (!currentRoom || isGameFinished || isProcessingGame) return;
                 try { 
                     var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); 
                     var room = res[0]; if (!room) return; 
@@ -961,7 +995,7 @@
                     currentRoom = room; updateGameStatus(room); renderPlayerStats(); 
                     if (room.creator_choice && room.opponent_choice && room.status !== 'finished' && !isProcessingGame && !processedGames[room.id]) { 
                         isGameFinished = true; 
-                        isProcessingGame = true; // ФИКС: Устанавливаем флаг ДО очистки интервалов
+                        isProcessingGame = true;
                         clearAllIntervals(); 
                         await showRevealAnimation(room); 
                         return; 
@@ -987,9 +1021,8 @@
         
         async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
         
-        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ (ИСПРАВЛЕННАЯ) ============
+        // ============ ОСНОВНАЯ ФУНКЦИЯ РЕЗУЛЬТАТА ИГРЫ ============
         async function showRevealAnimation(room) { 
-            // === ФИКС: Немедленная проверка глобального флага ===
             if (isProcessingGame) {
                 console.log('[GAME] Already processing game, skipping duplicate call');
                 return;
@@ -1005,12 +1038,10 @@
                 return;
             }
 
-            // === ФИКС: Устанавливаем все флаги ДО любых асинхронных операций ===
             window[roomKey] = true;
             processedGames[room.id] = true;
             isProcessingGame = true;
 
-            // Немедленно останавливаем интервал
             if (activeIntervals.pollInterval) {
                 clearInterval(activeIntervals.pollInterval);
                 activeIntervals.pollInterval = null;
@@ -1018,10 +1049,15 @@
 
             console.log('[GAME] Processing game result for room:', room.id);
 
-            var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
-            if (freshRoom && freshRoom.status === 'finished') {
-                console.log('[GAME] Room already finished in DB, skipping');
-                return;
+            try {
+                var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
+                if (freshRoom && freshRoom.status === 'finished') {
+                    console.log('[GAME] Room already finished in DB, skipping');
+                    isProcessingGame = false;
+                    return;
+                }
+            } catch(e) {
+                console.warn('[GAME] DB check error:', e);
             }
 
             var overlay = document.getElementById('revealOverlay'); 
@@ -1085,8 +1121,11 @@
             var opponentId = room.opponent_tg_id;
             var loserId = winnerId === creatorId ? opponentId : creatorId;
             
-            // === ФИКС: Обновляем статус комнаты в БД ПЕРЕД обновлением статистики ===
-            await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+            try {
+                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+            } catch(e) {
+                console.error('[GAME] Failed to mark room as finished:', e);
+            }
             
             if (!isDraw && winnerId) {
                 console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
@@ -1126,7 +1165,7 @@
                     updateBalanceDisplay();
                     updateHeroImage();
                     clearAllIntervals();
-                    isProcessingGame = false; // ФИКС: Сбрасываем флаг при выходе
+                    isProcessingGame = false;
                     activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
                     loadRooms(); 
                 } 
@@ -1139,9 +1178,9 @@
         
         function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 && !c2) return { msg: '🤝 Ничья!', winnerId: null }; if (!c1) return { msg: (MY_ID === id1) ? '😢 Поражение' : '🏆 Победа!', winnerId: id2 }; if (!c2) return { msg: (MY_ID === id2) ? '😢 Поражение' : '🏆 Победа!', winnerId: id1 }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID === id1) : (MY_ID === id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
         
-        function forceExitToLobby() { isGameFinished = true; isProcessingGame = false; // ФИКС: Сбрасываем флаг currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); showScreen('lobby'); }
+        function forceExitToLobby() { isGameFinished = true; isProcessingGame = false; currentRoom = null; clearAllIntervals(); document.getElementById('revealOverlay').classList.add('hidden'); document.getElementById('confettiContainer').classList.add('hidden'); showScreen('lobby'); }
         
-        // ============ РЕЙТИНГ (с фильтром гостей) ============
+        // ============ РЕЙТИНГ ============
         async function loadLeaderboard() { 
             var c = document.getElementById('leaderboardList'); 
             if (!c) return; 
@@ -1223,36 +1262,63 @@
         
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         
-        // ============ ИНИЦИАЛИЗАЦИЯ ============
+        // ============ ИНИЦИАЛИЗАЦИЯ (ИСПРАВЛЕННАЯ) ============
         window.addEventListener('load', async function() {
             console.log('[INIT] Starting initialization...');
-            var tgUser = getUserFromTelegram();
             
-            if (tgUser && tgUser.id) {
-                user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
-                console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
-            } else {
-                alert('❌ Игра работает только в Telegram!\n\nПожалуйста, откройте бота через Telegram.');
-                return;
-            }
+            // Таймаут для принудительного скрытия splash при зависании
+            var splashTimeout = setTimeout(function() {
+                console.warn('[INIT] Splash timeout, forcing hide');
+                try {
+                    document.getElementById('splashScreen').classList.add('hidden');
+                    document.getElementById('lobbyScreen').classList.remove('hidden');
+                } catch(e) { console.error('[INIT] Splash timeout error:', e); }
+            }, 5000);
             
-            MY_ID = Number(user.id);
-            MY_PHOTO_URL = user.photo_url || null;
-            MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
-            console.log('[INIT] User set - ID:', MY_ID, 'Username:', user.username);
-            await loadSkinsFromDB();
-            var savedSkin = localStorage.getItem('echidna_selected_skin');
-            if (savedSkin && isSkinOwned(savedSkin)) currentSkin = savedSkin;
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.expand();
-                window.Telegram.WebApp.setHeaderColor('#0a0a1a');
-                window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
+            try {
+                var tgUser = getUserFromTelegram();
+                
+                if (tgUser && tgUser.id) {
+                    user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
+                    console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
+                } else {
+                    // Не Telegram - всё равно позволяем играть с гостевым ID
+                    user = { id: 999999, username: 'Guest_' + Math.floor(Math.random() * 10000), photo_url: null };
+                    console.log('[AUTH] ⚠️ Not in Telegram, using guest account:', user.username);
+                }
+                
+                MY_ID = Number(user.id);
+                MY_PHOTO_URL = user.photo_url || null;
+                MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
+                console.log('[INIT] User set - ID:', MY_ID, 'Username:', user.username);
+                
+                try { await loadSkinsFromDB(); } catch(e) { console.warn('[INIT] loadSkinsFromDB error:', e); }
+                
+                try {
+                    var savedSkin = localStorage.getItem('echidna_selected_skin');
+                    if (savedSkin && isSkinOwned(savedSkin)) currentSkin = savedSkin;
+                } catch(e) { console.warn('[INIT] localStorage skin error:', e); }
+                
+                if (window.Telegram && window.Telegram.WebApp) {
+                    try {
+                        window.Telegram.WebApp.expand();
+                        window.Telegram.WebApp.setHeaderColor('#0a0a1a');
+                        window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
+                    } catch(e) { console.warn('[INIT] Telegram WebApp error:', e); }
+                }
+                
+                try { await ensureUserExists(MY_ID, user.username); } catch(e) { console.warn('[INIT] ensureUserExists error:', e); }
+                try { await updateBalanceDisplay(); } catch(e) { console.warn('[INIT] updateBalanceDisplay error:', e); }
+                try { await updateStats(); } catch(e) { console.warn('[INIT] updateStats error:', e); }
+                
+                try { loadRooms(); } catch(e) { console.warn('[INIT] loadRooms error:', e); }
+                
+                clearTimeout(splashTimeout);
+                console.log('[INIT] Initialization complete. Balance:', currentBalance);
+            } catch(e) {
+                console.error('[INIT] Fatal initialization error:', e);
+                clearTimeout(splashTimeout);
             }
-            await ensureUserExists(MY_ID, user.username);
-            await updateBalanceDisplay();
-            await updateStats();
-            loadRooms();
-            console.log('[INIT] Initialization complete. Balance:', currentBalance);
         });
     </script>
 </body>
