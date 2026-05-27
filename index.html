@@ -324,7 +324,6 @@
     <script>
         window.addEventListener('unhandledrejection', function(event) {
             if (event.reason && event.reason.message && event.reason.message.indexOf('message channel closed') !== -1) {
-                console.warn('[Telegram] Message channel closed error suppressed');
                 event.preventDefault();
             }
         });
@@ -759,9 +758,7 @@
                 try {
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('lobbyScreen').classList.remove('hidden');
-                } catch(fallbackErr) {
-                    console.error('[START] Fallback error:', fallbackErr);
-                }
+                } catch(fallbackErr) {}
             }
         }
         
@@ -774,19 +771,17 @@
                 if (name === 'lobby') { 
                     currentRoom = null; isGameFinished = false; isProcessingGame = false; 
                     activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
-                    try { loadRooms(); } catch(e) { console.warn('[SHOWSCREEN] loadRooms error:', e); }
-                    try { updateBalanceDisplay(); } catch(e) { console.warn('[SHOWSCREEN] updateBalanceDisplay error:', e); }
-                    try { updateStats(); } catch(e) { console.warn('[SHOWSCREEN] updateStats error:', e); }
-                    try { updateHeroImage(); } catch(e) { console.warn('[SHOWSCREEN] updateHeroImage error:', e); }
-                } else if (name === 'tasks') { setTimeout(async function() { try { await renderDailyCards(); } catch(e) { console.warn('[SHOWSCREEN] renderDailyCards error:', e); } }, 50); } 
-                else if (name === 'stats') { try { loadStats(); } catch(e) { console.warn('[SHOWSCREEN] loadStats error:', e); } }
-                else if (name === 'leaderboard') { try { loadLeaderboard(); } catch(e) { console.warn('[SHOWSCREEN] loadLeaderboard error:', e); } }
-                if (name === 'skins') { try { renderSkins(); } catch(e) { console.warn('[SHOWSCREEN] renderSkins error:', e); } }
+                    try { loadRooms(); } catch(e) {}
+                    try { updateBalanceDisplay(); } catch(e) {}
+                    try { updateStats(); } catch(e) {}
+                    try { updateHeroImage(); } catch(e) {}
+                } else if (name === 'tasks') { setTimeout(async function() { try { await renderDailyCards(); } catch(e) {} }, 50); } 
+                else if (name === 'stats') { try { loadStats(); } catch(e) {} }
+                else if (name === 'leaderboard') { try { loadLeaderboard(); } catch(e) {} }
+                if (name === 'skins') { try { renderSkins(); } catch(e) {} }
             } catch(e) {
                 console.error('[SHOWSCREEN] Fatal error:', e);
-                try {
-                    document.getElementById('lobbyScreen').classList.remove('hidden');
-                } catch(fallbackErr) {}
+                try { document.getElementById('lobbyScreen').classList.remove('hidden'); } catch(fallbackErr) {}
             }
         }
         
@@ -990,13 +985,37 @@
                 isProcessingGame = true;
                 clearAllIntervals(); 
                 
-                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(currentRoom.id)); 
+                // АТОМАРНО пытаемся завершить комнату (только если ещё не finished)
+                var finalizeResult = null;
+                try {
+                    finalizeResult = await db('rooms', 'PATCH', 
+                        { status: 'finished' }, 
+                        '?id=eq.' + escapeHtml(currentRoom.id) + '&status=neq.finished', 
+                        false
+                    );
+                } catch(e) {
+                    console.error('[TIMEOUT] Finalize error:', e);
+                    finalizeResult = [];
+                }
                 
-                var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; 
-                await updateWinsOnly(opponentId); 
-                await updateLossesOnly(MY_ID); 
-                await updateBalanceOnly(opponentId, currentRoom.stake); 
-                await updateBalanceOnly(MY_ID, -currentRoom.stake); 
+                var weFinalized = finalizeResult && Array.isArray(finalizeResult) && finalizeResult.length > 0;
+                
+                // Обновляем статистику ТОЛЬКО если мы первые завершили комнату
+                if (weFinalized) {
+                    console.log('[TIMEOUT] We finalized room, updating stats');
+                    var opponentId = String(currentRoom.creator_tg_id) === String(MY_ID) ? currentRoom.opponent_tg_id : currentRoom.creator_tg_id; 
+                    await updateWinsOnly(opponentId); 
+                    await updateLossesOnly(MY_ID); 
+                    await updateBalanceOnly(opponentId, currentRoom.stake); 
+                    await updateBalanceOnly(MY_ID, -currentRoom.stake); 
+                    
+                    // Сохраняем историю (проигравший по таймауту)
+                    try {
+                        await saveGameHistory('lose', 'timeout');
+                    } catch(e) {}
+                } else {
+                    console.log('[TIMEOUT] Room already finalized by other client');
+                }
                 
                 document.getElementById('statusMessage').innerHTML = '<div style="color:var(--error);font-size:18px;">😢 Время вышло!</div>'; 
                 updateStats(); 
@@ -1040,13 +1059,38 @@
             try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } 
         }
         
-        async function saveGameHistory(resultStr, playerMove, customStake) { var roomStake = customStake; if (!roomStake && currentRoom) roomStake = currentRoom.stake; if (!roomStake) roomStake = 10000; var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Skin Shop'; var encodedStake; if (resultStr === 'win') encodedStake = roomStake; else if (resultStr === 'lose') encodedStake = -roomStake; else encodedStake = 0; var historyData = { player_id: MY_ID, opponent_name: escapeHtml(opponentName || 'unknown'), stake: encodedStake, player_move: playerMove || 'rock', result: resultStr, played_at: new Date().toISOString() }; try { await db('game_history', 'POST', [historyData]); } catch(e) { console.error('Save history error:', e); } }
+        async function saveGameHistory(resultStr, playerMove, customStake) { 
+            var roomStake = customStake; 
+            if (!roomStake && currentRoom) roomStake = currentRoom.stake; 
+            if (!roomStake) roomStake = 10; 
+            var isCreator = currentRoom ? String(currentRoom.creator_tg_id) === String(MY_ID) : true; 
+            var opponentName = currentRoom ? (isCreator ? currentRoom.opponent_username : currentRoom.creator_username) : 'Unknown'; 
+            var encodedStake; 
+            if (resultStr === 'win') encodedStake = roomStake; 
+            else if (resultStr === 'lose') encodedStake = -roomStake; 
+            else encodedStake = 0; 
+            var historyData = { 
+                player_id: MY_ID, 
+                opponent_name: escapeHtml(opponentName || 'unknown'), 
+                stake: encodedStake, 
+                player_move: playerMove || 'rock', 
+                result: resultStr, 
+                played_at: new Date().toISOString() 
+            }; 
+            try { 
+                await db('game_history', 'POST', [historyData]); 
+            } catch(e) { 
+                console.error('Save history error:', e); 
+            } 
+        }
         
+        // ============ ОСНОВНАЯ ФУНКЦИЯ С АТОМАРНЫМ ЗАВЕРШЕНИЕМ ============
         async function showRevealAnimation(room) { 
             var roomKey = 'game_processed_' + room.id;
 
             if (window[roomKey] === true || processedGames[room.id] === true) {
-                console.log('[GAME] Room already processed locally, skipping duplicate');
+                console.log('[GAME] Room already processed locally, skipping');
+                isProcessingGame = false;
                 return;
             }
 
@@ -1060,17 +1104,6 @@
             }
 
             console.log('[GAME] Processing game result for room:', room.id);
-
-            try {
-                var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(room.id), true);
-                if (freshRoom && freshRoom.status === 'finished') {
-                    console.log('[GAME] Room already finished in DB, skipping');
-                    isProcessingGame = false;
-                    return;
-                }
-            } catch(e) {
-                console.warn('[GAME] DB check error:', e);
-            }
 
             var overlay = document.getElementById('revealOverlay'); 
             var confetti = document.getElementById('confettiContainer'); 
@@ -1133,26 +1166,58 @@
             var opponentId = room.opponent_tg_id;
             var loserId = winnerId === creatorId ? opponentId : creatorId;
             
+            // ================================================================
+            // АТОМАРНОЕ ЗАВЕРШЕНИЕ КОМНАТЫ НА УРОВНЕ БД
+            // Только тот клиент, чей PATCH первым обновит статус, получит 
+            // непустой массив в ответе. Второй клиент получит [] и пропустит 
+            // обновление статистики. ЭТО РЕШАЕТ ПРОБЛЕМУ УДВОЕНИЯ.
+            // ================================================================
+            var finalizeResult = null;
             try {
-                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + escapeHtml(room.id));
+                finalizeResult = await db('rooms', 'PATCH', 
+                    { status: 'finished' }, 
+                    '?id=eq.' + escapeHtml(room.id) + '&status=neq.finished', 
+                    false
+                );
             } catch(e) {
-                console.error('[GAME] Failed to mark room as finished:', e);
+                console.error('[GAME] Finalize error:', e);
+                finalizeResult = [];
             }
             
-            if (!isDraw && winnerId) {
-                console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
+            var weFinalized = finalizeResult && Array.isArray(finalizeResult) && finalizeResult.length > 0;
+            
+            if (weFinalized) {
+                console.log('[GAME] ✅ We finalized the room FIRST — updating stats for both players');
                 
-                await updateWinsOnly(winnerId);
-                await updateLossesOnly(loserId);
-                await updateBalanceOnly(winnerId, stakeAmount);
-                await updateBalanceOnly(loserId, -stakeAmount);
-                
-                await saveGameHistory('win', myMove);
-            } else if (isDraw) {
-                console.log('[GAME] Draw! No stats changes');
-                await saveGameHistory('draw', myMove);
+                // Только ОДИН клиент обновляет статистику и баланс
+                if (!isDraw && winnerId) {
+                    console.log('[GAME] Winner:', winnerId, 'Loser:', loserId, 'Stake:', stakeAmount);
+                    await updateWinsOnly(winnerId);
+                    await updateLossesOnly(loserId);
+                    await updateBalanceOnly(winnerId, stakeAmount);
+                    await updateBalanceOnly(loserId, -stakeAmount);
+                }
+            } else {
+                console.log('[GAME] ⏭️ Room already finalized by other client — skipping stats update');
             }
             
+            // Каждый игрок сохраняет СВОЮ историю (это не вызывает удвоения, 
+            // так как у каждого игрока своя отдельная запись)
+            try {
+                if (!isDraw && winnerId) {
+                    if (Number(winnerId) === MY_ID) {
+                        await saveGameHistory('win', myMove);
+                    } else {
+                        await saveGameHistory('lose', myMove);
+                    }
+                } else {
+                    await saveGameHistory('draw', myMove);
+                }
+            } catch(e) {
+                console.warn('[GAME] History save error:', e);
+            }
+            
+            // Обновляем локальное отображение
             await updateBalanceDisplay();
             await updateStats();
             
@@ -1276,11 +1341,10 @@
             console.log('[INIT] Starting initialization...');
             
             var splashTimeout = setTimeout(function() {
-                console.warn('[INIT] Splash timeout, forcing hide');
                 try {
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('lobbyScreen').classList.remove('hidden');
-                } catch(e) { console.error('[INIT] Splash timeout error:', e); }
+                } catch(e) {}
             }, 5000);
             
             try {
@@ -1291,34 +1355,31 @@
                     console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
                 } else {
                     user = { id: 999999, username: 'Guest_' + Math.floor(Math.random() * 10000), photo_url: null };
-                    console.log('[AUTH] ⚠️ Not in Telegram, using guest account:', user.username);
+                    console.log('[AUTH] ⚠️ Not in Telegram, using guest account');
                 }
                 
                 MY_ID = Number(user.id);
                 MY_PHOTO_URL = user.photo_url || null;
                 MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
-                console.log('[INIT] User set - ID:', MY_ID, 'Username:', user.username);
                 
-                try { await loadSkinsFromDB(); } catch(e) { console.warn('[INIT] loadSkinsFromDB error:', e); }
-                
+                try { await loadSkinsFromDB(); } catch(e) {}
                 try {
                     var savedSkin = localStorage.getItem('echidna_selected_skin');
                     if (savedSkin && isSkinOwned(savedSkin)) currentSkin = savedSkin;
-                } catch(e) { console.warn('[INIT] localStorage skin error:', e); }
+                } catch(e) {}
                 
                 if (window.Telegram && window.Telegram.WebApp) {
                     try {
                         window.Telegram.WebApp.expand();
                         window.Telegram.WebApp.setHeaderColor('#0a0a1a');
                         window.Telegram.WebApp.setBackgroundColor('#0a0a1a');
-                    } catch(e) { console.warn('[INIT] Telegram WebApp error:', e); }
+                    } catch(e) {}
                 }
                 
-                try { await ensureUserExists(MY_ID, user.username); } catch(e) { console.warn('[INIT] ensureUserExists error:', e); }
-                try { await updateBalanceDisplay(); } catch(e) { console.warn('[INIT] updateBalanceDisplay error:', e); }
-                try { await updateStats(); } catch(e) { console.warn('[INIT] updateStats error:', e); }
-                
-                try { loadRooms(); } catch(e) { console.warn('[INIT] loadRooms error:', e); }
+                try { await ensureUserExists(MY_ID, user.username); } catch(e) {}
+                try { await updateBalanceDisplay(); } catch(e) {}
+                try { await updateStats(); } catch(e) {}
+                try { loadRooms(); } catch(e) {}
                 
                 clearTimeout(splashTimeout);
                 console.log('[INIT] Initialization complete. Balance:', currentBalance);
