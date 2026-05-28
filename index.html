@@ -1748,5 +1748,30 @@
             }
         });
     </script>
+<!-- ВРЕМЕННАЯ КНОПКА ДЛЯ ОТЛАДКИ (УДАЛИТЬ ПОСЛЕ ИСПРАВЛЕНИЯ) -->
+<button onclick="copyInitData()" style="position:fixed; top:10px; right:10px; z-index:9999; padding:12px 15px; background:#ff4444; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
+    📋 Copy InitData
+</button>
+
+<script>
+function copyInitData() {
+    var tg = window.Telegram.WebApp;
+    if (tg && tg.initData) {
+        console.log('=== MANUAL INITDATA COPY ===');
+        console.log('Platform:', tg.platform);
+        console.log('InitData FULL:', tg.initData);
+        console.log('===========================');
+        
+        // Копируем в буфер обмена
+        navigator.clipboard.writeText(tg.initData).then(function() {
+            alert('✅ InitData скопирован в буфер обмена!\n\nПроверьте консоль (F12) для полного лога.');
+        }).catch(function() {
+            alert('❌ Не удалось скопировать. Проверьте консоль (F12).');
+        });
+    } else {
+        alert('❌ Telegram WebApp не найден!');
+    }
+}
+</script>
 </body>
 </html>
