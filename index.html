@@ -650,29 +650,26 @@
             
             var tg = window.Telegram.WebApp;
             
-            // ✅ ПРОВЕРЯЕМ ПЛАТФОРМУ
-            console.log('=== TELEGRAM ENVIRONMENT ===');
-            console.log('tg.platform:', tg.platform);
-            console.log('tg.botUsername:', tg.botUsername);
+            if (!tg.initData) return false;
             
-            // Если открыто в браузере - используем упрощённую авторизацию
+            console.log('[AUTH] Platform:', tg.platform);
+            
+            // Для браузера (weba/web) — сразу берём данные
             if (tg.platform === 'weba' || tg.platform === 'web') {
-                console.warn('[AUTH] ⚠️ Running outside Telegram! Using simplified auth.');
+                console.warn('[AUTH] ⚠️ Browser mode - using initDataUnsafe');
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { 
                         id: tg.initDataUnsafe.user.id, 
                         username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
                     };
                     MY_ID = Number(user.id);
-                    console.log('[AUTH] ✅ Outside Telegram auth:', user.username);
+                    console.log('[AUTH] ✅ Browser auth:', user.username);
                     return true;
                 }
                 return false;
             }
             
-            if (!tg.initData || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return false;
-            
-            // Для Android/iOS/Telegram Desktop - полная проверка
+            // Для телефона/десктопа — отправляем на сервер
             try {
                 console.log('[AUTH] Sending initData to Edge Function...');
                 
@@ -685,27 +682,45 @@
                     body: JSON.stringify({ initData: tg.initData })
                 });
                 
-                if (!response.ok) throw new Error('Auth failed: ' + response.status);
-                
                 var result = await response.json();
-                if (result.success && result.session && result.session.access_token) {
+                console.log('[AUTH] Server response:', result);
+                
+                if (result.success && result.session) {
                     AUTH_TOKEN = result.session.access_token;
                     MY_ID = Number(result.user_id);
-                    console.log('[AUTH] ✅ Authenticated. Token:', AUTH_TOKEN.substring(0, 10) + '...');
+                    console.log('[AUTH] ✅ Authenticated:', result.username);
                     return true;
                 }
-                throw new Error('Invalid auth response');
-            } catch(e) {
-                console.error('[AUTH] ❌ Auth error:', e);
+                
+                // Fallback если сервер вернул ошибку
+                console.warn('[AUTH] ⚠️ Server auth failed, using fallback');
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    user = { id: tg.initDataUnsafe.user.id, username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' };
+                    user = { 
+                        id: tg.initDataUnsafe.user.id, 
+                        username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
+                    };
                     MY_ID = Number(user.id);
-                    console.warn('[AUTH] ⚠️ Using fallback auth (no JWT)');
+                    console.log('[AUTH] ✅ Fallback auth:', user.username);
+                    return true;
+                }
+                return false;
+                
+            } catch(e) {
+                console.error('[AUTH] ❌ Error:', e.message);
+                // Fallback при ошибке соединения
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    user = { 
+                        id: tg.initDataUnsafe.user.id, 
+                        username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
+                    };
+                    MY_ID = Number(user.id);
+                    console.warn('[AUTH] ⚠️ Fallback auth after error');
                     return true;
                 }
                 return false;
             }
-        }        var SKINS = [ 
+        }    
+   var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
             { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
