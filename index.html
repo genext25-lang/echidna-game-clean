@@ -651,7 +651,15 @@
             var tg = window.Telegram.WebApp;
             if (!tg.initData || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return false;
             
-            // ✅✅✅ ДОБАВЬТЕ ВОТ ЭТОТ БЛОК ДЛЯ ОТЛАДКИ ✅✅✅
+            // ✅✅✅ ДОБАВЛЕНО: ОТЛАДКА ОКРУЖЕНИЯ TELEGRAM ✅✅✅
+            console.log('=== TELEGRAM ENVIRONMENT ===');
+            console.log('tg.platform:', tg.platform);
+            console.log('tg.version:', tg.version);
+            console.log('tg.botUsername:', tg.botUsername);
+            console.log('tg.isExpanded:', tg.isExpanded);
+            console.log('=============================');
+            
+            // ✅✅✅ ДОБАВЛЕНО: ОТЛАДКА INITDATA ✅✅✅
             console.log('=== TELEGRAM AUTH DEBUG ===');
             console.log('tg.initData type:', typeof tg.initData);
             console.log('tg.initData length:', tg.initData.length);
@@ -661,7 +669,6 @@
             try {
                 console.log('[AUTH] Sending initData to Edge Function...');
                 
-                // ✅ ТОЖЕ ДОБАВЬТЕ ЛОГ ПЕРЕД ОТПРАВКОЙ
                 var bodyToSend = JSON.stringify({ initData: tg.initData });
                 console.log('[AUTH] Request body:', bodyToSend.substring(0, 200) + '...');
                 
@@ -699,8 +706,7 @@
                 }
                 return false;
             }
-        }
-        
+        }        
         var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
