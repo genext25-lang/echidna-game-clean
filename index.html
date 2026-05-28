@@ -561,9 +561,9 @@
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        // ═══════════════════════════════════════════════════════════════════
-        // 🔒 МОДИФИЦИРОВАНО: Добавлен x-user-id header для RLS политик
-        // ═══════════════════════════════════════════════════════════════════
+        // 🔐 МОДИФИЦИРОВАНО: JWT авторизация вместо x-user-id
+        var AUTH_TOKEN = null;
+        
         async function db(table, method, payload, filters, single) { 
             if (!navigator.onLine) { 
                 throw new Error('Нет соединения с интернетом'); 
@@ -574,12 +574,15 @@
             single = single || false; 
             var safeFilters = sanitizeFilter(filters); 
             var url = SUPABASE_URL + '/rest/v1/' + table + safeFilters; 
+            
+            // Используем JWT если есть, иначе ANON_KEY
+            var authHeader = AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + SUPABASE_ANON_KEY;
+            
             var headers = { 
                 'apikey': SUPABASE_ANON_KEY, 
-                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 
+                'Authorization': authHeader, 
                 'Content-Type': 'application/json', 
-                'Accept': 'application/json',
-                'x-user-id': window.MY_ID ? String(window.MY_ID) : ''  // ← RLS: передаём Telegram ID для серверных политик
+                'Accept': 'application/json'
             }; 
             if (method === 'POST') headers['Prefer'] = 'return=representation'; 
             else if (method === 'DELETE') headers['Prefer'] = 'return=minimal'; 
@@ -639,6 +642,47 @@
                 return window.Telegram.WebApp.initDataUnsafe.user;
             }
             return null;
+        }
+        
+        // 🔐 Авторизация через Edge Function
+        async function authenticateWithTelegram() {
+            if (!window.Telegram || !window.Telegram.WebApp) return false;
+            
+            var tg = window.Telegram.WebApp;
+            if (!tg.initData || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return false;
+            
+            try {
+                console.log('[AUTH] Sending initData to Edge Function...');
+                var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+                
+                if (!response.ok) throw new Error('Auth failed: ' + response.status);
+                
+                var result = await response.json();
+                if (result.success && result.session && result.session.access_token) {
+                    AUTH_TOKEN = result.session.access_token;
+                    MY_ID = Number(result.user_id);
+                    console.log('[AUTH] ✅ Authenticated. Token:', AUTH_TOKEN.substring(0, 10) + '...');
+                    return true;
+                }
+                throw new Error('Invalid auth response');
+            } catch(e) {
+                console.error('[AUTH] ❌ Auth error:', e);
+                // Fallback: используем ANON_KEY и initDataUnsafe (для разработки)
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    user = { id: tg.initDataUnsafe.user.id, username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' };
+                    MY_ID = Number(user.id);
+                    console.warn('[AUTH] ⚠️ Using fallback auth (no JWT)');
+                    return true;
+                }
+                return false;
+            }
         }
         
         var SKINS = [ 
@@ -1641,19 +1685,21 @@
             }, 5000);
             
             try {
-                var tgUser = getUserFromTelegram();
+                // 🔐 Сначала авторизация через Edge Function
+                var authSuccess = await authenticateWithTelegram();
                 
-                if (tgUser && tgUser.id) {
-                    user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
-                    console.log('[AUTH] ✅ User from Telegram:', user.username, '(ID:', user.id, ')');
-                } else {
-                    user = { id: 999999, username: 'Guest_' + Math.floor(Math.random() * 10000), photo_url: null };
-                    console.log('[AUTH] ⚠️ Not in Telegram, using guest account');
+                if (!authSuccess) {
+                    console.error('[INIT] Auth failed');
+                    // Fallback для разработки
+                    var tgUser = getUserFromTelegram();
+                    if (tgUser && tgUser.id) {
+                        user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
+                        MY_ID = Number(user.id);
+                    }
                 }
                 
-                MY_ID = Number(user.id);
-                MY_PHOTO_URL = user.photo_url || null;
-                MY_INITIAL = user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?';
+                MY_PHOTO_URL = user ? (user.photo_url || null) : null;
+                MY_INITIAL = user ? (user.username ? escapeHtml(user.username.charAt(0).toUpperCase()) : '?') : '?';
                 
                 try { await loadSkinsFromDB(); } catch(e) {}
                 try {
@@ -1669,7 +1715,7 @@
                     } catch(e) {}
                 }
                 
-                try { await ensureUserExists(MY_ID, user.username); } catch(e) {}
+                try { await ensureUserExists(MY_ID, user ? user.username : 'Unknown'); } catch(e) {}
                 try { await updateBalanceDisplay(); } catch(e) {}
                 try { await updateStats(); } catch(e) {}
                 try { loadRooms(); } catch(e) {}
