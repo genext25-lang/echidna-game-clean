@@ -649,28 +649,32 @@
             if (!window.Telegram || !window.Telegram.WebApp) return false;
             
             var tg = window.Telegram.WebApp;
-            if (!tg.initData || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return false;
             
-            // ✅✅✅ ДОБАВЛЕНО: ОТЛАДКА ОКРУЖЕНИЯ TELEGRAM ✅✅✅
+            // ✅ ПРОВЕРЯЕМ ПЛАТФОРМУ
             console.log('=== TELEGRAM ENVIRONMENT ===');
             console.log('tg.platform:', tg.platform);
-            console.log('tg.version:', tg.version);
             console.log('tg.botUsername:', tg.botUsername);
-            console.log('tg.isExpanded:', tg.isExpanded);
-            console.log('=============================');
             
-            // ✅✅✅ ДОБАВЛЕНО: ОТЛАДКА INITDATA ✅✅✅
-            console.log('=== TELEGRAM AUTH DEBUG ===');
-            console.log('tg.initData type:', typeof tg.initData);
-            console.log('tg.initData length:', tg.initData.length);
-            console.log('tg.initData FULL:', tg.initData);
-            console.log('===========================');
+            // Если открыто в браузере - используем упрощённую авторизацию
+            if (tg.platform === 'weba' || tg.platform === 'web') {
+                console.warn('[AUTH] ⚠️ Running outside Telegram! Using simplified auth.');
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    user = { 
+                        id: tg.initDataUnsafe.user.id, 
+                        username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
+                    };
+                    MY_ID = Number(user.id);
+                    console.log('[AUTH] ✅ Outside Telegram auth:', user.username);
+                    return true;
+                }
+                return false;
+            }
             
+            if (!tg.initData || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return false;
+            
+            // Для Android/iOS/Telegram Desktop - полная проверка
             try {
                 console.log('[AUTH] Sending initData to Edge Function...');
-                
-                var bodyToSend = JSON.stringify({ initData: tg.initData });
-                console.log('[AUTH] Request body:', bodyToSend.substring(0, 200) + '...');
                 
                 var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
                     method: 'POST',
@@ -678,15 +682,12 @@
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
                     },
-                    body: bodyToSend
+                    body: JSON.stringify({ initData: tg.initData })
                 });
-                
-                console.log('[AUTH] Response status:', response.status);
-                var result = await response.json();
-                console.log('[AUTH] Response body:', result);
                 
                 if (!response.ok) throw new Error('Auth failed: ' + response.status);
                 
+                var result = await response.json();
                 if (result.success && result.session && result.session.access_token) {
                     AUTH_TOKEN = result.session.access_token;
                     MY_ID = Number(result.user_id);
@@ -695,9 +696,7 @@
                 }
                 throw new Error('Invalid auth response');
             } catch(e) {
-                console.error('[AUTH] ❌ Auth error:', e.message);
-                console.error('[AUTH] Full error:', e);
-                // Fallback: используем ANON_KEY и initDataUnsafe (для разработки)
+                console.error('[AUTH] ❌ Auth error:', e);
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { id: tg.initDataUnsafe.user.id, username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' };
                     MY_ID = Number(user.id);
@@ -706,8 +705,7 @@
                 }
                 return false;
             }
-        }        
-        var SKINS = [ 
+        }        var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
             { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
