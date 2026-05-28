@@ -644,27 +644,42 @@
             return null;
         }
         
-        // 🔐 Авторизация через Edge Function
+// 🔐 Авторизация через Edge Function
         async function authenticateWithTelegram() {
             if (!window.Telegram || !window.Telegram.WebApp) return false;
             
             var tg = window.Telegram.WebApp;
             if (!tg.initData || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return false;
             
+            // ✅✅✅ ДОБАВЬТЕ ВОТ ЭТОТ БЛОК ДЛЯ ОТЛАДКИ ✅✅✅
+            console.log('=== TELEGRAM AUTH DEBUG ===');
+            console.log('tg.initData type:', typeof tg.initData);
+            console.log('tg.initData length:', tg.initData.length);
+            console.log('tg.initData FULL:', tg.initData);
+            console.log('===========================');
+            
             try {
                 console.log('[AUTH] Sending initData to Edge Function...');
+                
+                // ✅ ТОЖЕ ДОБАВЬТЕ ЛОГ ПЕРЕД ОТПРАВКОЙ
+                var bodyToSend = JSON.stringify({ initData: tg.initData });
+                console.log('[AUTH] Request body:', bodyToSend.substring(0, 200) + '...');
+                
                 var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
                     },
-                    body: JSON.stringify({ initData: tg.initData })
+                    body: bodyToSend
                 });
+                
+                console.log('[AUTH] Response status:', response.status);
+                var result = await response.json();
+                console.log('[AUTH] Response body:', result);
                 
                 if (!response.ok) throw new Error('Auth failed: ' + response.status);
                 
-                var result = await response.json();
                 if (result.success && result.session && result.session.access_token) {
                     AUTH_TOKEN = result.session.access_token;
                     MY_ID = Number(result.user_id);
@@ -673,7 +688,8 @@
                 }
                 throw new Error('Invalid auth response');
             } catch(e) {
-                console.error('[AUTH] ❌ Auth error:', e);
+                console.error('[AUTH] ❌ Auth error:', e.message);
+                console.error('[AUTH] Full error:', e);
                 // Fallback: используем ANON_KEY и initDataUnsafe (для разработки)
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { id: tg.initDataUnsafe.user.id, username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' };
