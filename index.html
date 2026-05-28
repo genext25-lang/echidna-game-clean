@@ -664,8 +664,9 @@
                 return false;
             }
             
-            // Для браузера
+            // Для браузера - сразу fallback
             if (tg.platform === 'weba' || tg.platform === 'web') {
+                console.warn('[AUTH] ⚠️ Browser detected, using fallback');
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { 
                         id: tg.initDataUnsafe.user.id, 
@@ -678,9 +679,10 @@
                 return false;
             }
             
-            // Для телефона/десктопа
+            // Для телефона/десктопа - отправляем на сервер
             try {
-                console.log('[AUTH] Calling Edge Function...');
+                console.log('[AUTH] 📱 Real device! Calling Edge Function...');
+                console.log('[AUTH] 📤 Sending initData (first 100 chars):', tg.initData.substring(0, 100));
                 
                 var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
                     method: 'POST',
@@ -691,34 +693,53 @@
                     body: JSON.stringify({ initData: tg.initData })
                 });
                 
-                console.log('[AUTH] Response status:', response.status);
+                console.log('[AUTH] 📥 Response status:', response.status);
                 
                 var result = await response.json();
-                console.log('[AUTH] Response:', result);
+                console.log('[AUTH] 📥 Response body:', JSON.stringify(result));
                 
                 if (result.success) {
                     if (result.session) {
                         AUTH_TOKEN = result.session.access_token;
+                        console.log('[AUTH] 🔑 JWT token received');
                     }
                     MY_ID = Number(result.user_id);
                     user = { id: result.user_id, username: result.username };
-                    console.log('[AUTH] ✅ Success:', result.username);
+                    console.log('[AUTH] ✅ Server auth OK:', result.username, 'ID:', MY_ID);
                     return true;
                 }
                 
-                throw new Error(result.error || 'Unknown error');
+                // Сервер вернул ошибку - логируем детали
+                console.error('[AUTH] ❌ Server rejected!');
+                console.error('[AUTH] Error:', result.error);
+                console.error('[AUTH] Expected hash:', result.expected);
+                console.error('[AUTH] Computed hash:', result.computed);
                 
-            } catch(e) {
-                console.error('[AUTH] ❌ Error:', e.message);
-                
-                // Fallback
+                // Fallback если сервер недоступен
+                console.warn('[AUTH] ⚠️ Using fallback after server error');
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { 
                         id: tg.initDataUnsafe.user.id, 
                         username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
                     };
                     MY_ID = Number(user.id);
-                    console.warn('[AUTH] ⚠️ Fallback auth');
+                    console.log('[AUTH] ✅ Fallback auth:', user.username, 'ID:', MY_ID);
+                    return true;
+                }
+                return false;
+                
+            } catch(e) {
+                console.error('[AUTH] ❌ Network error:', e.message);
+                
+                // Fallback при ошибке соединения
+                console.warn('[AUTH] ⚠️ Using fallback after network error');
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    user = { 
+                        id: tg.initDataUnsafe.user.id, 
+                        username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
+                    };
+                    MY_ID = Number(user.id);
+                    console.log('[AUTH] ✅ Fallback auth:', user.username, 'ID:', MY_ID);
                     return true;
                 }
                 return false;
