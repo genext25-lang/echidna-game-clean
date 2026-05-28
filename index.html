@@ -646,32 +646,41 @@
         
 // 🔐 Авторизация через Edge Function
         async function authenticateWithTelegram() {
-            if (!window.Telegram || !window.Telegram.WebApp) return false;
+            console.log('[AUTH] Starting authentication...');
+            
+            if (!window.Telegram || !window.Telegram.WebApp) {
+                console.error('[AUTH] ❌ Telegram.WebApp not found!');
+                return false;
+            }
             
             var tg = window.Telegram.WebApp;
             
-            if (!tg.initData) return false;
-            
             console.log('[AUTH] Platform:', tg.platform);
+            console.log('[AUTH] initData exists:', !!tg.initData);
+            console.log('[AUTH] SUPABASE_URL:', SUPABASE_URL);
             
-            // Для браузера (weba/web) — сразу берём данные
+            if (!tg.initData) {
+                console.error('[AUTH] ❌ No initData!');
+                return false;
+            }
+            
+            // Для браузера
             if (tg.platform === 'weba' || tg.platform === 'web') {
-                console.warn('[AUTH] ⚠️ Browser mode - using initDataUnsafe');
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { 
                         id: tg.initDataUnsafe.user.id, 
                         username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
                     };
                     MY_ID = Number(user.id);
-                    console.log('[AUTH] ✅ Browser auth:', user.username);
+                    console.log('[AUTH] ✅ Browser auth:', user.username, 'ID:', MY_ID);
                     return true;
                 }
                 return false;
             }
             
-            // Для телефона/десктопа — отправляем на сервер
+            // Для телефона/десктопа
             try {
-                console.log('[AUTH] Sending initData to Edge Function...');
+                console.log('[AUTH] Calling Edge Function...');
                 
                 var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
                     method: 'POST',
@@ -682,44 +691,39 @@
                     body: JSON.stringify({ initData: tg.initData })
                 });
                 
+                console.log('[AUTH] Response status:', response.status);
+                
                 var result = await response.json();
-                console.log('[AUTH] Server response:', result);
+                console.log('[AUTH] Response:', result);
                 
-                if (result.success && result.session) {
-                    AUTH_TOKEN = result.session.access_token;
+                if (result.success) {
+                    if (result.session) {
+                        AUTH_TOKEN = result.session.access_token;
+                    }
                     MY_ID = Number(result.user_id);
-                    console.log('[AUTH] ✅ Authenticated:', result.username);
+                    user = { id: result.user_id, username: result.username };
+                    console.log('[AUTH] ✅ Success:', result.username);
                     return true;
                 }
                 
-                // Fallback если сервер вернул ошибку
-                console.warn('[AUTH] ⚠️ Server auth failed, using fallback');
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    user = { 
-                        id: tg.initDataUnsafe.user.id, 
-                        username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
-                    };
-                    MY_ID = Number(user.id);
-                    console.log('[AUTH] ✅ Fallback auth:', user.username);
-                    return true;
-                }
-                return false;
+                throw new Error(result.error || 'Unknown error');
                 
             } catch(e) {
                 console.error('[AUTH] ❌ Error:', e.message);
-                // Fallback при ошибке соединения
+                
+                // Fallback
                 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                     user = { 
                         id: tg.initDataUnsafe.user.id, 
                         username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User' 
                     };
                     MY_ID = Number(user.id);
-                    console.warn('[AUTH] ⚠️ Fallback auth after error');
+                    console.warn('[AUTH] ⚠️ Fallback auth');
                     return true;
                 }
                 return false;
             }
-        }    
+        }
    var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
