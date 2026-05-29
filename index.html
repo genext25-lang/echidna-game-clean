@@ -431,6 +431,7 @@
             return null;
         }
 
+        // 🔐 ИСПРАВЛЕННАЯ ФУНКЦИЯ: теперь сохраняет AUTH_TOKEN из ответа Edge Function
         async function authenticateWithTelegram() {
             console.log('[AUTH] Starting...');
             if (!window.Telegram || !window.Telegram.WebApp) { console.error('[AUTH] No WebApp'); return false; }
@@ -438,19 +439,39 @@
             console.log('[AUTH] Platform:', tg.platform);
             
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                user = { id: tg.initDataUnsafe.user.id, username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User', photo_url: tg.initDataUnsafe.user.photo_url || null };
+                user = { 
+                    id: tg.initDataUnsafe.user.id, 
+                    username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User', 
+                    photo_url: tg.initDataUnsafe.user.photo_url || null 
+                };
                 MY_ID = Number(user.id);
                 console.log('[AUTH] ✅ User:', user.username, 'ID:', MY_ID);
                 
-                // Отправляем на Edge Function для сохранения в БД
+                // 🔐 Отправляем на Edge Function для получения JWT-сессии
                 if (tg.initData) {
                     try {
-                        await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
+                        var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+                            headers: { 
+                                'Content-Type': 'application/json', 
+                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY 
+                            },
                             body: JSON.stringify({ initData: tg.initData })
                         });
-                    } catch(e) { console.warn('[AUTH] Edge function call failed:', e.message); }
+                        
+                        var result = await response.json();
+                        console.log('[AUTH] Edge function response:', result);
+                        
+                        // 🔑 КЛЮЧЕВОЙ МОМЕНТ: сохраняем access_token
+                        if (result.success && result.session && result.session.access_token) {
+                            AUTH_TOKEN = result.session.access_token;
+                            console.log('[AUTH] ✅ JWT received:', AUTH_TOKEN.substring(0, 30) + '...');
+                        } else {
+                            console.warn('[AUTH] ⚠️ No session in response, using fallback');
+                        }
+                    } catch(e) { 
+                        console.warn('[AUTH] Edge function call failed:', e.message); 
+                    }
                 }
                 return true;
             }
@@ -1043,8 +1064,8 @@
                 await ensureUserExists();
                 await updateBalanceDisplay(); await updateStats(); loadRooms();
                 clearTimeout(splashTimeout);
-                console.log('[INIT] Done. Balance:', currentBalance);
-            } catch(e) { clearTimeout(splashTimeout); }
+                console.log('[INIT] Done. Balance:', currentBalance, 'AUTH_TOKEN:', AUTH_TOKEN ? 'SET' : 'NULL');
+            } catch(e) { clearTimeout(splashTimeout); console.error('[INIT] Error:', e); }
         });
 
         setInterval(function() { 
