@@ -931,7 +931,7 @@
             window[lockKey] = true;
             
             try {
-                var userData = await db('users', 'GET', null, '?select=losses&id=eq.' + playerId, true);
+                var userData = await db('users', 'GET', null, '?select=losses&telegram_id=eq.' + playerId, true);
                 var currentLosses = userData?.losses || 0;
                 var newLosses = currentLosses + 1;
                 await db('users', 'PATCH', { losses: newLosses }, '?telegram_id=eq.' + playerId);
@@ -1074,7 +1074,7 @@
             try { 
                 var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); 
                 if (!existing || existing.length === 0) { 
-                    await db('users', 'POST', [{ id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0, balance: 1000 }]); 
+                    await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0, balance: 1000 }]); 
                     currentBalance = 1000;
                     if (!welcomeMessageShown) {
                         welcomeMessageShown = true;
@@ -1275,7 +1275,7 @@
         async function resumeRoom(roomId) { 
             isProcessingGame = false;
             try { 
-                var room = await db('rooms', 'GET', null, '?telegram_id=eq.' + escapeHtml(roomId), true); 
+                var room = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), true); 
                 if (!room) { alert('Room not found'); loadRooms(); return; } 
                 currentRoom = room; 
                 if (currentRoom.status === 'finished') { showGameScreen(); showGameResult(currentRoom); return; } 
@@ -1287,7 +1287,7 @@
             } catch(e) { alert('Ошибка: ' + e.message); } 
         }
         
-        async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?telegram_id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); if (window.__endGameSession) window.__endGameSession(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
+        async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); if (window.__endGameSession) window.__endGameSession(); } loadRooms(); } catch(e) { console.warn('Cancel room warning:', e); loadRooms(); } }
         
         async function joinRoom(roomId, btnElement) { 
             if (isJoiningRoom) return;
@@ -1296,7 +1296,7 @@
             if (!btnElement) return; 
             btnElement.disabled = true; btnElement.textContent = '⏳';
             try { 
-                var roomData = await db('rooms', 'GET', null, '?telegram_id=eq.' + escapeHtml(roomId), false); 
+                var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(roomId), false); 
                 if (!roomData || !roomData.length) throw new Error('Комната не найдена'); 
                 var room = roomData[0]; 
                 if (Number(room.creator_tg_id) === MY_ID) { resumeRoom(roomId); return; }
@@ -1304,7 +1304,7 @@
                 if (room.status !== 'waiting') throw new Error('Комната уже занята или игра началась');
                 if (room.room_password) { var pwd = prompt('🔒 Комната защищена паролем.\nВведите пароль:'); if (pwd !== room.room_password) { playErrorSound(); alert('Неверный пароль!'); btnElement.disabled = false; btnElement.textContent = 'Войти'; return; } } 
                 await ensureUserExists(MY_ID, user.username); 
-                var res = await db('rooms', 'PATCH', { opponent_tg_id: MY_ID, opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' }, '?telegram_id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); 
+                var res = await db('rooms', 'PATCH', { opponent_tg_id: MY_ID, opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' }, '?id=eq.' + escapeHtml(roomId) + '&status=eq.waiting', true); 
                 if (!res) throw new Error('Не удалось присоединиться к комнате'); 
                 currentRoom = res; 
                 if (window.__startGameSession && res && res.id) {
@@ -1314,7 +1314,7 @@
             } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } } finally { isJoiningRoom = false; } 
         }
         
-        async function renderPlayerStats() { if (!currentRoom || !currentRoom.id) return; try { var roomData = await db('rooms', 'GET', null, '?telegram_id=eq.' + escapeHtml(currentRoom.id), true); if (!roomData) return; var creatorId = roomData.creator_tg_id; var opponentId = roomData.opponent_tg_id; var isCreator = String(creatorId) === String(MY_ID); if (isCreator) { renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); if (opponentId) renderAvatar('opponentAvatar', null, roomData.opponent_username || '?'); } else { renderAvatar('opponentAvatar', MY_PHOTO_URL, user.username || '?'); if (creatorId) renderAvatar('playerAvatar', null, roomData.creator_username || '?'); } if (!creatorId || !opponentId) { document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; return; } var results = await Promise.allSettled([ db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + String(creatorId), false), db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + String(opponentId), false) ]); var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; } catch(e) { console.warn('Stats load error:', e); } }
+        async function renderPlayerStats() { if (!currentRoom || !currentRoom.id) return; try { var roomData = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id), true); if (!roomData) return; var creatorId = roomData.creator_tg_id; var opponentId = roomData.opponent_tg_id; var isCreator = String(creatorId) === String(MY_ID); if (isCreator) { renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); if (opponentId) renderAvatar('opponentAvatar', null, roomData.opponent_username || '?'); } else { renderAvatar('opponentAvatar', MY_PHOTO_URL, user.username || '?'); if (creatorId) renderAvatar('playerAvatar', null, roomData.creator_username || '?'); } if (!creatorId || !opponentId) { document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; return; } var results = await Promise.allSettled([ db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + String(creatorId), false), db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + String(opponentId), false) ]); var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; document.getElementById(isCreator ? 'playerStats' : 'opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; document.getElementById(isCreator ? 'opponentStats' : 'playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; } catch(e) { console.warn('Stats load error:', e); } }
         
         function showGameScreen() { 
             closeRoomsScreen(); 
@@ -1361,7 +1361,7 @@
                 try {
                     finalizeResult = await db('rooms', 'PATCH', 
                         { status: 'finished' }, 
-                        '?telegram_id=eq.' + escapeHtml(currentRoom.id) + '&status=neq.finished', 
+                        '?id=eq.' + escapeHtml(currentRoom.id) + '&status=neq.finished', 
                         false
                     );
                 } catch(e) {
@@ -1398,7 +1398,7 @@
             activeIntervals.pollInterval = setInterval(async function() { 
                 if (!currentRoom || isGameFinished || isProcessingGame) return;
                 try { 
-                    var res = await db('rooms', 'GET', null, '?telegram_id=eq.' + escapeHtml(currentRoom.id)); 
+                    var res = await db('rooms', 'GET', null, '?id=eq.' + escapeHtml(currentRoom.id)); 
                     var room = res[0]; if (!room) return; 
                     if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } 
                     
@@ -1457,7 +1457,7 @@
             if (activeIntervals.timerInterval) clearInterval(activeIntervals.timerInterval); 
             document.getElementById('timerText').classList.remove('active'); 
             document.getElementById('timerBarContainer').style.display = 'none'; 
-            try { await db('rooms', 'PATCH', { [col]: choice }, '?telegram_id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } 
+            try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + escapeHtml(currentRoom.id)); currentRoom[col] = choice; } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); } 
         }
         
         async function saveGameHistory(resultStr, playerMove, customStake) { 
@@ -1576,7 +1576,7 @@
             try {
                 finalizeResult = await db('rooms', 'PATCH', 
                     { status: 'finished' }, 
-                    '?telegram_id=eq.' + escapeHtml(room.id) + '&status=neq.finished', 
+                    '?id=eq.' + escapeHtml(room.id) + '&status=neq.finished', 
                     false
                 );
             } catch(e) {
@@ -1745,12 +1745,10 @@
             }, 5000);
             
             try {
-                // 🔐 Сначала авторизация через Edge Function
                 var authSuccess = await authenticateWithTelegram();
                 
                 if (!authSuccess) {
                     console.error('[INIT] Auth failed');
-                    // Fallback для разработки
                     var tgUser = getUserFromTelegram();
                     if (tgUser && tgUser.id) {
                         user = { id: tgUser.id, username: tgUser.username || tgUser.first_name || 'User', photo_url: tgUser.photo_url || null };
@@ -1788,30 +1786,5 @@
             }
         });
     </script>
-<!-- ВРЕМЕННАЯ КНОПКА ДЛЯ ОТЛАДКИ (УДАЛИТЬ ПОСЛЕ ИСПРАВЛЕНИЯ) -->
-<button onclick="copyInitData()" style="position:fixed; top:10px; right:10px; z-index:9999; padding:12px 15px; background:#ff4444; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
-    📋 Copy InitData
-</button>
-
-<script>
-function copyInitData() {
-    var tg = window.Telegram.WebApp;
-    if (tg && tg.initData) {
-        console.log('=== MANUAL INITDATA COPY ===');
-        console.log('Platform:', tg.platform);
-        console.log('InitData FULL:', tg.initData);
-        console.log('===========================');
-        
-        // Копируем в буфер обмена
-        navigator.clipboard.writeText(tg.initData).then(function() {
-            alert('✅ InitData скопирован в буфер обмена!\n\nПроверьте консоль (F12) для полного лога.');
-        }).catch(function() {
-            alert('❌ Не удалось скопировать. Проверьте консоль (F12).');
-        });
-    } else {
-        alert('❌ Telegram WebApp не найден!');
-    }
-}
-</script>
 </body>
 </html>
