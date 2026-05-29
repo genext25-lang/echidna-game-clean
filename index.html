@@ -1071,16 +1071,24 @@
         }
         
         async function ensureUserExists(userId, username) { 
-            try { 
-                var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); 
-                if (!existing || existing.length === 0) { 
-                    await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0, balance: 1000 }]); 
-                    currentBalance = 1000;
-                    if (!welcomeMessageShown) {
-                        welcomeMessageShown = true;
-                        setTimeout(function() { alert('🎉 Добро пожаловать в Echidna Naklz!\n\n💎 Вам начислено 1000 Spike для старта!\n\n🔥 Удачи в победах!'); }, 500);
-                    }
-                } else { currentBalance = existing[0].balance || 1000; }
+    try { 
+        var existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1'); 
+        if (!existing || existing.length === 0) { 
+            try {
+                await db('users', 'POST', [{ telegram_id: userId, username: escapeHtml(username || 'User_' + userId), wins: 0, losses: 0, balance: 1000 }]); 
+            } catch(postError) {
+                // Если уже существует - просто получаем данные
+                console.warn('User may already exist, fetching...');
+                existing = await db('users', 'GET', null, '?telegram_id=eq.' + userId + '&limit=1');
+            }
+            currentBalance = 1000;
+            if (!welcomeMessageShown) {
+                welcomeMessageShown = true;
+                setTimeout(function() { alert('🎉 Добро пожаловать в Echidna Naklz!\n\n💎 Вам начислено 1000 Spike для старта!\n\n🔥 Удачи в победах!'); }, 500);
+            }
+        } else { currentBalance = existing[0].balance || 1000; }
+        await updateBalanceDisplay();
+    } catch(e) { console.error('Failed to ensure user exists:', e); } 
                 await updateBalanceDisplay();
             } catch(e) { console.error('Failed to ensure user exists:', e); } 
         }
