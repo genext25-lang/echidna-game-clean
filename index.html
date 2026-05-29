@@ -275,7 +275,7 @@
         </div>
         <div id="tasksScreen" class="hidden">
             <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
-            <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
+            <div class="daily-streak-info"> Открыто: <span id="dailyStreakNum">0</span> из 9</div>
             <div class="daily-grid" id="dailyCardsGrid"></div>
             <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
         </div>
@@ -286,11 +286,11 @@
                 <div class="stat-card"><div class="stat-icon">✊</div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
                 <div class="stat-card"><div class="stat-icon">🦔</div><div class="stat-value" id="statsTotalSpike">0 Spike</div><div class="stat-label">Выиграно Spike</div></div>
             </div>
-            <div class="section-title">🎮 Последние игры</div>
+            <div class="section-title"> Последние игры</div>
             <div class="games-table"><div class="games-table-header"><span>Соперник</span><span>Ставка</span><span>Результат</span><span>Ход</span></div><div id="gamesTableBody"><div class="loader" style="padding:20px;"><div class="spinner"></div></div></div></div>
         </div>
         <div id="gameScreen" class="hidden">
-            <div class="header"><h2>⚔️ Битва!</h2></div>
+            <div class="header"><h2>️ Битва!</h2></div>
             <div class="game-players">
                 <div class="player-wrapper"><div class="player-avatar" id="playerAvatar"></div><div class="player-stats-small" id="playerStats"></div></div>
                 <div class="thinking-echidna-wrapper"><div class="thinking-echidna"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-thinking.png" alt="Thinking" onerror="this.style.display='none';this.parentElement.innerHTML='🤔'"></div></div>
@@ -401,11 +401,11 @@
         var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
-            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
+            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
             { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png', emoji: '👟', name: 'Выживший', description: 'Ехидна в крутых кроссовках. +10% к шансу победы!' },
             { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png', emoji: '🧢', name: 'Работяга', description: 'Практичная ехидна в кепке. Никогда не сдаётся!' },
             { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '😎', name: 'Мажор', description: 'Стильная ехидна в солнечных очках. +15% к удаче!' },
-            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '💰', name: 'Миллионер', description: 'Богатая ехидна в золоте. После победы получает +5% к выигрышу!' },
+            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '', name: 'Миллионер', description: 'Богатая ехидна в золоте. После победы получает +5% к выигрышу!' },
             { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png', emoji: '🏆', name: 'Магнат', description: 'Легендарная ехидна-коллекционер. +20% ко всем бонусам!' }
         ];
 
@@ -431,7 +431,6 @@
             return null;
         }
 
-        // 🔐 ИСПРАВЛЕННАЯ ФУНКЦИЯ: теперь сохраняет AUTH_TOKEN из ответа Edge Function
         async function authenticateWithTelegram() {
             console.log('[AUTH] Starting...');
             if (!window.Telegram || !window.Telegram.WebApp) { console.error('[AUTH] No WebApp'); return false; }
@@ -447,7 +446,6 @@
                 MY_ID = Number(user.id);
                 console.log('[AUTH] ✅ User:', user.username, 'ID:', MY_ID);
                 
-                // 🔐 Отправляем на Edge Function для получения JWT-сессии
                 if (tg.initData) {
                     try {
                         var response = await fetch(SUPABASE_URL + '/functions/v1/verify-telegram', {
@@ -462,7 +460,6 @@
                         var result = await response.json();
                         console.log('[AUTH] Edge function response:', result);
                         
-                        // 🔑 КЛЮЧЕВОЙ МОМЕНТ: сохраняем access_token
                         if (result.success && result.session && result.session.access_token) {
                             AUTH_TOKEN = result.session.access_token;
                             console.log('[AUTH] ✅ JWT received:', AUTH_TOKEN.substring(0, 30) + '...');
@@ -726,7 +723,7 @@
                 if (trulyMine || isOpponent) { el.onclick = function() { resumeRoom(r.id); }; el.style.cursor = 'pointer'; } 
                 var badgeHtml = '', btnHtml = '', timerHtml = ''; 
                 var hasPassword = r.room_password && r.room_password.length > 0; 
-                var lockIcon = hasPassword ? '<span class="lock-icon">🔒</span>' : ''; 
+                var lockIcon = hasPassword ? '<span class="lock-icon"></span>' : ''; 
                 if (isWaiting) { 
                     badgeHtml = '<span style="background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:9px;">ЖДЁТ</span>'; 
                     if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 1000; 
@@ -838,7 +835,7 @@
                 var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; 
                 var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; 
                 document.getElementById('playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; 
-                document.getElementById('opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; 
+                document.getElementById('opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)"> ' + (oData.losses || 0) + '</span>'; 
             } catch(e) {} 
         }
 
@@ -1022,7 +1019,6 @@
             alert('✅ +' + reward + ' Spike!'); vibrate([50, 30, 50]);
         }
 
-        // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: теперь показывает картинки на карточках
         async function renderDailyCards() { 
             var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum'); 
             if (!grid || !streakNum) return; 
@@ -1036,7 +1032,6 @@
                 var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped'); 
                 var front = document.createElement('div'); front.className = 'daily-card-front'; 
                 if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today'); 
-                // 🔥 ДОБАВЛЯЕМ КАРТИНКУ НА ЛИЦЕВОЙ СТОРОНЕ
                 var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png';
                 front.innerHTML = '<img class="card-cover" src="' + cardImgUrl + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' + 
                                  '<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : '#' + (i + 1)) + '</div></div>'; 
@@ -1084,55 +1079,63 @@
             }); 
         }, 1000);
     </script>
-<!-- 🔍 DEBUG PANEL - только для разработки -->
-<div id="debugPanel" style="display:none;position:fixed;bottom:70px;left:10px;right:10px;background:#1a1a2e;padding:12px;border-radius:12px;border:1px solid #6366f1;z-index:9999;font-size:11px;color:#fff;font-family:monospace;max-height:200px;overflow:auto;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <strong>🔍 Debug</strong>
-    <button onclick="toggleDebug()" style="background:#ef4444;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">✕</button>
-  </div>
-  <div id="debugContent"></div>
-</div>
-<button id="debugToggle" onclick="toggleDebug()" style="position:fixed;bottom:10px;right:10px;z-index:9999;padding:8px 12px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:12px;">🔍</button>
 
-<script>
-function toggleDebug() {
-  var panel = document.getElementById('debugPanel');
-  var btn = document.getElementById('debugToggle');
-  if (panel.style.display === 'none' || !panel.style.display) {
-    panel.style.display = 'block';
-    btn.style.display = 'none';
-    showDebugInfo();
-  } else {
-    panel.style.display = 'none';
-    btn.style.display = 'block';
-  }
-}
+    <!-- 🔍 DEBUG PANEL START -->
+    <div id="debugPanel" style="display:none; position:fixed; bottom:80px; left:10px; right:10px; background:rgba(26,26,46,0.95); padding:12px; border-radius:12px; border:1px solid #6366f1; z-index:10001; font-size:11px; color:#fff; font-family:monospace; max-height:250px; overflow:auto; backdrop-filter:blur(10px);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong style="font-size:12px;">🔍 Debug Info</strong>
+        <button onclick="toggleDebug()" style="background:#ef4444; color:#fff; border:none; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer;">✕</button>
+      </div>
+      <div id="debugContent" style="line-height:1.5;">Загрузка...</div>
+    </div>
+    <button id="debugToggleBtn" onclick="toggleDebug()" style="position:fixed; bottom:10px; right:10px; z-index:10001; padding:8px 12px; background:#6366f1; color:#fff; border:none; border-radius:8px; font-size:12px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3);"> Hash</button>
 
-function showDebugInfo() {
-  var content = document.getElementById('debugContent');
-  if (!window.Telegram?.WebApp?.initData) {
-    content.innerHTML = '<span style="color:#ef4444">❌ No initData</span>';
-    return;
-  }
-  
-  var params = new URLSearchParams(window.Telegram.WebApp.initData);
-  var hash = params.get('hash');
-  
-  content.innerHTML = 
-    '<div><strong>Hash:</strong> ' + (hash || 'N/A') + '</div>' +
-    '<div><strong>Length:</strong> <span style="color:' + (hash?.length === 64 ? '#10b981' : '#ef4444') + '">' + (hash?.length || 0) + '</span> (должно быть 64)</div>' +
-    '<div><strong>Start:</strong> ' + (hash?.substring(0, 16) || 'N/A') + '...</div>' +
-    '<div><strong>End:</strong> ...' + (hash?.slice(-16) || 'N/A') + '</div>' +
-    '<div style="margin-top:8px;"><strong>initData preview:</strong><br><span style="word-break:break-all;font-size:10px;">' + (window.Telegram.WebApp.initData.substring(0, 150) + '...') + '</span></div>';
-}
+    <script>
+    function toggleDebug() {
+      var panel = document.getElementById('debugPanel');
+      var btn = document.getElementById('debugToggleBtn');
+      if (panel.style.display === 'none' || !panel.style.display) {
+        panel.style.display = 'block';
+        btn.style.display = 'none';
+        showDebugInfo();
+      } else {
+        panel.style.display = 'none';
+        btn.style.display = 'block';
+      }
+    }
 
-// Показываем панель автоматически при загрузке (для отладки)
-window.addEventListener('load', function() {
-  if (window.Telegram?.WebApp?.initData) {
-    // Можно раскомментировать для авто-показа:
-    // toggleDebug();
-  }
-});
-</script>
+    function showDebugInfo() {
+      var content = document.getElementById('debugContent');
+      if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData) {
+        content.innerHTML = '<span style="color:#ef4444;">❌ initData не найден. Убедитесь, что приложение открыто в Telegram.</span>';
+        return;
+      }
+
+      var initData = window.Telegram.WebApp.initData;
+      var params = new URLSearchParams(initData);
+      var hash = params.get('hash');
+
+      var len = hash ? hash.length : 0;
+      var color = len === 64 ? '#10b981' : '#ef4444';
+
+      content.innerHTML =
+        '<div><strong>Hash:</strong> ' + (hash || 'N/A') + '</div>' +
+        '<div><strong>Length:</strong> <span style="color:' + color + '; font-weight:bold;">' + len + '</span> <small>(должно быть 64)</small></div>' +
+        '<div><strong>Start:</strong> ' + (hash ? hash.substring(0, 16) + '...' : 'N/A') + '</div>' +
+        '<div><strong>End:</strong> ...' + (hash ? hash.slice(-16) : 'N/A') + '</div>' +
+        '<hr style="border-color:#334155; margin:6px 0;">' +
+        '<div><strong>initData (preview):</strong><br><span style="word-break:break-all; font-size:10px; color:#94a3b8;">' + (initData.substring(0, 200) + '...') + '</span></div>';
+    }
+
+    // Авто-показ панели при загрузке для удобства отладки на iOS
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+          toggleDebug();
+        }
+      }, 1500);
+    });
+    </script>
+    <!-- 🔍 DEBUG PANEL END -->
 </body>
 </html>
