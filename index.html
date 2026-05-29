@@ -860,10 +860,11 @@
         
         async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + escapeHtml(roomId)); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id === roomId) { currentRoom = null; isGameFinished = true; clearAllIntervals(); if (window.__endGameSession) window.__endGameSession(); } loadRooms(); } catch(e) { loadRooms(); } }
         
-        async function joinRoom(roomId, btnElement) { 
-            if (isJoiningRoom) return;
-            isProcessingGame = false;
-            isJoiningRoom = true;
+      console.log('=== JOIN ROOM DEBUG ===');
+console.log('roomId:', roomId);
+console.log('MY_ID:', MY_ID);
+console.log('user:', JSON.stringify(user));
+console.log('======================');
             if (!btnElement) { isJoiningRoom = false; return; } 
             btnElement.disabled = true; btnElement.textContent = '⏳';
             try { 
