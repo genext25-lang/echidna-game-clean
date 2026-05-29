@@ -1084,5 +1084,55 @@
             }); 
         }, 1000);
     </script>
+<!-- 🔍 DEBUG PANEL - только для разработки -->
+<div id="debugPanel" style="display:none;position:fixed;bottom:70px;left:10px;right:10px;background:#1a1a2e;padding:12px;border-radius:12px;border:1px solid #6366f1;z-index:9999;font-size:11px;color:#fff;font-family:monospace;max-height:200px;overflow:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <strong>🔍 Debug</strong>
+    <button onclick="toggleDebug()" style="background:#ef4444;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">✕</button>
+  </div>
+  <div id="debugContent"></div>
+</div>
+<button id="debugToggle" onclick="toggleDebug()" style="position:fixed;bottom:10px;right:10px;z-index:9999;padding:8px 12px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:12px;">🔍</button>
+
+<script>
+function toggleDebug() {
+  var panel = document.getElementById('debugPanel');
+  var btn = document.getElementById('debugToggle');
+  if (panel.style.display === 'none' || !panel.style.display) {
+    panel.style.display = 'block';
+    btn.style.display = 'none';
+    showDebugInfo();
+  } else {
+    panel.style.display = 'none';
+    btn.style.display = 'block';
+  }
+}
+
+function showDebugInfo() {
+  var content = document.getElementById('debugContent');
+  if (!window.Telegram?.WebApp?.initData) {
+    content.innerHTML = '<span style="color:#ef4444">❌ No initData</span>';
+    return;
+  }
+  
+  var params = new URLSearchParams(window.Telegram.WebApp.initData);
+  var hash = params.get('hash');
+  
+  content.innerHTML = 
+    '<div><strong>Hash:</strong> ' + (hash || 'N/A') + '</div>' +
+    '<div><strong>Length:</strong> <span style="color:' + (hash?.length === 64 ? '#10b981' : '#ef4444') + '">' + (hash?.length || 0) + '</span> (должно быть 64)</div>' +
+    '<div><strong>Start:</strong> ' + (hash?.substring(0, 16) || 'N/A') + '...</div>' +
+    '<div><strong>End:</strong> ...' + (hash?.slice(-16) || 'N/A') + '</div>' +
+    '<div style="margin-top:8px;"><strong>initData preview:</strong><br><span style="word-break:break-all;font-size:10px;">' + (window.Telegram.WebApp.initData.substring(0, 150) + '...') + '</span></div>';
+}
+
+// Показываем панель автоматически при загрузке (для отладки)
+window.addEventListener('load', function() {
+  if (window.Telegram?.WebApp?.initData) {
+    // Можно раскомментировать для авто-показа:
+    // toggleDebug();
+  }
+});
+</script>
 </body>
 </html>
