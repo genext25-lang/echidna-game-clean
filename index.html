@@ -355,7 +355,7 @@
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        // 🔑 ПУБЛИЧНЫЕ КЛЮЧИ (имена как у тебя в секретах, без SUPABASE_ префикса)
+        // 🔑 ПУБЛИЧНЫЕ КЛЮЧИ
         var AUTH_TOKEN = null;
         var URL = 'https://tejndwtckdvueufqhitu.supabase.co';
         var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
@@ -777,85 +777,95 @@
             } catch(e) { loadRooms(); } 
         }
 
+        // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ joinRoom
         async function joinRoom(roomId, btnElement) { 
-    isJoiningRoom = false; 
-    if (isJoiningRoom) return;
-    isJoiningRoom = true;
+            isJoiningRoom = false; 
+            if (isJoiningRoom) return;
+            isJoiningRoom = true;
 
-    if (!user || !MY_ID) { 
-        alert('⚠️ Ошибка: Вы не вошли в систему!'); 
-        if(btnElement) btnElement.disabled = false; 
-        isJoiningRoom = false; 
-        return; 
-    }
+            if (!user || !MY_ID) { 
+                alert('⚠️ Ошибка: Вы не вошли в систему!'); 
+                if(btnElement) btnElement.disabled = false; 
+                isJoiningRoom = false; 
+                return; 
+            }
 
-    if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
-    
-    try { 
-        // 1️⃣ Проверяем комнату
-        var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
-        if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
-        
-        var room = roomData[0];
-        
-        // 2️⃣ Проверки
-        if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
-        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
-        if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
-        
-        // 3️⃣ Пароль
-        if (room.room_password) { 
-            var pwd = prompt('🔒 Введите пароль:'); 
-            if (pwd !== room.room_password) { 
-                alert('❌ Неверный пароль'); 
-                if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
-                isJoiningRoom = false; return; 
-            } 
-        } 
-        
-        // 4️⃣ 🔥 PATCH с return=representation (возвращает обновлённые данные!)
-        var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
-        var res = await fetch(patchUrl, {
-            method: 'PATCH',
-            headers: { 
-                'apikey': ANON_KEY, 
-                'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation' // ← ← ← ИЗМЕНЕНИЕ!
-            },
-            body: JSON.stringify({ 
-                opponent_tg_id: String(MY_ID),
-                opponent_username: escapeHtml(user.username || 'Anonymous'), 
-                status: 'playing' 
-            })
-        });
+            if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
+            
+            try { 
+                // 1️⃣ Проверяем комнату
+                var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
+                if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
+                
+                var room = roomData[0];
+                
+                // 2️⃣ Проверки
+                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
+                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
+                if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
+                
+                // 3️⃣ Пароль
+                if (room.room_password) { 
+                    var pwd = prompt('🔒 Введите пароль:'); 
+                    if (pwd !== room.room_password) { 
+                        alert('❌ Неверный пароль'); 
+                        if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+                        isJoiningRoom = false; return; 
+                    } 
+                } 
+                
+                // 4️⃣ PATCH с return=representation
+                var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
+                var res = await fetch(patchUrl, {
+                    method: 'PATCH',
+                    headers: { 
+                        'apikey': ANON_KEY, 
+                        'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({ 
+                        opponent_tg_id: String(MY_ID),
+                        opponent_username: escapeHtml(user.username || 'Anonymous'), 
+                        status: 'playing' 
+                    })
+                });
 
-        if (!res.ok) {
-            var errText = await res.text();
-            throw new Error('Сервер отказал (' + res.status + '): ' + errText);
+                if (!res.ok) {
+                    var errText = await res.text();
+                    throw new Error('Сервер отказал (' + res.status + '): ' + errText);
+                }
+
+                // 5️⃣ Получаем данные из ответа
+                var updatedRoom = await res.json();
+                
+                // Обработка: если массив - берём первый элемент
+                if (Array.isArray(updatedRoom) && updatedRoom.length > 0) {
+                    updatedRoom = updatedRoom[0];
+                }
+                
+                // Если всё ещё пусто - пробуем загрузить отдельно
+                if (!updatedRoom || !updatedRoom.id) {
+                    await sleep(200); // Ждём немного для репликации БД
+                    updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
+                }
+                
+                if (!updatedRoom) throw new Error('Не удалось получить данные комнаты');
+
+                // 6️⃣ Успех!
+                currentRoom = updatedRoom; 
+                showGameScreen(); 
+                startPolling(); 
+                loadRooms(); 
+                closeRoomsScreen(); 
+                
+            } catch(e) { 
+                alert('❌ ' + e.message); 
+                if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+            } finally {
+                isJoiningRoom = false;
+            }
         }
-
-        // 5️⃣ 🔥 Берём данные из ответа (не делаем отдельный GET!)
-        var updatedRoom = await res.json();
-        if (!updatedRoom || (Array.isArray(updatedRoom) && updatedRoom.length === 0)) {
-            throw new Error('Не удалось получить данные комнаты');
-        }
-        if (Array.isArray(updatedRoom)) updatedRoom = updatedRoom[0];
-
-        // 6️⃣ Успех!
-        currentRoom = updatedRoom; 
-        showGameScreen(); 
-        startPolling(); 
-        loadRooms(); 
-        closeRoomsScreen(); 
-        
-    } catch(e) { 
-        alert('❌ ' + e.message); 
-        if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
-    } finally {
-        isJoiningRoom = false;
-    }
-}
 
         function showGameScreen() { 
             closeRoomsScreen(); 
@@ -879,36 +889,34 @@
         }
 
         async function renderPlayerStats() { 
-    if (!currentRoom || !currentRoom.id) return; 
-    try { 
-        // 🔥 Используем currentRoom вместо нового запроса к БД
-        var creatorId = currentRoom.creator_tg_id; 
-        var opponentId = currentRoom.opponent_tg_id; 
-        var opponentUsername = currentRoom.opponent_username;
-        
-        var isCreator = String(creatorId) === String(MY_ID); 
-        renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); 
-        
-        if (opponentId) renderAvatar('opponentAvatar', null, opponentUsername || '?');
-        else document.getElementById('opponentAvatar').innerHTML = '?'; 
-        
-        if (!opponentId) { 
-            document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; 
-            document.getElementById('playerStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; 
-            return; 
-        } 
-        
-        // Загружаем статистику оппонента (это можно оставить)
-        var results = await Promise.allSettled([ 
-            db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + creatorId, false), 
-            db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, false) 
-        ]); 
-        var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; 
-        var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; 
-        document.getElementById('playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; 
-        document.getElementById('opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; 
-    } catch(e) {} 
-}
+            if (!currentRoom || !currentRoom.id) return; 
+            try { 
+                var creatorId = currentRoom.creator_tg_id; 
+                var opponentId = currentRoom.opponent_tg_id; 
+                var opponentUsername = currentRoom.opponent_username;
+                
+                var isCreator = String(creatorId) === String(MY_ID); 
+                renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); 
+                
+                if (opponentId) renderAvatar('opponentAvatar', null, opponentUsername || '?');
+                else document.getElementById('opponentAvatar').innerHTML = '?'; 
+                
+                if (!opponentId) { 
+                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; 
+                    document.getElementById('playerStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; 
+                    return; 
+                } 
+                
+                var results = await Promise.allSettled([ 
+                    db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + creatorId, false), 
+                    db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, false) 
+                ]); 
+                var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; 
+                var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; 
+                document.getElementById('playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; 
+                document.getElementById('opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; 
+            } catch(e) {} 
+        }
 
         function startPolling() { 
             clearAllIntervals(); if (!currentRoom) return; 
@@ -970,7 +978,6 @@
             var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
             if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } 
             else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
-                    // ... внутри showRevealAnimation(room) ...
             var winnerId = result.winnerId; var stake = room.stake || 10;
             try {
                 var finalizeResult = await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id + '&status=neq.finished', false);
@@ -978,7 +985,6 @@
                 if (winnerId) {
                     var loserId = winnerId == room.creator_tg_id ? room.opponent_tg_id : room.creator_tg_id;
                     
-                    // 🔍 Обновляем статистику с видимой проверкой
                     var winOk = await updateWinsOnly(winnerId);
                     var loseOk = await updateLossesOnly(loserId);
                     
@@ -986,7 +992,6 @@
                         console.warn('[REVEAL] Stats update failed');
                     }
 
-                    // 🔍 Обновляем баланс с видимой проверкой
                     var balWinOk = await updateBalanceOnly(winnerId, stake);
                     var balLoseOk = await updateBalanceOnly(loserId, -stake);
                     
@@ -999,7 +1004,6 @@
                 alert('Ошибка сохранения результата: ' + e.message);
             }
             updateBalanceDisplay(); updateStats();
-        // ... остальной код ...
             var countdown = 3; 
             var countdownEl = document.getElementById('revealCountdown'); 
             countdownEl.textContent = countdown; 
@@ -1043,7 +1047,6 @@
                 var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=balance.desc.nullslast&limit=50', false); 
                 var usersList = Array.isArray(allUsers) ? allUsers : [];
                 
-                // 🔥 ФИКС ДУБЛЕЙ: Оставляем только уникальных пользователей по username
                 const uniqueUsers = [];
                 const seenNames = new Set();
                 for (const u of usersList) {
@@ -1117,14 +1120,12 @@
             if (data.streak !== cardIndex) { alert('Открывайте по порядку!'); return; } 
             var reward = getDailyReward(cardIndex); 
             
-            // 🔥 ИСПРАВЛЕНИЕ АНИМАЦИИ: Сначала переворачиваем, потом сохраняем
             var card = document.querySelector(`.daily-card[data-index="${cardIndex}"] .daily-card-inner`);
             if (card) {
                 card.classList.add('flipped');
                 playFlipCardSound();
             }
 
-            // Ждем окончания анимации
             await sleep(600);
 
             data.streak = cardIndex + 1; data.lastClaimDate = today; data.collectedCards.push(cardIndex); 
@@ -1156,7 +1157,6 @@
                 
                 var inner = document.createElement('div'); 
                 inner.className = 'daily-card-inner'; 
-                // Если уже собрано - сразу переворачиваем
                 if (isCollected) inner.classList.add('flipped'); 
                 
                 var front = document.createElement('div'); front.className = 'daily-card-front'; 
