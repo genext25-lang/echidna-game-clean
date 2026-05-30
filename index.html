@@ -779,93 +779,93 @@
 
         // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ joinRoom
         async function joinRoom(roomId, btnElement) { 
-            isJoiningRoom = false; 
-            if (isJoiningRoom) return;
-            isJoiningRoom = true;
+    isJoiningRoom = false; 
+    if (isJoiningRoom) return;
+    isJoiningRoom = true;
 
-            if (!user || !MY_ID) { 
-                alert('⚠️ Ошибка: Вы не вошли в систему!'); 
-                if(btnElement) btnElement.disabled = false; 
-                isJoiningRoom = false; 
-                return; 
-            }
+    if (!user || !MY_ID) { 
+        alert('⚠️ Ошибка: Вы не вошли в систему!'); 
+        if(btnElement) btnElement.disabled = false; 
+        isJoiningRoom = false; 
+        return; 
+    }
 
-            if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
-            
-            try { 
-                // 1️⃣ Проверяем комнату
-                var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
-                if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
-                
-                var room = roomData[0];
-                
-                // 2️⃣ Проверки
-                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
-                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
-                if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
-                
-                // 3️⃣ Пароль
-                if (room.room_password) { 
-                    var pwd = prompt('🔒 Введите пароль:'); 
-                    if (pwd !== room.room_password) { 
-                        alert('❌ Неверный пароль'); 
-                        if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
-                        isJoiningRoom = false; return; 
-                    } 
-                } 
-                
-                // 4️⃣ PATCH с return=representation
-                var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
-                var res = await fetch(patchUrl, {
-                    method: 'PATCH',
-                    headers: { 
-                        'apikey': ANON_KEY, 
-                        'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify({ 
-                        opponent_tg_id: String(MY_ID),
-                        opponent_username: escapeHtml(user.username || 'Anonymous'), 
-                        status: 'playing' 
-                    })
-                });
+    if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
+    
+    try { 
+        // 1️⃣ Проверяем комнату
+        var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
+        if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
+        
+        var room = roomData[0];
+        
+        // 2️⃣ Проверки
+        if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
+        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
+        if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
+        
+        // 3️⃣ Пароль
+        if (room.room_password) { 
+            var pwd = prompt('🔒 Введите пароль:'); 
+            if (pwd !== room.room_password) { 
+                alert('❌ Неверный пароль'); 
+                if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+                isJoiningRoom = false; return; 
+            } 
+        } 
+        
+        // 4️⃣ PATCH запрос
+        var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
+        var res = await fetch(patchUrl, {
+            method: 'PATCH',
+            headers: { 
+                'apikey': ANON_KEY, 
+                'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({ 
+                opponent_tg_id: String(MY_ID),
+                opponent_username: escapeHtml(user.username || 'Anonymous'), 
+                status: 'playing' 
+            })
+        });
 
-                if (!res.ok) {
-                    var errText = await res.text();
-                    throw new Error('Сервер отказал (' + res.status + '): ' + errText);
-                }
+        if (!res.ok) {
+            var errText = await res.text();
+            throw new Error('Сервер отказал (' + res.status + '): ' + errText);
+        }
 
-                // 5️⃣ Получаем данные из ответа
-                var updatedRoom = await res.json();
-                
-                // Обработка: если массив - берём первый элемент
-                if (Array.isArray(updatedRoom) && updatedRoom.length > 0) {
-                    updatedRoom = updatedRoom[0];
-                }
-                
-                // Если всё ещё пусто - пробуем загрузить отдельно
-                if (!updatedRoom || !updatedRoom.id) {
-                    await sleep(200); // Ждём немного для репликации БД
-                    updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
-                }
-                
-                if (!updatedRoom) throw new Error('Не удалось получить данные комнаты');
-
-                // 6️⃣ Успех!
-                currentRoom = updatedRoom; 
-                showGameScreen(); 
-                startPolling(); 
-                loadRooms(); 
-                closeRoomsScreen(); 
-                
-            } catch(e) { 
-                alert('❌ ' + e.message); 
-                if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
-            } finally {
-                isJoiningRoom = false;
+        // 5️⃣ 🔥 ЯВНАЯ ЗАГРУЗКА комнаты после обновления (надёжнее!)
+        await sleep(300); // Ждём репликацию БД
+        var updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
+        
+        if (!updatedRoom) throw new Error('Не удалось загрузить данные комнаты');
+        
+        // 🔥 Проверяем, что оппонент действительно установлен
+        if (!updatedRoom.opponent_tg_id || String(updatedRoom.opponent_tg_id) !== String(MY_ID)) {
+            // Пробуем ещё раз с небольшой задержкой
+            await sleep(500);
+            updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
+            if (!updatedRoom || !updatedRoom.opponent_tg_id) {
+                throw new Error('Не удалось подтвердить присоединение. Попробуйте снова.');
             }
         }
+
+        // 6️⃣ Успех!
+        currentRoom = updatedRoom; 
+        showGameScreen(); 
+        startPolling(); 
+        loadRooms(); 
+        closeRoomsScreen(); 
+        
+    } catch(e) { 
+        alert('❌ ' + e.message); 
+        if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+    } finally {
+        isJoiningRoom = false;
+    }
+}
 
         function showGameScreen() { 
             closeRoomsScreen(); 
