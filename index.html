@@ -822,7 +822,7 @@
                 'apikey': ANON_KEY, 
                 'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
                 'Content-Type': 'application/json',
-                'Prefer': 'return=minimal' // 🔥 Минимальный ответ для скорости
+                'Prefer': 'return=representation'
             },
             body: JSON.stringify({ 
                 opponent_tg_id: String(MY_ID),
@@ -986,13 +986,11 @@
 }
 
         async function makeMove(choice) { 
-    // 1. Базовая проверка
     if (!currentRoom) { alert('❌ Комната не найдена'); return; }
     
-    // 2. Проверка наличия соперника (но мягкая)
-    // Если ID соперника нет, но статус 'playing', разрешаем ход (на случай рассинхрона)
-    if (!currentRoom.opponent_tg_id && currentRoom.status === 'waiting') { 
-        alert('⏳ Соперник еще не присоединился!'); 
+    // Проверяем статус комнаты — разрешаем ход если playing
+    if (currentRoom.status !== 'playing') { 
+        alert('⏳ Ожидание соперника...'); 
         return; 
     } 
 
