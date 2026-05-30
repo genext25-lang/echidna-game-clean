@@ -946,16 +946,36 @@
             var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
             if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } 
             else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
+                    // ... внутри showRevealAnimation(room) ...
             var winnerId = result.winnerId; var stake = room.stake || 10;
             try {
                 var finalizeResult = await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id + '&status=neq.finished', false);
-                if (finalizeResult && Array.isArray(finalizeResult) && finalizeResult.length > 0 && winnerId) {
+                
+                if (winnerId) {
                     var loserId = winnerId == room.creator_tg_id ? room.opponent_tg_id : room.creator_tg_id;
-                    await updateWinsOnly(winnerId); await updateLossesOnly(loserId);
-                    await updateBalanceOnly(winnerId, stake); await updateBalanceOnly(loserId, -stake);
+                    
+                    // 🔍 Обновляем статистику с видимой проверкой
+                    var winOk = await updateWinsOnly(winnerId);
+                    var loseOk = await updateLossesOnly(loserId);
+                    
+                    if (!winOk || !loseOk) {
+                        console.warn('[REVEAL] Stats update failed');
+                    }
+
+                    // 🔍 Обновляем баланс с видимой проверкой
+                    var balWinOk = await updateBalanceOnly(winnerId, stake);
+                    var balLoseOk = await updateBalanceOnly(loserId, -stake);
+                    
+                    if (!balWinOk || !balLoseOk) {
+                        alert('⚠️ Баланс не обновился! Проверь RLS таблицы users или перезапусти игру.');
+                    }
                 }
-            } catch(e) {}
+            } catch(e) { 
+                console.error('[REVEAL] Error:', e); 
+                alert('Ошибка сохранения результата: ' + e.message);
+            }
             updateBalanceDisplay(); updateStats();
+        // ... остальной код ...
             var countdown = 3; 
             var countdownEl = document.getElementById('revealCountdown'); 
             countdownEl.textContent = countdown; 
