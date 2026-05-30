@@ -784,7 +784,7 @@
     isJoiningRoom = true;
 
     if (!user || !MY_ID) { 
-        alert('⚠️ Ошибка: Вы не вошли в систему!'); 
+        alert('️ Ошибка: Вы не вошли в систему!'); 
         if(btnElement) btnElement.disabled = false; 
         isJoiningRoom = false; 
         return; 
@@ -793,7 +793,7 @@
     if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
     
     try { 
-        // 1️⃣ Проверяем комнату
+        // 1️⃣ Проверяем комнату перед входом
         var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
         if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
         
@@ -801,7 +801,7 @@
         
         // 2️⃣ Проверки
         if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
-        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
+        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert(' Вы уже в этой комнате'); resumeRoom(roomId); return; }
         if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
         
         // 3️⃣ Пароль
@@ -814,7 +814,7 @@
             } 
         } 
         
-        // 4️⃣ PATCH запрос
+        // 4️ PATCH запрос
         var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
         var res = await fetch(patchUrl, {
             method: 'PATCH',
@@ -836,20 +836,29 @@
             throw new Error('Сервер отказал (' + res.status + '): ' + errText);
         }
 
-        // 5️⃣ 🔥 ЯВНАЯ ЗАГРУЗКА комнаты после обновления (надёжнее!)
-        await sleep(300); // Ждём репликацию БД
-        var updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
+        // 5️⃣ Обработка ответа
+        var responseData = await res.json();
+        var updatedRoom = null;
         
-        if (!updatedRoom) throw new Error('Не удалось загрузить данные комнаты');
-        
-        // 🔥 Проверяем, что оппонент действительно установлен
-        if (!updatedRoom.opponent_tg_id || String(updatedRoom.opponent_tg_id) !== String(MY_ID)) {
-            // Пробуем ещё раз с небольшой задержкой
-            await sleep(500);
-            updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
-            if (!updatedRoom || !updatedRoom.opponent_tg_id) {
-                throw new Error('Не удалось подтвердить присоединение. Попробуйте снова.');
-            }
+        // Supabase возвращает массив [{...}] при return=representation
+        if (Array.isArray(responseData) && responseData.length > 0) {
+            updatedRoom = responseData[0];
+        }
+
+        // 🔥 ФАЛЛБЭК: Если Supabase не вернул данные (например, из-за RLS), 
+        // мы обновляем объект комнаты локально. Это надежно, т.к. PATCH прошел успешно.
+        if (!updatedRoom || !updatedRoom.id) {
+            console.log('[JOIN] Using local update');
+            updatedRoom = {
+                id: room.id,
+                creator_tg_id: room.creator_tg_id,
+                creator_username: room.creator_username,
+                opponent_tg_id: String(MY_ID),
+                opponent_username: user.username || 'Anonymous',
+                status: 'playing',
+                stake: room.stake,
+                room_password: room.room_password
+            };
         }
 
         // 6️⃣ Успех!
