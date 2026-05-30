@@ -889,34 +889,48 @@
         }
 
         async function renderPlayerStats() { 
-            if (!currentRoom || !currentRoom.id) return; 
-            try { 
-                var creatorId = currentRoom.creator_tg_id; 
-                var opponentId = currentRoom.opponent_tg_id; 
-                var opponentUsername = currentRoom.opponent_username;
-                
-                var isCreator = String(creatorId) === String(MY_ID); 
-                renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); 
-                
-                if (opponentId) renderAvatar('opponentAvatar', null, opponentUsername || '?');
-                else document.getElementById('opponentAvatar').innerHTML = '?'; 
-                
-                if (!opponentId) { 
-                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; 
-                    document.getElementById('playerStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; 
-                    return; 
-                } 
-                
-                var results = await Promise.allSettled([ 
-                    db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + creatorId, false), 
-                    db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, false) 
-                ]); 
-                var cData = (results[0].status === 'fulfilled' && results[0].value && results[0].value[0]) ? results[0].value[0] : { wins: 0, losses: 0 }; 
-                var oData = (results[1].status === 'fulfilled' && results[1].value && results[1].value[0]) ? results[1].value[0] : { wins: 0, losses: 0 }; 
-                document.getElementById('playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (cData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (cData.losses || 0) + '</span>'; 
-                document.getElementById('opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oData.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oData.losses || 0) + '</span>'; 
-            } catch(e) {} 
+    if (!currentRoom || !currentRoom.id) return; 
+    try { 
+        // 🔥 Используем currentRoom, который уже должен содержать оппонента
+        var creatorId = currentRoom.creator_tg_id; 
+        var opponentId = currentRoom.opponent_tg_id; 
+        var opponentUsername = currentRoom.opponent_username;
+        
+        var isCreator = String(creatorId) === String(MY_ID); 
+        renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); 
+        
+        // 🔥 Если opponentId есть — показываем аватар и имя
+        if (opponentId) {
+            renderAvatar('opponentAvatar', null, opponentUsername || 'Игрок');
+            // Загружаем статистику оппонента
+            try {
+                var oppStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, true);
+                if (oppStats) {
+                    document.getElementById('opponentStats').innerHTML = 
+                        '<span style="color:var(--success)">✅ ' + (oppStats.wins || 0) + '</span><br>' +
+                        '<span style="color:var(--error)">❌ ' + (oppStats.losses || 0) + '</span>';
+                }
+            } catch(e) {
+                document.getElementById('opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>';
+            }
+        } else {
+            // 🔥 Если оппонента нет — показываем "Ожидание"
+            document.getElementById('opponentAvatar').innerHTML = '?';
+            document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>';
         }
+        
+        // Статистика текущего игрока
+        var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true);
+        if (myStats) {
+            document.getElementById('playerStats').innerHTML = 
+                '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
+                '<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
+        }
+        
+    } catch(e) {
+        console.error('[STATS] Error:', e);
+    } 
+}
 
         function startPolling() { 
             clearAllIntervals(); if (!currentRoom) return; 
