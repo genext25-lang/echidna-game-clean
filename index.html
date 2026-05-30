@@ -927,13 +927,27 @@
                 console.error('[STATS] Error:', e);
             } 
         }
+function updateGameStatus(room) {
+    if (!room || isGameFinished) return;
+    var isCreator = String(room.creator_tg_id) === String(MY_ID);
+    var myCol = isCreator ? 'creator_choice' : 'opponent_choice';
+    var choices = document.querySelectorAll('.choice-btn');
+    
+    if (room.status === 'playing' && !room[myCol]) {
+        // Можно делать ход
+        choices.forEach(function(b) { b.disabled = false; });
+        document.getElementById('statusMessage').textContent = 'Выберите ход';
+    } else if (room[myCol]) {
+        choices.forEach(function(b) { b.disabled = true; });
+        document.getElementById('statusMessage').textContent = '✅ Ход записан';
+    }
+}
 
         function startPolling() { 
     clearAllIntervals(); 
     if (!currentRoom) return; 
     
     isGameFinished = false; 
-    var opponentJoined = false; 
     
     activeIntervals.pollInterval = setInterval(async function() { 
         if (!currentRoom || isGameFinished || isProcessingGame) return;
@@ -943,25 +957,23 @@
             var room = res[0]; 
             if (!room) return; 
             
-            // Если оппонент только что появился — обновляем интерфейс
-            if (room.opponent_tg_id && !opponentJoined) { 
-                opponentJoined = true; 
-                playJoinSound(); 
-                // Принудительно обновляем currentRoom для создателя
-                currentRoom = room;
-                renderPlayerStats(); 
-            } 
-            
+            // 🔥 ВСЕГДА обновляем currentRoom из базы
             var isCreator = String(room.creator_tg_id) === String(MY_ID);
-            var safeRoom = { 
+            currentRoom = { 
                 id: room.id, 
                 creator_tg_id: room.creator_tg_id, 
                 opponent_tg_id: room.opponent_tg_id, 
                 creator_username: room.creator_username, 
                 opponent_username: room.opponent_username, 
                 stake: room.stake, 
-                status: room.status 
+                status: room.status,
+                creator_choice: room.creator_choice,
+                opponent_choice: room.opponent_choice
             };
+            
+            // Обновляем интерфейс при изменении статуса
+            renderPlayerStats();
+            updateGameStatus(currentRoom);
             
             if (isCreator) safeRoom.creator_choice = room.creator_choice; 
             else safeRoom.opponent_choice = room.opponent_choice;
