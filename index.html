@@ -779,53 +779,57 @@
 
         async function joinRoom(roomId, btnElement) { 
     if (isJoiningRoom) return;
-    isJoiningRoom = true;
+    isJoining.com = true;
     if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳'; }
     
     try { 
-        // 1️⃣ Проверяем комнату без строгого фильтра статуса
+        // 1️⃣ Проверяем комнату
         var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
-        if (!roomData || roomData.length === 0) {
-            throw new Error('Комната не найдена или удалена');
-        }
-        
+        if (!roomData || roomData.length === 0) throw new Error('Комната не найдена или удалена');
         var room = roomData[0];
         
-        // 2️⃣ Проверяем условия
-        if (String(room.creator_tg_id) === String(MY_ID)) {
-            isJoiningRoom = false; resumeRoom(roomId); return;
-        }
-        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) {
-            isJoiningRoom = false; resumeRoom(roomId); return;
-        }
-        if (room.status !== 'waiting') {
-            throw new Error('Комната уже занята или игра началась');
-        }
+        if (String(room.creator_tg_id) === String(MY_ID)) { isJoiningRoom = false; resumeRoom(roomId); return; }
+        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { isJoiningRoom = false; resumeRoom(roomId); return; }
+        if (room.status !== 'waiting') throw new Error('Комната уже занята или игра началась');
         
-        // 3️⃣ Проверка пароля
         if (room.room_password) { 
             var pwd = prompt('🔒 Введите пароль:'); 
             if (pwd !== room.room_password) { 
-                playErrorSound(); 
-                alert('Неверный пароль!'); 
+                playErrorSound(); alert('Неверный пароль!'); 
                 if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
                 isJoiningRoom = false; return; 
             } 
         } 
         
-        // 4️⃣ Пробуем обновить БЕЗ фильтра по статусу (надёжнее)
-        var res = await db('rooms', 'PATCH', { 
-            opponent_tg_id: MY_ID, 
-            opponent_username: escapeHtml(user.username || 'Anonymous'), 
-            status: 'playing' 
-        }, '?id=eq.' + roomId, true); 
-        
-        // 5️⃣ Проверяем ответ
-        if (!res || (Array.isArray(res) && res.length === 0)) {
-            throw new Error('Сервер не подтвердил вход. Проверь интернет или попробуй снова.');
+        // 2️⃣ Прямой PATCH запрос (надёжнее обёртки db)
+        var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
+        var patchHeaders = {
+            'apikey': ANON_KEY,
+            'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal' // Не ждём тело, только статус успеха
+        };
+
+        var patchRes = await fetch(patchUrl, {
+            method: 'PATCH',
+            headers: patchHeaders,
+            body: JSON.stringify({
+                opponent_tg_id: MY_ID,
+                opponent_username: escapeHtml(user.username || 'Anonymous'),
+                status: 'playing'
+            })
+        });
+
+        if (!patchRes.ok) {
+            var errText = await patchRes.text();
+            throw new Error('Supabase отклонил: ' + patchRes.status + ' ' + errText);
         }
-        
-        currentRoom = res; 
+
+        // 3️⃣ Получаем актуальные данные после обновления
+        var updatedRoom = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
+        if (!updatedRoom) throw new Error('Не удалось загрузить данные комнаты');
+
+        currentRoom = updatedRoom; 
         showGameScreen(); startPolling(); loadRooms(); closeRoomsScreen(); 
         
     } catch(e) { 
