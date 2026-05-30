@@ -779,102 +779,107 @@
 
         // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ joinRoom
         async function joinRoom(roomId, btnElement) { 
-    isJoiningRoom = false; 
-    if (isJoiningRoom) return;
-    isJoiningRoom = true;
+            isJoiningRoom = false; 
+            if (isJoiningRoom) return;
+            isJoiningRoom = true;
 
-    if (!user || !MY_ID) { 
-        alert('️ Ошибка: Вы не вошли в систему!'); 
-        if(btnElement) btnElement.disabled = false; 
-        isJoiningRoom = false; 
-        return; 
-    }
+            if (!user || !MY_ID) { 
+                alert('⚠️ Ошибка: Вы не вошли в систему!'); 
+                if(btnElement) btnElement.disabled = false; 
+                isJoiningRoom = false; 
+                return; 
+            }
 
-    if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
-    
-    try { 
-        // 1️⃣ Проверяем комнату перед входом
-        var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
-        if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
-        
-        var room = roomData[0];
-        
-        // 2️⃣ Проверки
-        if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
-        if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert(' Вы уже в этой комнате'); resumeRoom(roomId); return; }
-        if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
-        
-        // 3️⃣ Пароль
-        if (room.room_password) { 
-            var pwd = prompt('🔒 Введите пароль:'); 
-            if (pwd !== room.room_password) { 
-                alert('❌ Неверный пароль'); 
-                if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
-                isJoiningRoom = false; return; 
-            } 
-        } 
-        
-        // 4️ PATCH запрос
-        var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
-        var res = await fetch(patchUrl, {
-            method: 'PATCH',
-            headers: { 
-                'apikey': ANON_KEY, 
-                'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({ 
-                opponent_tg_id: String(MY_ID),
-                opponent_username: escapeHtml(user.username || 'Anonymous'), 
-                status: 'playing' 
-            })
-        });
+            if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
+            
+            try { 
+                // 1️⃣ Проверяем комнату перед входом
+                var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); 
+                if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
+                
+                var room = roomData[0];
+                
+                // 2️⃣ Проверки
+                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
+                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
+                if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
+                
+                // 3️⃣ Пароль
+                if (room.room_password) { 
+                    var pwd = prompt('🔒 Введите пароль:'); 
+                    if (pwd !== room.room_password) { 
+                        alert('❌ Неверный пароль'); 
+                        if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+                        isJoiningRoom = false; return; 
+                    } 
+                } 
+                
+                // 4️⃣ PATCH запрос
+                var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
+                var res = await fetch(patchUrl, {
+                    method: 'PATCH',
+                    headers: { 
+                        'apikey': ANON_KEY, 
+                        'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({ 
+                        opponent_tg_id: String(MY_ID),
+                        opponent_username: escapeHtml(user.username || 'Anonymous'), 
+                        status: 'playing' 
+                    })
+                });
 
-        if (!res.ok) {
-            var errText = await res.text();
-            throw new Error('Сервер отказал (' + res.status + '): ' + errText);
+                if (!res.ok) {
+                    var errText = await res.text();
+                    throw new Error('Сервер отказал (' + res.status + '): ' + errText);
+                }
+
+                // 5️⃣ Обработка ответа
+                var responseData = await res.json();
+                var updatedRoom = null;
+                
+                // Supabase возвращает массив [{...}] при return=representation
+                if (Array.isArray(responseData) && responseData.length > 0) {
+                    updatedRoom = responseData[0];
+                }
+
+                // 🔥 ФАЛЛБЭК: Если Supabase не вернул данные (например, из-за RLS), 
+                // мы обновляем объект комнаты локально. Это надежно, т.к. PATCH прошел успешно.
+                if (!updatedRoom || !updatedRoom.id) {
+                    console.log('[JOIN] Using local update');
+                    updatedRoom = {
+                        id: room.id,
+                        creator_tg_id: room.creator_tg_id,
+                        creator_username: room.creator_username,
+                        opponent_tg_id: String(MY_ID),
+                        opponent_username: user.username || 'Anonymous',
+                        status: 'playing',
+                        stake: room.stake,
+                        room_password: room.room_password
+                    };
+                }
+
+                // 🔥 ГАРАНТИЯ: Убеждаемся, что opponent_tg_id установлен
+                if (!updatedRoom.opponent_tg_id) {
+                    updatedRoom.opponent_tg_id = String(MY_ID);
+                }
+
+                // 6️⃣ Успех!
+                currentRoom = updatedRoom; 
+                showGameScreen(); 
+                startPolling(); 
+                loadRooms(); 
+                closeRoomsScreen(); 
+                
+            } catch(e) { 
+                alert('❌ ' + e.message); 
+                if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+            } finally {
+                isJoiningRoom = false;
+            }
         }
-
-        // 5️⃣ Обработка ответа
-        var responseData = await res.json();
-        var updatedRoom = null;
-        
-        // Supabase возвращает массив [{...}] при return=representation
-        if (Array.isArray(responseData) && responseData.length > 0) {
-            updatedRoom = responseData[0];
-        }
-
-        // 🔥 ФАЛЛБЭК: Если Supabase не вернул данные (например, из-за RLS), 
-        // мы обновляем объект комнаты локально. Это надежно, т.к. PATCH прошел успешно.
-        if (!updatedRoom || !updatedRoom.id) {
-            console.log('[JOIN] Using local update');
-            updatedRoom = {
-                id: room.id,
-                creator_tg_id: room.creator_tg_id,
-                creator_username: room.creator_username,
-                opponent_tg_id: String(MY_ID),
-                opponent_username: user.username || 'Anonymous',
-                status: 'playing',
-                stake: room.stake,
-                room_password: room.room_password
-            };
-        }
-
-        // 6️⃣ Успех!
-        currentRoom = updatedRoom; 
-        showGameScreen(); 
-        startPolling(); 
-        loadRooms(); 
-        closeRoomsScreen(); 
-        
-    } catch(e) { 
-        alert('❌ ' + e.message); 
-        if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
-    } finally {
-        isJoiningRoom = false;
-    }
-}
 
         function showGameScreen() { 
             closeRoomsScreen(); 
@@ -898,48 +903,47 @@
         }
 
         async function renderPlayerStats() { 
-    if (!currentRoom || !currentRoom.id) return; 
-    try { 
-        // 🔥 Используем currentRoom, который уже должен содержать оппонента
-        var creatorId = currentRoom.creator_tg_id; 
-        var opponentId = currentRoom.opponent_tg_id; 
-        var opponentUsername = currentRoom.opponent_username;
-        
-        var isCreator = String(creatorId) === String(MY_ID); 
-        renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); 
-        
-        // 🔥 Если opponentId есть — показываем аватар и имя
-        if (opponentId) {
-            renderAvatar('opponentAvatar', null, opponentUsername || 'Игрок');
-            // Загружаем статистику оппонента
-            try {
-                var oppStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, true);
-                if (oppStats) {
-                    document.getElementById('opponentStats').innerHTML = 
-                        '<span style="color:var(--success)">✅ ' + (oppStats.wins || 0) + '</span><br>' +
-                        '<span style="color:var(--error)">❌ ' + (oppStats.losses || 0) + '</span>';
+            if (!currentRoom || !currentRoom.id) return; 
+            try { 
+                var creatorId = currentRoom.creator_tg_id; 
+                var opponentId = currentRoom.opponent_tg_id; 
+                var opponentUsername = currentRoom.opponent_username;
+                
+                var isCreator = String(creatorId) === String(MY_ID); 
+                renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); 
+                
+                // 🔥 Если opponentId есть — показываем аватар и имя
+                if (opponentId) {
+                    renderAvatar('opponentAvatar', null, opponentUsername || 'Игрок');
+                    // Загружаем статистику оппонента
+                    try {
+                        var oppStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, true);
+                        if (oppStats) {
+                            document.getElementById('opponentStats').innerHTML = 
+                                '<span style="color:var(--success)">✅ ' + (oppStats.wins || 0) + '</span><br>' +
+                                '<span style="color:var(--error)">❌ ' + (oppStats.losses || 0) + '</span>';
+                        }
+                    } catch(e) {
+                        document.getElementById('opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>';
+                    }
+                } else {
+                    // 🔥 Если оппонента нет — показываем "Ожидание"
+                    document.getElementById('opponentAvatar').innerHTML = '?';
+                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>';
                 }
+                
+                // Статистика текущего игрока
+                var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true);
+                if (myStats) {
+                    document.getElementById('playerStats').innerHTML = 
+                        '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
+                        '<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
+                }
+                
             } catch(e) {
-                document.getElementById('opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>';
-            }
-        } else {
-            // 🔥 Если оппонента нет — показываем "Ожидание"
-            document.getElementById('opponentAvatar').innerHTML = '?';
-            document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>';
+                console.error('[STATS] Error:', e);
+            } 
         }
-        
-        // Статистика текущего игрока
-        var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true);
-        if (myStats) {
-            document.getElementById('playerStats').innerHTML = 
-                '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
-                '<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
-        }
-        
-    } catch(e) {
-        console.error('[STATS] Error:', e);
-    } 
-}
 
         function startPolling() { 
             clearAllIntervals(); if (!currentRoom) return; 
@@ -959,7 +963,9 @@
                         await showRevealAnimation(room); 
                     } 
                     if (room.status === 'finished') { isGameFinished = true; clearAllIntervals(); } 
-                } catch(e) {} 
+                } catch(e) {
+                    console.error('[POLL] Error:', e);
+                }
             }, 3000); 
         }
 
