@@ -1028,7 +1028,8 @@
             } 
         }
 
-        async function showRevealAnimation(room) { 
+                async function showRevealAnimation(room) { 
+            // 🔥 FIX: Блокировка повторного запуска
             if (processedGames[room.id]) {
                 console.log('[GAME] Already processed, skipping...');
                 return; 
@@ -1041,9 +1042,14 @@
             
             clearAllIntervals();
             var overlay = document.getElementById('revealOverlay'); 
-            var isCreator = String(room.creator_tg_id) === String(MY_ID); 
-            var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
-            var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
+            
+            // 🔥 FIX: Используем currentRoom (локальные данные), так как они точно содержат ID оппонента.
+            // Данные из polling (room) могут запаздывать.
+            var gameRoom = currentRoom || room;
+            
+            var isCreator = String(gameRoom.creator_tg_id) === String(MY_ID); 
+            var myMove = isCreator ? gameRoom.creator_choice : gameRoom.opponent_choice; 
+            var oppMove = isCreator ? gameRoom.opponent_choice : gameRoom.creator_choice; 
             
             document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
             document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
@@ -1062,7 +1068,8 @@
             await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); 
             await sleep(800); 
             
-            var result = calculateWinner(room); 
+            // 🔥 FIX: Считаем результат на основе gameRoom
+            var result = calculateWinner(gameRoom); 
             document.getElementById('revealResult').textContent = result.msg; 
             document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat'); 
             
@@ -1071,26 +1078,30 @@
             else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
             
             var winnerId = result.winnerId; 
-            var stake = room.stake || 10;
+            var stake = gameRoom.stake || 10;
             
+            // 🔥 FIX: Обновляем баланс только если есть победитель и мы Создатель
             if (winnerId && isCreator) {
-                console.log('[GAME] Creator detected. Updating DB results...');
-                var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
+                console.log('[GAME] Creator updating DB. Winner:', winnerId, 'Stake:', stake);
                 
-                await updateWinsOnly(winnerId);
-                await updateLossesOnly(loserId);
+                // Определяем проигравшего
+                var loserId = String(winnerId) === String(gameRoom.creator_tg_id) ? gameRoom.opponent_tg_id : gameRoom.creator_tg_id;
                 
-                var winOk = await updateBalanceOnly(winnerId, stake);
-                var loseOk = await updateBalanceOnly(loserId, -stake);
+                console.log('[GAME] Winner ID:', winnerId, 'Loser ID:', loserId);
+
+                // 1. Обновляем Победителя (+stake)
+                if (winnerId) await updateBalanceOnly(winnerId, stake);
                 
-                if (winOk && loseOk) console.log('[GAME] DB Update Success');
-                else alert('⚠️ Ошибка обновления базы!');
+                // 2. Обновляем Проигравшего (-stake)
+                if (loserId) await updateBalanceOnly(loserId, -stake);
+            } else if (!isCreator) {
+                console.log('[GAME] Non-creator. Skipping DB update to prevent double counting.');
             }
             
             // 🔥 FIX: Принудительно закрываем комнату в БД
             console.log('[GAME] Updating room status to finished...');
             try {
-                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id);
+                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + gameRoom.id);
             } catch(e) {
                 console.error('[GAME] Failed to update room status:', e);
             }
@@ -1107,7 +1118,7 @@
                 else { 
                     clearInterval(countdownInterval); 
                     overlay.classList.add('hidden'); 
-                    showScreen('lobby'); // Автоматически обновит список комнат
+                    showScreen('lobby'); 
                 } 
             }, 1000); 
         }
