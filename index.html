@@ -270,7 +270,7 @@
         </div>
     </div>
     <div class="container">
-        <div id="lobbyScreen">
+        <div id="lobbyScreen" class="hidden">
             <div class="top-bar">
                 <div class="balance-mini">
                     <div class="balance-mini-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display='none';this.parentElement.innerHTML='🪙'"></div>
@@ -335,7 +335,7 @@
                 <div class="thinking-echidna-wrapper"><div class="thinking-echidna"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-thinking.png" alt="Thinking" onerror="this.style.display='none';this.parentElement.innerHTML='🤔'"></div></div>
                 <div class="player-wrapper"><div class="player-avatar" id="opponentAvatar"></div><div class="player-stats-small" id="opponentStats"></div></div>
             </div>
-            <div class="game-stakes"><div class="stake-line">💰 Ставка: <span id="stakeAmount" class="stake-value">10</span> Spike</div><div class="stake-line">🏆 Ты получишь: <span id="winAmount" class="stake-win">20</span> Spike</div></div>
+            <div class="game-stakes"><div class="stake-line"> Ставка: <span id="stakeAmount" class="stake-value">10</span> Spike</div><div class="stake-line"> Ты получишь: <span id="winAmount" class="stake-win">20</span> Spike</div></div>
             <div class="status-box"><div id="statusMessage"><div class="spinner"></div></div><div class="timer-text" id="timerText">30s</div><div class="timer-bar-container" id="timerBarContainer"><div class="timer-bar" id="timerBar"></div></div></div>
             <div class="choices">
                 <button class="choice-btn" onclick="makeMove('rock')"><img src="move-rock.png" alt="Камень"><span>Камень</span></button>
@@ -344,13 +344,13 @@
             </div>
         </div>
         <div id="skinsScreen" class="hidden">
-            <div class="header"><h2>🎨 Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
+            <div class="header"><h2> Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
             <div id="skinsList"></div>
         </div>
         <div id="leaderboardScreen" class="hidden"><div class="header"><h2>🏆 Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
     </div>
     <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback">🦔</div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
-    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
+    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()"></button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
     <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
     <div id="confettiContainer" class="confetti-container hidden"></div>
     <div class="bottom-nav" id="bottomNav">
@@ -369,6 +369,7 @@
         var isProcessingGame = false;
         var welcomeMessageShown = false;
         var processedGames = {};
+        var rouletteInterval = null; // Для медленной анимации
         
         function initAudio() { if (soundsInitialized) return true; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); }); } else { soundsInitialized = true; } return soundsInitialized; } catch(e) { console.warn('Audio init failed:', e); return false; } }
         function forceUnlockAudio() { if (!soundsInitialized && audioUnlockAttempts < 5) { audioUnlockAttempts++; initAudio(); try { if (audioCtx && audioCtx.state === 'suspended') { var osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01); soundsInitialized = true; } } catch(e) {} } }
@@ -381,6 +382,7 @@
         function playLoseSound() { playBeep(280, 0.3, 'sawtooth', 0.12); setTimeout(function() { playBeep(180, 0.2, 'sawtooth', 0.08); }, 200); vibrate([100]); }
         function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
         function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
+        function playTickSound() { playBeep(1200, 0.05, 'square', 0.05); }
         
         function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
         
@@ -395,7 +397,7 @@
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        //  ПУБЛИЧНЫЕ КЛЮЧИ
+        // 🔑 ПУБЛИЧНЫЕ КЛЮЧИ
         var AUTH_TOKEN = null;
         var URL = 'https://tejndwtckdvueufqhitu.supabase.co';
         var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
@@ -444,11 +446,11 @@
         var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная', description: 'Обычная колючая ехидна.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках.' },
-            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '', name: 'Нищий', description: 'Спортивная ехидна.' },
+            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна.' },
             { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png', emoji: '👟', name: 'Выживший', description: 'Ехидна в кроссовках.' },
             { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png', emoji: '🧢', name: 'Работяга', description: 'Практичная ехидна.' },
-            { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '😎', name: 'Мажор', description: 'Стильная ехидна.' },
-            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '', name: 'Миллионер', description: 'Богатая ехидна.' },
+            { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '', name: 'Мажор', description: 'Стильная ехидна.' },
+            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '💰', name: 'Миллионер', description: 'Богатая ехидна.' },
             { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png', emoji: '🏆', name: 'Магнат', description: 'Легендарная ехидна.' }
         ];
 
@@ -507,7 +509,7 @@
                             AUTH_TOKEN = result.session.access_token;
                             console.log('[AUTH] ✅ JWT received:', AUTH_TOKEN.substring(0, 30) + '...');
                         } else {
-                            console.warn('[AUTH] ⚠️ No session in response, using fallback');
+                            console.warn('[AUTH] ️ No session in response, using fallback');
                         }
                     } catch(e) { 
                         console.warn('[AUTH] Edge function call failed:', e.message); 
@@ -562,7 +564,6 @@
         async function updateBalanceOnly(playerId, amountChange) {
             if (!playerId) return false;
             try {
-                // 🔥 ИСПРАВЛЕНИЕ: Парсим баланс как число, чтобы не было конкатенации строк
                 var userData = await db('users', 'GET', null, '?select=balance&telegram_id=eq.' + playerId, true);
                 var currentBal = parseInt(userData ? userData.balance : INITIAL_BALANCE);
                 var newBal = currentBal + amountChange;
@@ -616,7 +617,9 @@
         }
 
         function startGame() { 
+            console.log('[START] Button clicked!');
             document.getElementById('splashScreen').classList.add('hidden'); 
+            document.getElementById('lobbyScreen').classList.remove('hidden');
             forceUnlockAudio(); 
             if (window.Telegram && window.Telegram.WebApp) { 
                 try { window.Telegram.WebApp.expand(); } catch(e) {} 
@@ -632,24 +635,21 @@
                 var el = document.getElementById(id); 
                 if (el) {
                     el.classList.add('hidden');
-                    console.log('[SCREEN] Hidden:', id);
                 }
             }); 
             
             var target = document.getElementById(name + 'Screen'); 
             if (target) {
                 target.classList.remove('hidden');
-                console.log('[SCREEN] Showing:', name + 'Screen');
-            } else {
-                console.error('[SCREEN] NOT FOUND:', name + 'Screen');
             }
             
             document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) {
                 btn.classList.remove('active');
-                if (btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active');
+                if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active');
             });
             
             clearAllIntervals(); 
+            stopIdleAnimation(); // Останавливаем рулетку если уходим
             
             if (name === 'lobby') { 
                 currentRoom = null; isGameFinished = false; isProcessingGame = false; 
@@ -659,47 +659,35 @@
                 updateHeroImage(); 
                 loadRooms();
             } else if (name === 'tasks') { 
-                console.log('[TASKS] Rendering daily cards...');
                 setTimeout(function() { renderDailyCards(); }, 50); 
                 initRoulette(); // 🔥 Инициализация рулетки
             } else if (name === 'stats') { 
-                console.log('[STATS] Loading stats...');
                 loadStats(); 
             } else if (name === 'leaderboard') { 
-                console.log('[LEADERBOARD] Loading...');
                 loadLeaderboard(); 
             } else if (name === 'skins') { 
-                console.log('[SKINS] Rendering...');
                 renderSkins(); 
             }
         }
 
         function renderSkins() { 
-            console.log('[SKINS] Starting render...');
             var c = document.getElementById('skinsList'); 
             if (!c) return;
-            
             c.innerHTML = ''; 
-            
             if (!SKINS || SKINS.length === 0) return;
-
             SKINS.forEach(function(s, i) { 
                 var owned = isSkinOwned(s.id); 
                 var equipped = currentSkin === s.id; 
                 var canBuy = !owned && currentBalance >= s.price; 
-                
                 var el = document.createElement('div'); 
                 el.className = 'room-card' + (equipped ? ' equipped' : ''); 
                 el.onclick = function() { openSkinModal(s); }; 
-                
                 var btnHtml = ''; 
                 if (equipped) btnHtml = '<button class="room-btn equipped">Надето</button>'; 
                 else if (owned) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + s.id + '\')">Надеть</button>'; 
                 else if (canBuy) btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + s.id + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; 
                 else btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; 
-                
                 el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div><div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt=""></div><div class="room-info"><div>' + escapeHtml(getSkinNameById(s.id)) + '</div><div class="skin-description">' + escapeHtml(getSkinDescription(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; 
-                
                 c.appendChild(el); 
             });
         }
@@ -896,8 +884,8 @@
                 
                 var room = roomData[0];
                 
-                if (String(room.creator_tg_id) === String(MY_ID)) { alert(' Это ваша комната'); resumeRoom(roomId); return; }
-                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
+                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
+                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert(' Вы уже в этой комнате'); resumeRoom(roomId); return; }
                 if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
                 
                 if (room.room_password) { 
@@ -958,7 +946,7 @@
             closeRoomsScreen(); 
             ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); }); 
             document.getElementById('gameScreen').classList.remove('hidden'); 
-            if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; } 
+            if (!currentRoom) { document.getElementById('statusMessage').textContent = ' Комната не найдена'; return; } 
             var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID); 
             var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; 
             var choices = document.querySelectorAll('.choice-btn'); 
@@ -1006,7 +994,7 @@
                 if (myStats) {
                     document.getElementById('playerStats').innerHTML = 
                         '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
-                        '<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
+                        '<span style="color:var(--error)"> ' + (myStats.losses || 0) + '</span>';
                 }
                 
             } catch(e) {
@@ -1045,7 +1033,6 @@
             }, 2000); 
         }
 
-        // 🔥 FIX: Отслеживание ходов в localStorage
         function trackMove(move) {
             try {
                 var key = 'echidna_moves_' + MY_ID;
@@ -1058,13 +1045,13 @@
         async function makeMove(choice) { 
             if (!currentRoom) { alert('❌ Комната не найдена'); return; }
             if (!currentRoom.opponent_tg_id && currentRoom.status === 'waiting') { 
-                alert('⏳ Соперник еще не присоединился!'); 
+                alert(' Соперник еще не присоединился!'); 
                 return; 
             } 
             var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
             if (currentRoom[col]) return; 
             
-            trackMove(choice); // 🔥 Запоминаем ход
+            trackMove(choice); 
             
             document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); 
             document.getElementById('statusMessage').textContent = '✅ Ход записан'; 
@@ -1080,7 +1067,6 @@
             } 
         }
 
-        // 🔥 FIX: Полностью переписана логика раскрытия ходов и обновления баланса
         async function showRevealAnimation(room) { 
             if (processedGames[room.id]) {
                 console.log('[GAME] Already processed, skipping...');
@@ -1090,12 +1076,9 @@
             processedGames[room.id] = true;
             isProcessingGame = true;
             
-            console.log('[GAME] Starting reveal animation for room:', room.id);
-            
             clearAllIntervals();
             var overlay = document.getElementById('revealOverlay'); 
             
-            // 🔥 Гарантируем свежие данные с IDs обоих игроков
             try {
                 var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + room.id, true);
                 if (freshRoom) room = freshRoom;
@@ -1133,37 +1116,17 @@
             var winnerId = result.winnerId; 
             var stake = room.stake || 10;
             
-            // 🔥 Безопасное обновление баланса
             if (winnerId && isCreator) {
-                console.log('[BALANCE] Creator updating DB. Winner:', winnerId, 'Stake:', stake);
-                
-                // Определяем проигравшего (безопасное сравнение строк)
                 var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
-                
-                console.log('[BALANCE] Winner ID:', winnerId, 'Loser ID:', loserId);
-
-                // 1. Обновляем Победителя (+stake)
                 if (winnerId) await updateBalanceOnly(winnerId, stake);
-                
-                // 2. Обновляем Проигравшего (-stake)
                 if (loserId) await updateBalanceOnly(loserId, -stake);
-                
-                // 3. Обновляем статистику
                 await updateWinsOnly(winnerId);
                 await updateLossesOnly(loserId);
-                
-                console.log('[BALANCE] DB update finished');
-            } else if (!isCreator) {
-                console.log('[BALANCE] Non-creator. Skipping DB update to prevent double counting.');
             }
             
-            //  Принудительно закрываем комнату в БД
-            console.log('[GAME] Updating room status to finished...');
             try {
                 await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id);
-            } catch(e) {
-                console.error('[GAME] Failed to update room status:', e);
-            }
+            } catch(e) {}
             
             updateBalanceDisplay(); 
             updateStats();
@@ -1177,7 +1140,7 @@
                 else { 
                     clearInterval(countdownInterval); 
                     overlay.classList.add('hidden'); 
-                    showScreen('lobby'); // Автоматически обновит список комнат
+                    showScreen('lobby'); 
                 } 
             }, 1000); 
         }
@@ -1207,24 +1170,16 @@
         }
 
         async function loadLeaderboard() { 
-            console.log('[LEADERBOARD] Starting load...');
             var c = document.getElementById('leaderboardList'); 
             if (!c) return;
-            
             c.innerHTML = '<div class="loader"><div class="spinner"></div></div>'; 
-            
             try { 
-                console.log('[LEADERBOARD] Fetching users...');
                 var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=balance.desc.nullslast&limit=50', false); 
-                console.log('[LEADERBOARD] Received:', allUsers);
-                
                 var usersList = Array.isArray(allUsers) ? allUsers : [];
-                
                 if (usersList.length === 0) {
                     c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Пока нет игроков</div>';
                     return;
                 }
-                
                 const uniqueUsers = [];
                 const seenNames = new Set();
                 for (const u of usersList) {
@@ -1233,53 +1188,34 @@
                         uniqueUsers.push(u);
                     }
                 }
-                
                 c.innerHTML = ''; 
                 uniqueUsers.slice(0, 20).forEach(function(u, i) { 
                     var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0]; 
                     var name = escapeHtml(u.username || 'User'); 
                     var el = document.createElement('div'); el.className = 'room-card'; 
-                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div> ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
+                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div>💰 ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
                     c.appendChild(el); 
                 });
-                
-                console.log('[LEADERBOARD] Rendered:', uniqueUsers.length, 'users');
             } catch(e) { 
-                console.error('[LEADERBOARD] Error:', e);
-                c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки: ' + e.message + '</div>'; 
+                c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки</div>'; 
             } 
         }
 
-        // 🔥 FIX: Полностью переписана логика статистики
         async function loadStats() { 
-            console.log('[STATS] Loading stats...');
-            if (!MY_ID) return; 
             var tableBody = document.getElementById('gamesTableBody'); 
             tableBody.innerHTML = '<div class="loader"><div class="spinner"></div></div>'; 
             try { 
-                // 1. Загружаем данные пользователя напрямую из users
                 var userData = await db('users', 'GET', null, '?select=wins,losses,balance&telegram_id=eq.' + MY_ID, true);
                 var wins = userData ? (userData.wins || 0) : 0;
                 var losses = userData ? (userData.losses || 0) : 0;
                 var balance = userData ? parseInt(userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE;
                 var winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
-                
-                //  ИСПРАВЛЕНИЕ: Показываем разницу между текущим балансом и стартовым (1000)
                 var balanceDiff = balance - INITIAL_BALANCE;
-                var balanceText = '';
-                if (balanceDiff > 0) {
-                    balanceText = '+' + formatCompactNumber(balanceDiff);
-                } else if (balanceDiff < 0) {
-                    balanceText = '-' + formatCompactNumber(Math.abs(balanceDiff));
-                } else {
-                    balanceText = '0';
-                }
+                var balanceText = balanceDiff > 0 ? '+' + formatCompactNumber(balanceDiff) : (balanceDiff < 0 ? '-' + formatCompactNumber(Math.abs(balanceDiff)) : '0');
 
-                // Обновляем карточки статистики
                 document.getElementById('statsWinRate').textContent = winRate + '%';
-                document.getElementById('statsTotalSpike').textContent = balanceText + ' Spike'; // Показываем разницу
+                document.getElementById('statsTotalSpike').textContent = balanceText + ' Spike';
                 
-                // Любимый ход из localStorage
                 var favMove = '-';
                 try {
                     var moves = JSON.parse(localStorage.getItem('echidna_moves_' + MY_ID) || '{}');
@@ -1293,7 +1229,6 @@
                 } catch(e) {}
                 document.getElementById('statsFavMove').textContent = favMove;
 
-                // 2. Загружаем историю игр (если таблица есть)
                 var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); 
                 var gamesList = Array.isArray(games) ? games : []; 
                 if (gamesList.length === 0) { 
@@ -1309,7 +1244,6 @@
                 }); 
                 tableBody.innerHTML = rowsHtml; 
             } catch(e) { 
-                console.error('[STATS] Error:', e);
                 tableBody.innerHTML = '<div class="games-empty">Ошибка загрузки</div>'; 
             } 
         }
@@ -1401,12 +1335,10 @@
             } 
         }
 
-        // 🎰 ЛОГИКА РУЛЕТКИ (Улучшенная с анимацией и звуком)
+        // 🎰 ЛОГИКА РУЛЕТКИ
         const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
         const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
-        const MAX_ROULETTE_ATTEMPTS = 5; // 5 попыток в день
-        
-        var rouletteInterval = null; // Для медленной анимации
+        const MAX_ROULETTE_ATTEMPTS = 5; 
 
         function getWeightedRandomSkin() {
             let totalWeight = Object.values(ROULETTE_WEIGHTS).reduce((a,b) => a+b, 0);
@@ -1422,7 +1354,6 @@
             const today = getTodayDate();
             const stored = localStorage.getItem('echidna_roulette_state');
             let state = stored ? JSON.parse(stored) : { date: today, attempts: 0 };
-            
             if (state.date !== today) {
                 state = { date: today, attempts: 0 };
                 localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
@@ -1437,54 +1368,42 @@
             return state;
         }
 
-        // 🔥 Звук тиканья рулетки
-        function playTickSound() {
-            playBeep(1200, 0.05, 'square', 0.05);
-        }
-
         function initRoulette() {
             const btn = document.getElementById('spinBtn');
-            const container = document.getElementById('rouletteContainer');
             const strip = document.getElementById('rouletteStrip');
             const resultDiv = document.getElementById('rouletteResult');
             const attemptsSpan = document.getElementById('rouletteAttempts');
             
-            const state = getRouletteState();
-            attemptsSpan.textContent = state.attempts;
-            
-            // 🔥 Очищаем старую анимацию
+            // Сброс
             if (rouletteInterval) clearInterval(rouletteInterval);
             strip.style.transition = 'none';
             strip.style.transform = 'translateX(0)';
+
+            const state = getRouletteState();
+            attemptsSpan.textContent = state.attempts;
             
             if (state.attempts >= MAX_ROULETTE_ATTEMPTS) {
                 btn.disabled = true;
                 btn.textContent = '🔒 Лимит исчерпан';
                 btn.style.opacity = '0.5';
-                // Скрываем рулетку если лимит исчерпан
-                container.style.display = 'none';
-                btn.style.display = 'none';
             } else {
                 btn.disabled = false;
                 btn.textContent = '🎰 Крутить!';
                 btn.style.opacity = '1';
-                container.style.display = 'block';
-                btn.style.display = 'block';
                 
-                // 🔥 Запускаем медленную анимацию сразу при входе
-                renderRouletteStrip(15); // Короткая лента дляidle
+                // Запускаем медленную анимацию
+                renderRouletteStrip(15);
                 startIdleAnimation();
                 
                 btn.onclick = async () => {
                     const newState = getRouletteState();
                     if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
                         btn.disabled = true;
-                        btn.textContent = '🔒 Лимит исчерпан';
+                        btn.textContent = ' Лимит исчерпан';
                         btn.style.opacity = '0.5';
                         return;
                     }
                     
-                    // Останавливаем медленную анимацию
                     stopIdleAnimation();
                     
                     btn.disabled = true;
@@ -1496,61 +1415,42 @@
                     const reward = ROULETTE_REWARDS[winningSkinId];
                     const winningSkin = SKINS.find(s => s.id === winningSkinId);
                     
-                    // Генерируем длинную ленту (60 карточек)
                     renderRouletteStrip(60);
                     
-                    // Определяем позицию победителя (например, 50-я карточка)
-                    // 50 / 8 (кол-во скинов) = 6 полный круг + 2 скин (индекс 2)
-                    // Нам нужно, чтобы 50-я карточка была winningSkin.
-                    // Проще: просто перестроим ленту так, чтобы winningSkin был на позиции 50.
                     const targetIndex = 50;
                     const cards = strip.children;
                     
-                    // Перестраиваем карточки: заполняем случайно, но на targetIndex ставим winner
                     strip.innerHTML = '';
                     for(let i=0; i<60; i++) {
-                        let skin;
-                        if (i === targetIndex) {
-                            skin = winningSkin;
-                        } else {
-                            skin = SKINS[Math.floor(Math.random() * SKINS.length)];
-                        }
+                        let skin = (i === targetIndex) ? winningSkin : SKINS[Math.floor(Math.random() * SKINS.length)];
                         const card = document.createElement('div');
                         card.className = 'roulette-card';
                         card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
                         strip.appendChild(card);
                     }
                     
-                    // Сброс позиции
                     strip.style.transition = 'none';
                     strip.style.transform = 'translateX(0)';
                     
-                    // Расчет смещения
-                    // Карточка 100px + 10px margin = 110px
                     const cardWidth = 110;
-                    const viewportWidth = container.querySelector('.roulette-viewport').offsetWidth;
+                    const viewportWidth = strip.parentElement.offsetWidth;
                     const centerOffset = viewportWidth / 2;
-                    
-                    // Позиция центра выигрышной карточки
                     const cardCenterPos = (targetIndex * cardWidth) + (cardWidth / 2);
                     const translateX = -(cardCenterPos - centerOffset);
                     
-                    // Звуковой интервал во время вращения
                     let tickCount = 0;
                     const tickInterval = setInterval(() => {
                         playTickSound();
-                        vibrate(10); // Короткая вибрация на каждый тик
+                        vibrate(10);
                         tickCount++;
-                    }, 100); // Частота тиков
+                    }, 100);
                     
                     requestAnimationFrame(() => {
-                        // 🔥 Ускоренное вращение с замедлением (cubic-bezier)
                         strip.style.transition = 'transform 5s cubic-bezier(0.1, 0.7, 0.1, 1)';
                         strip.style.transform = `translateX(${translateX}px)`;
                     });
                     
-                    // Остановка звуков после вращения
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         clearInterval(tickInterval);
                         
                         resultDiv.style.display = 'block';
@@ -1561,7 +1461,6 @@
                             updateRouletteState();
                             const finalState = getRouletteState();
                             attemptsSpan.textContent = finalState.attempts;
-                            
                             updateBalanceDisplay();
                             
                             if (finalState.attempts >= MAX_ROULETTE_ATTEMPTS) {
@@ -1571,15 +1470,17 @@
                             } else {
                                 btn.textContent = '🎰 Крутить!';
                                 btn.disabled = false;
+                                // Перезапуск idle анимации
+                                renderRouletteStrip(15);
+                                startIdleAnimation();
                             }
-                            
-                            vibrate([50, 30, 50]); // Финальная вибрация
+                            vibrate([50, 30, 50]);
                         } else {
                             resultDiv.innerHTML += '<br><span style="color:var(--error);font-size:12px;">Ошибка начисления</span>';
                             btn.disabled = false;
                             btn.textContent = '🎰 Крутить!';
                         }
-                    }, 5100); // Чуть больше времени вращения
+                    }, 5100);
                 };
             }
         }
@@ -1599,11 +1500,9 @@
         function startIdleAnimation() {
             const strip = document.getElementById('rouletteStrip');
             let pos = 0;
-            const speed = 1; // Скорость медленной анимации
-            
+            const speed = 1;
             rouletteInterval = setInterval(() => {
                 pos -= speed;
-                // Если ушли далеко, сбрасываем (бесшовный цикл сложен без дублирования, просто сброс)
                 if (pos < -500) pos = 0; 
                 strip.style.transform = `translateX(${pos}px)`;
             }, 20);
