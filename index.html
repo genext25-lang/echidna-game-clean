@@ -224,6 +224,7 @@
         
         /*  Стили рулетки */
         .roulette-wrapper { margin-top: 20px; text-align: center; background: rgba(26,26,46,0.7); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); }
+        .roulette-info { font-size: 12px; color: var(--sec); margin-bottom: 10px; }
         .roulette-viewport { position: relative; height: 120px; overflow: hidden; border-radius: 12px; background: rgba(10,10,26,0.8); margin: 10px 0; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 0 10px #000; }
         .roulette-strip { display: flex; height: 100%; align-items: center; will-change: transform; }
         .roulette-card { flex: 0 0 100px; height: 90px; margin: 0 5px; background: rgba(26,26,46,0.9); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; transition: transform 0.3s; }
@@ -234,6 +235,7 @@
         .roulette-pointer::before { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--error); }
         .roulette-result { display: none; margin-top: 10px; font-size: 16px; color: var(--gold); font-weight: bold; animation: fadeIn 0.5s; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; }
         .roulette-result span { color: var(--success); }
+        .roulette-result span.loss { color: var(--error); }
     </style>
 </head>
 <body>
@@ -244,7 +246,7 @@
                 <img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-banner.png" alt="Echidna Naklz">
             </div>
             <div class="splash-rules">
-                <h3> Как играть</h3>
+                <h3>📜 Как играть</h3>
                 <ul>
                     <li>Создай комнату или присоединись к существующей</li>
                     <li>Выбери ставку от 10 до 1000 Spike</li>
@@ -254,14 +256,14 @@
                     <li>Зарабатывай Spike и прокачивай Ехидну — покупай новые скины!</li>
                 </ul>
             </div>
-            <button class="splash-btn" id="startGameBtn"> ИГРАТЬ</button>
+            <button class="splash-btn" id="startGameBtn">🎮 ИГРАТЬ</button>
         </div>
     </div>
     <div class="container">
         <div id="lobbyScreen">
             <div class="top-bar">
                 <div class="balance-mini">
-                    <div class="balance-mini-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display='none';this.parentElement.innerHTML=''"></div>
+                    <div class="balance-mini-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display='none';this.parentElement.innerHTML='🪙'"></div>
                     <span class="balance-mini-amount" id="balanceSpike">0</span>
                 </div>
                 <div class="lang-mini">
@@ -283,18 +285,19 @@
             <div class="section-title">Мои комнаты</div>
             <div id="myRoomsList"><div class="loader"><div class="spinner"></div></div></div>
             <div class="section-title"><span>Доступные комнаты</span></div>
-            <input type="text" id="searchInput" class="search-input" placeholder=" Поиск по нику..." oninput="filterRooms()">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск по нику..." oninput="filterRooms()">
             <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
         </div>
         <div id="tasksScreen" class="hidden">
             <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
-            <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
+            <div class="daily-streak-info"> Открыто: <span id="dailyStreakNum">0</span> из 9</div>
             <div class="daily-grid" id="dailyCardsGrid"></div>
             <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
             
             <!-- 🎰 Рулетка -->
             <div class="roulette-wrapper">
-                <h3>🎰 Ежедневная рулетка</h3>
+                <h3> Ежедневная рулетка</h3>
+                <div class="roulette-info" id="rouletteInfo">Попыток сегодня: <span id="rouletteAttempts">0</span> / 5</div>
                 <button id="spinBtn" class="btn-create" style="margin:10px 0; background:linear-gradient(135deg, #fbbf24, #f59e0b);">Крутить!</button>
                 <div id="rouletteContainer" style="display:none;">
                     <div class="roulette-viewport">
@@ -306,20 +309,20 @@
             </div>
         </div>
         <div id="statsScreen" class="hidden">
-            <div class="stats-header"><h2>📊 Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
+            <div class="stats-header"><h2> Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
             <div class="stats-cards">
                 <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="statsWinRate">0%</div><div class="stat-label">Побед</div></div>
-                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
-                <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value" id="statsTotalSpike">0</div><div class="stat-label">Баланс</div></div>
+                <div class="stat-card"><div class="stat-icon">✊</div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" id="statsTotalSpike">0</div><div class="stat-label">Выиграно/Проиграно</div></div>
             </div>
-            <div class="section-title"> Последние игры</div>
+            <div class="section-title">🎮 Последние игры</div>
             <div class="games-table"><div class="games-table-header"><span>Соперник</span><span>Ставка</span><span>Результат</span><span>Ход</span></div><div id="gamesTableBody"><div class="loader" style="padding:20px;"><div class="spinner"></div></div></div></div>
         </div>
         <div id="gameScreen" class="hidden">
             <div class="header"><h2>⚔️ Битва!</h2></div>
             <div class="game-players">
                 <div class="player-wrapper"><div class="player-avatar" id="playerAvatar"></div><div class="player-stats-small" id="playerStats"></div></div>
-                <div class="thinking-echidna-wrapper"><div class="thinking-echidna"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-thinking.png" alt="Thinking" onerror="this.style.display='none';this.parentElement.innerHTML=''"></div></div>
+                <div class="thinking-echidna-wrapper"><div class="thinking-echidna"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-thinking.png" alt="Thinking" onerror="this.style.display='none';this.parentElement.innerHTML='🤔'"></div></div>
                 <div class="player-wrapper"><div class="player-avatar" id="opponentAvatar"></div><div class="player-stats-small" id="opponentStats"></div></div>
             </div>
             <div class="game-stakes"><div class="stake-line">💰 Ставка: <span id="stakeAmount" class="stake-value">10</span> Spike</div><div class="stake-line">🏆 Ты получишь: <span id="winAmount" class="stake-win">20</span> Spike</div></div>
@@ -336,8 +339,8 @@
         </div>
         <div id="leaderboardScreen" class="hidden"><div class="header"><h2> Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
     </div>
-    <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()"></button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback"></div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
-    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
+    <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback">🦔</div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
+    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;"> Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
     <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
     <div id="confettiContainer" class="confetti-container hidden"></div>
     <div class="bottom-nav" id="bottomNav">
@@ -398,6 +401,7 @@
         var currentRoom = null; 
         var isGameFinished = false; 
         var currentBalance = 0; 
+        var INITIAL_BALANCE = 1000; // Стартовый баланс
         window.roomExpiry = {};
         var activeIntervals = { pollInterval: null, lobbyRefreshInterval: null, timerInterval: null };
 
@@ -428,13 +432,13 @@
         }
 
         var SKINS = [ 
-            { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '', name: 'Обычная', description: 'Обычная колючая ехидна.' },
+            { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная', description: 'Обычная колючая ехидна.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках.' },
-            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна.' },
+            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '', name: 'Нищий', description: 'Спортивная ехидна.' },
             { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png', emoji: '👟', name: 'Выживший', description: 'Ехидна в кроссовках.' },
             { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png', emoji: '🧢', name: 'Работяга', description: 'Практичная ехидна.' },
             { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '😎', name: 'Мажор', description: 'Стильная ехидна.' },
-            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '💰', name: 'Миллионер', description: 'Богатая ехидна.' },
+            { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '', name: 'Миллионер', description: 'Богатая ехидна.' },
             { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png', emoji: '🏆', name: 'Магнат', description: 'Легендарная ехидна.' }
         ];
 
@@ -506,11 +510,11 @@
         }
 
         async function getUserBalanceFromDB() {
-            if (!MY_ID) return 1000;
+            if (!MY_ID) return INITIAL_BALANCE;
             try {
                 var userData = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&select=balance', true);
-                return userData ? (userData.balance || 1000) : 1000;
-            } catch(e) { return 1000; }
+                return userData ? (userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE;
+            } catch(e) { return INITIAL_BALANCE; }
         }
 
         async function updateBalanceDisplay() { 
@@ -539,7 +543,7 @@
             try { 
                 var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1');
                 if (existing && existing.length > 0) {
-                    currentBalance = existing[0].balance || 1000;
+                    currentBalance = existing[0].balance || INITIAL_BALANCE;
                 }
                 await updateBalanceDisplay();
             } catch(e) { console.error('ensureUserExists error:', e); } 
@@ -550,7 +554,7 @@
             try {
                 // 🔥 ИСПРАВЛЕНИЕ: Парсим баланс как число, чтобы не было конкатенации строк
                 var userData = await db('users', 'GET', null, '?select=balance&telegram_id=eq.' + playerId, true);
-                var currentBal = parseInt(userData ? userData.balance : 1000);
+                var currentBal = parseInt(userData ? userData.balance : INITIAL_BALANCE);
                 var newBal = currentBal + amountChange;
                 
                 console.log('[BALANCE] Updating', playerId, 'Current:', currentBal, 'Change:', amountChange, 'New:', newBal);
@@ -640,7 +644,6 @@
             if (name === 'lobby') { 
                 currentRoom = null; isGameFinished = false; isProcessingGame = false; 
                 activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
-                // 🔥 ИСПРАВЛЕНИЕ: Принудительно обновляем данные при входе в лобби
                 updateBalanceDisplay(); 
                 updateStats(); 
                 updateHeroImage(); 
@@ -823,7 +826,7 @@
                 if (trulyMine || isOpponent) { el.onclick = function() { resumeRoom(r.id); }; el.style.cursor = 'pointer'; } 
                 var badgeHtml = '', btnHtml = '', timerHtml = ''; 
                 var hasPassword = r.room_password && r.room_password.length > 0; 
-                var lockIcon = hasPassword ? '<span class="lock-icon">🔒</span>' : ''; 
+                var lockIcon = hasPassword ? '<span class="lock-icon"></span>' : ''; 
                 if (isWaiting) { 
                     badgeHtml = '<span style="background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:9px;">ЖДЁТ</span>'; 
                     if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 1000; 
@@ -837,7 +840,7 @@
                     el.innerHTML = '<div class="room-icon">' + escapeHtml(MY_INITIAL) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div><div class="room-actions">' + btnHtml + cancelBtn + '</div>'; 
                 } else { 
                     btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();joinRoom(\'' + r.id + '\',this)">Войти</button>'; 
-                    el.innerHTML = '<div class="room-icon">' + escapeHtml(creatorName.charAt(0).toUpperCase()) + lockIcon + '</div><div class="room-info"><div class="room-stake"> ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">@' + creatorName + '</div></div><div class="room-actions">' + btnHtml + '</div>'; 
+                    el.innerHTML = '<div class="room-icon">' + escapeHtml(creatorName.charAt(0).toUpperCase()) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">@' + creatorName + '</div></div><div class="room-actions">' + btnHtml + '</div>'; 
                 } 
                 c.appendChild(el); 
             }); 
@@ -883,12 +886,12 @@
                 
                 var room = roomData[0];
                 
-                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
-                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert(' Вы уже в этой комнате'); resumeRoom(roomId); return; }
+                if (String(room.creator_tg_id) === String(MY_ID)) { alert(' Это ваша комната'); resumeRoom(roomId); return; }
+                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
                 if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
                 
                 if (room.room_password) { 
-                    var pwd = prompt(' Введите пароль:'); 
+                    var pwd = prompt('🔒 Введите пароль:'); 
                     if (pwd !== room.room_password) { 
                         alert('❌ Неверный пароль'); 
                         if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
@@ -986,14 +989,14 @@
                     }
                 } else {
                     document.getElementById('opponentAvatar').innerHTML = '?';
-                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)"> Ожидание...</span>';
+                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>';
                 }
                 
                 var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true);
                 if (myStats) {
                     document.getElementById('playerStats').innerHTML = 
                         '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
-                        '<span style="color:var(--error)"> ' + (myStats.losses || 0) + '</span>';
+                        '<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
                 }
                 
             } catch(e) {
@@ -1173,7 +1176,7 @@
             var c1 = room.creator_choice, c2 = room.opponent_choice; 
             var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; 
             if (!c1 || !c2) return { msg: 'Ошибка', winnerId: null }; 
-            if (c1 === c2) return { msg: ' Ничья!', winnerId: null }; 
+            if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; 
             var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; 
             var creatorWins = beats[c1] === c2; 
             return { msg: (creatorWins ? (MY_ID == id1) : (MY_ID == id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; 
@@ -1237,7 +1240,7 @@
             } 
         }
 
-        //  FIX: Полностью переписана логика статистики
+        // 🔥 FIX: Полностью переписана логика статистики
         async function loadStats() { 
             console.log('[STATS] Loading stats...');
             if (!MY_ID) return; 
@@ -1248,12 +1251,23 @@
                 var userData = await db('users', 'GET', null, '?select=wins,losses,balance&telegram_id=eq.' + MY_ID, true);
                 var wins = userData ? (userData.wins || 0) : 0;
                 var losses = userData ? (userData.losses || 0) : 0;
-                var balance = userData ? (userData.balance || 1000) : 1000;
+                var balance = userData ? parseInt(userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE;
                 var winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+                
+                // 🔥 ИСПРАВЛЕНИЕ: Показываем разницу между текущим балансом и стартовым (1000)
+                var balanceDiff = balance - INITIAL_BALANCE;
+                var balanceText = '';
+                if (balanceDiff > 0) {
+                    balanceText = '+' + formatCompactNumber(balanceDiff);
+                } else if (balanceDiff < 0) {
+                    balanceText = '-' + formatCompactNumber(Math.abs(balanceDiff));
+                } else {
+                    balanceText = '0';
+                }
 
                 // Обновляем карточки статистики
                 document.getElementById('statsWinRate').textContent = winRate + '%';
-                document.getElementById('statsTotalSpike').textContent = formatCompactNumber(balance) + ' Spike'; // Показываем реальный баланс
+                document.getElementById('statsTotalSpike').textContent = balanceText + ' Spike'; // Показываем разницу
                 
                 // Любимый ход из localStorage
                 var favMove = '-';
@@ -1263,7 +1277,7 @@
                     for (var m in moves) {
                         if (moves[m] > maxCount) {
                             maxCount = moves[m];
-                            favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '️ Ножницы';
+                            favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '✌️ Ножницы';
                         }
                     }
                 } catch(e) {}
@@ -1377,9 +1391,10 @@
             } 
         }
 
-        // 🎰 ЛОГИКА РУЛЕТКИ
+        // 🎰 ЛОГИКА РУЛЕТКИ (5 попыток в день для тестирования)
         const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
         const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
+        const MAX_ROULETTE_ATTEMPTS = 5; // 🔥 5 попыток в день
 
         function getWeightedRandomSkin() {
             let totalWeight = Object.values(ROULETTE_WEIGHTS).reduce((a,b) => a+b, 0);
@@ -1391,23 +1406,58 @@
             return 'default';
         }
 
+        function getRouletteState() {
+            const today = getTodayDate();
+            const stored = localStorage.getItem('echidna_roulette_state');
+            let state = stored ? JSON.parse(stored) : { date: today, attempts: 0 };
+            
+            // Если дата изменилась - сбрасываем счетчик
+            if (state.date !== today) {
+                state = { date: today, attempts: 0 };
+                localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
+            }
+            return state;
+        }
+
+        function updateRouletteState() {
+            const state = getRouletteState();
+            state.attempts++;
+            localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
+            return state;
+        }
+
         function initRoulette() {
             const btn = document.getElementById('spinBtn');
             const container = document.getElementById('rouletteContainer');
             const strip = document.getElementById('rouletteStrip');
             const resultDiv = document.getElementById('rouletteResult');
-            const today = getTodayDate();
-            const lastDate = localStorage.getItem('echidna_roulette_date');
-
-            if (lastDate === today) {
+            const attemptsSpan = document.getElementById('rouletteAttempts');
+            
+            const state = getRouletteState();
+            attemptsSpan.textContent = state.attempts;
+            
+            if (state.attempts >= MAX_ROULETTE_ATTEMPTS) {
                 btn.disabled = true;
-                btn.textContent = ' Уже крутили сегодня';
+                btn.textContent = '🔒 Лимит исчерпан';
                 btn.style.opacity = '0.5';
                 container.style.display = 'none';
             } else {
+                btn.disabled = false;
+                btn.textContent = '🎰 Крутить! (' + (MAX_ROULETTE_ATTEMPTS - state.attempts) + ' ост.)';
+                btn.style.opacity = '1';
+                container.style.display = 'none';
+                
                 btn.onclick = async () => {
+                    const newState = getRouletteState();
+                    if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
+                        btn.disabled = true;
+                        btn.textContent = '🔒 Лимит исчерпан';
+                        btn.style.opacity = '0.5';
+                        return;
+                    }
+                    
                     btn.disabled = true;
-                    btn.textContent = ' Крутим...';
+                    btn.textContent = '🎰 Крутим...';
                     container.style.display = 'block';
                     resultDiv.style.display = 'none';
                     resultDiv.innerHTML = '';
@@ -1433,18 +1483,13 @@
                         });
                     }
                     
-                    //  ИСПРАВЛЕНИЕ: Точное позиционирование
-                    // Нам нужно, чтобы winningSkin оказался в центре viewport
-                    // Winning skin index in the strip (e.g., at 25th repetition)
+                    // 🔥 ИСПРАВЛЕНИЕ: Точное позиционирование
                     const targetIndex = 25 * SKINS.length + SKINS.findIndex(s => s.id === winningSkinId);
                     
                     const viewportWidth = container.querySelector('.roulette-viewport').offsetWidth;
                     const centerOffset = viewportWidth / 2;
                     
-                    // Позиция центра выигрышной карточки относительно начала ленты
                     const cardCenterPos = (targetIndex * cardWidth) + (cardWidth / 2);
-                    
-                    // Сдвиг ленты: (Center of Card) - (Center of Viewport)
                     const translateX = -(cardCenterPos - centerOffset);
                     
                     requestAnimationFrame(() => {
@@ -1458,14 +1503,24 @@
                         
                         const success = await updateBalanceOnly(MY_ID, reward);
                         if (success) {
-                            localStorage.setItem('echidna_roulette_date', today);
+                            updateRouletteState();
+                            const newState = getRouletteState();
+                            attemptsSpan.textContent = newState.attempts;
+                            
                             updateBalanceDisplay();
-                            btn.textContent = '✅ Получено!';
+                            
+                            if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
+                                btn.textContent = '🔒 Лимит исчерпан';
+                                btn.style.opacity = '0.5';
+                            } else {
+                                btn.textContent = '🎰 Крутить! (' + (MAX_ROULETTE_ATTEMPTS - newState.attempts) + ' ост.)';
+                            }
+                            
                             vibrate([50, 30, 50]);
                         } else {
                             resultDiv.innerHTML += '<br><span style="color:var(--error);font-size:12px;">Ошибка начисления</span>';
                             btn.disabled = false;
-                            btn.textContent = 'Крутить!';
+                            btn.textContent = '🎰 Крутить!';
                         }
                     }, 4100);
                 };
