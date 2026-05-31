@@ -6,43 +6,57 @@
     <title>Echidna Naklz</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #0a0a1a; --card: #1a1a2e; --primary: #6366f1; --success: #10b981; --error: #ef4444; --gold: #fbbf24; --text: #f8fafc; --sec: #94a3b8; --border: #334155; }
+        :root { 
+            --bg: #0a0e27; 
+            --card: #1a1f3a; 
+            --primary: #4f46e5; 
+            --secondary: #7c3aed;
+            --accent: #ec4899;
+            --success: #10b981; 
+            --error: #ef4444; 
+            --gold: #fbbf24; 
+            --text: #f8fafc; 
+            --sec: #94a3b8; 
+            --border: #2d3748;
+            --gradient-1: #1e3a8a;
+            --gradient-2: #0f172a;
+        }
         * { box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
         .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; padding-bottom: 100px; box-sizing: border-box; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .balance-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
+        .balance-mini { background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(79, 70, 229, 0.3)); backdrop-filter: blur(10px); border-radius: 16px; padding: 10px 18px; border: 1px solid rgba(236, 72, 153, 0.3); display: inline-flex; align-items: center; gap: 8px; }
         .balance-mini-icon { width: 28px; height: 28px; }
         .balance-mini-icon img { width: 100%; height: 100%; object-fit: contain; }
         .balance-mini-amount { font-size: 20px; font-weight: 700; color: var(--gold); }
-        .lang-mini { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 40px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
+        .lang-mini { background: rgba(26, 31, 58, 0.7); backdrop-filter: blur(10px); border-radius: 16px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 8px; }
         .lang-mini-btn { padding: 0 8px; border: none; background: transparent; color: var(--sec); font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 20px; }
         .lang-mini-btn.active { background: var(--primary); color: #fff; }
         .hero-echidna { width: 100%; max-width: 300px; margin: 0 auto 20px; text-align: center; }
-        .hero-echidna img { width: 100%; height: auto; display: block; }
-        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 20px; padding: 16px; border: 1px solid rgba(255,255,255,0.1); }
+        .hero-echidna img { width: 100%; height: auto; display: block; filter: drop-shadow(0 0 20px rgba(79, 70, 229, 0.5)); }
+        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border-radius: 20px; padding: 16px; border: 1px solid rgba(79, 70, 229, 0.3); }
         .stat-item { flex: 1; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: 800; color: var(--primary); }
+        .stat-value { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .stat-label { font-size: 11px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
         .skin-badge-small { display: inline-block; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
-        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
-        .btn-create { background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); border: 1px solid rgba(255,255,255,0.2); }
-        .btn-open-rooms { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); color: var(--primary); font-size: 16px; font-weight: 700; text-transform: none; }
-        .btn-create:active, .btn-open-rooms:active { transform: scale(0.97); opacity: 0.8; }
-        .rooms-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.95); backdrop-filter: blur(20px); z-index: 200; padding: 15px; padding-bottom: 90px; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s ease-out; }
+        .btn-create, .btn-open-rooms { width: 100%; padding: 18px; font-size: 18px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: 16px; color: #fff; cursor: pointer; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn-create { background: linear-gradient(135deg, #ec4899, #4f46e5); border: 1px solid rgba(236, 72, 153, 0.5); }
+        .btn-open-rooms { background: linear-gradient(135deg, rgba(79, 70, 229, 0.3), rgba(124, 58, 237, 0.3)); border: 1px solid rgba(79, 70, 229, 0.5); color: #fff; font-size: 16px; font-weight: 700; text-transform: none; }
+        .btn-create:active, .btn-open-rooms:active { transform: scale(0.97); opacity: 0.9; }
+        .rooms-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 14, 39, 0.98); backdrop-filter: blur(20px); z-index: 200; padding: 15px; padding-bottom: 90px; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s ease-out; }
         .rooms-screen.open { transform: translateX(0); }
         .rooms-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
-        .back-btn { background: rgba(26,26,46,0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 10px 16px; color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .back-btn { background: rgba(26, 31, 58, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 40px; padding: 10px 16px; color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .back-btn:active { transform: scale(0.97); }
         .rooms-title { font-size: 20px; font-weight: 700; }
         .section-title { font-size: 13px; color: var(--sec); margin: 18px 0 8px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-        .search-input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); color: var(--text); font-size: 12px; outline: none; box-sizing: border-box; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26, 31, 58, 0.7); color: var(--text); font-size: 12px; outline: none; box-sizing: border-box; }
         .search-input:focus { border-color: var(--primary); }
-        .room-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.2s; }
-        .room-card:active { transform: scale(0.98); background: rgba(31,31,53,0.8); }
+        .room-card { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border-radius: 14px; margin-bottom: 8px; padding: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(79, 70, 229, 0.3); cursor: pointer; transition: all 0.2s; }
+        .room-card:active { transform: scale(0.98); background: rgba(31, 31, 53, 0.8); }
         .room-card.my-room { border-left: 3px solid var(--success); }
         .room-card.equipped { border: 2px solid var(--gold); }
-        .room-icon { width: 50px; height: 50px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(10,10,26,0.5); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: var(--sec); position: relative; }
+        .room-icon { width: 50px; height: 50px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(10, 14, 39, 0.5); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: var(--sec); position: relative; }
         .room-icon img { width: 100%; height: 100%; object-fit: cover; }
         .lock-icon { position: absolute; top: 2px; right: 2px; background: var(--gold); border-radius: 50%; padding: 1px 4px; font-size: 8px; }
         .room-info { flex: 1; min-width: 0; }
@@ -50,10 +64,10 @@
         .room-creator { font-size: 11px; color: var(--sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .room-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .room-btn { padding: 6px 12px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 11px; white-space: nowrap; }
-        .room-btn.join { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
+        .room-btn.join { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; }
         .room-btn.cancel { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
         .room-btn.buy { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
-        .room-btn.buy-disabled { background: rgba(26,26,46,0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--sec); cursor: not-allowed; opacity: 0.5; }
+        .room-btn.buy-disabled { background: rgba(26, 31, 58, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--sec); cursor: not-allowed; opacity: 0.5; }
         .room-btn.equipped { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
         .room-timer { font-family: monospace; font-size: 10px; color: var(--gold); font-weight: bold; margin-left: 4px; background: rgba(251, 191, 36, 0.1); padding: 1px 4px; border-radius: 4px; }
         .room-timer.urgent { color: var(--error); animation: timerPulse 1s infinite; }
@@ -67,14 +81,14 @@
         .lb-coin-icon img { width: 100%; height: 100%; object-fit: contain; }
         .section-header { font-size: 16px; color: var(--text); text-align: center; margin-bottom: 16px; font-weight: 600; }
         .header { text-align: center; margin-bottom: 20px; }
-        .header h2 { font-size: 22px; margin-bottom: 8px; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header h2 { font-size: 22px; margin-bottom: 8px; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header-sub { font-size: 14px; color: var(--sec); }
         .daily-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; padding: 0 4px; }
         .daily-card { aspect-ratio: 0.85; perspective: 1000px; cursor: pointer; }
         .daily-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
         .daily-card-inner.flipped { transform: rotateY(180deg); }
         .daily-card-front, .daily-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); font-weight: 700; box-sizing: border-box; overflow: hidden; }
-        .daily-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); padding: 0; }
+        .daily-card-front { background: linear-gradient(135deg, rgba(30, 58, 138, 0.6), rgba(15, 23, 42, 0.8)); backdrop-filter: blur(10px); padding: 0; }
         .daily-card-front img.card-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
         .daily-card-front .card-overlay { position: absolute; top: 6px; left: 6px; display: flex; align-items: center; gap: 4px; z-index: 1; }
         .daily-card-front .day-badge { background: rgba(0,0,0,0.75); color: #fff; font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 8px; display: flex; align-items: center; gap: 3px; }
@@ -85,25 +99,25 @@
         .daily-card-back { background: linear-gradient(135deg, rgba(31,31,53,0.9), rgba(42,42,62,0.9)); backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--gold); gap: 6px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .daily-card-back .reward-coin { width: 70px; height: 70px; object-fit: contain; border-radius: 8px; margin-bottom: 8px; }
         .daily-card-back .reward-amount { font-size: 28px; font-weight: 800; color: var(--gold); text-shadow: 0 2px 8px rgba(251,191,36,0.4); }
-        .daily-streak-info { text-align: center; margin-bottom: 12px; font-size: 16px; color: var(--sec); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .daily-streak-info { text-align: center; margin-bottom: 12px; font-size: 16px; color: var(--sec); background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border-radius: 12px; padding: 10px; border: 1px solid rgba(79, 70, 229, 0.3); }
         .daily-streak-info span { color: var(--gold); font-weight: 700; font-size: 18px; }
         .daily-warning { margin-top: 12px; font-size: 13px; color: var(--sec); text-align: center; }
         .player-wrapper { display: flex; flex-direction: column; align-items: center; width: 90px; }
-        .player-avatar { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.1); background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--sec); }
+        .player-avatar { width: 85px; height: 85px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(79, 70, 229, 0.5); background: linear-gradient(135deg, rgba(30, 58, 138, 0.6), rgba(15, 23, 42, 0.8)); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: var(--sec); }
         .player-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .player-stats-small { font-size: 13px; margin-top: 10px; padding: 5px 10px; background: rgba(26,26,46,0.9); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center; min-width: 60px; }
+        .player-stats-small { font-size: 13px; margin-top: 10px; padding: 5px 10px; background: rgba(26, 31, 58, 0.9); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); text-align: center; min-width: 60px; }
         .game-players { display: flex; justify-content: space-around; align-items: flex-start; margin: 15px 0; }
-        .game-stakes { background: rgba(251,191,36,0.05); border-radius: 12px; padding: 12px; margin: 10px 0; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .game-stakes { background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.05)); border-radius: 12px; padding: 12px; margin: 10px 0; text-align: center; border: 1px solid rgba(251,191,36,0.3); }
         .stake-line { font-size: 14px; font-weight: 600; margin: 4px 0; display: flex; justify-content: space-between; padding: 0 10px; }
         .stake-value { color: var(--gold); }
         .stake-win { color: var(--success); font-size: 16px; }
         .choices { display: flex; justify-content: space-between; gap: 12px; margin: 20px 0; width: 100%; }
-        .choice-btn { flex: 1; height: 150px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; transition: all 0.2s; }
-        .choice-btn:active:not(:disabled) { transform: scale(0.96); background: rgba(31,31,53,0.8); }
+        .choice-btn { flex: 1; height: 150px; border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 20px; background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; transition: all 0.2s; }
+        .choice-btn:active:not(:disabled) { transform: scale(0.96); background: rgba(31, 31, 53, 0.8); }
         .choice-btn img { width: 85px; height: 85px; object-fit: contain; margin-bottom: 10px; }
         .choice-btn span { font-size: 13px; color: var(--gold); font-weight: 800; text-transform: uppercase; }
         .choice-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); }
-        .status-box { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 14px; padding: 16px 16px 24px; text-align: center; margin: 15px 0; border: 1px solid rgba(255,255,255,0.1); min-height: 50px; font-weight: 600; position: relative; }
+        .status-box { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border-radius: 14px; padding: 16px 16px 24px; text-align: center; margin: 15px 0; border: 1px solid rgba(79, 70, 229, 0.3); min-height: 50px; font-weight: 600; position: relative; }
         #statusMessage { min-height: 24px; display: flex; align-items: center; justify-content: center; }
         .timer-text { font-size: 14px; color: var(--error); font-weight: bold; margin-top: 6px; display: none; }
         .timer-text.active { display: block; animation: pulse 1s infinite; }
@@ -115,32 +129,32 @@
         .loader { text-align: center; padding: 30px; color: var(--sec); min-height: 60px; }
         .spinner { border: 3px solid rgba(51,65,85,0.3); border-top-color: var(--primary); border-radius: 50%; width: 28px; height: 28px; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: rgba(26,26,46,0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; transition: opacity 0.3s, pointer-events 0.3s; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: linear-gradient(135deg, rgba(26, 31, 58, 0.95), rgba(15, 23, 42, 0.95)); backdrop-filter: blur(20px); border-top: 1px solid rgba(79, 70, 229, 0.3); display: flex; align-items: center; justify-content: space-around; z-index: 10000; padding: 0 10px; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); width: 100%; max-width: 100%; margin: 0; transition: opacity 0.3s, pointer-events 0.3s; }
         .bottom-nav.disabled { opacity: 0.4; pointer-events: none; }
         .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--sec); font-size: 10px; cursor: pointer; padding: 5px 0; transition: all 0.2s; }
         .nav-btn.active { color: var(--primary); }
         .nav-btn svg { width: 28px; height: 28px; }
-        .splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; box-sizing: border-box; transition: opacity 0.5s, visibility 0.5s; }
+        .splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; box-sizing: border-box; transition: opacity 0.5s, visibility 0.5s; }
         .splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; display: none !important; }
         .splash-content { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 420px; flex-shrink: 0; }
-        .splash-title { margin-bottom: 16px; font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
+        .splash-title { margin-bottom: 16px; font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
         .splash-banner { width: 100%; max-width: 420px; margin: 0; border-radius: 16px; overflow: hidden; }
         .splash-banner img { width: 100%; height: auto; display: block; object-fit: cover; aspect-ratio: 7/3; }
-        .splash-rules { margin-top: 16px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; width: 100%; box-sizing: border-box; }
+        .splash-rules { margin-top: 16px; background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 16px; padding: 20px; width: 100%; box-sizing: border-box; }
         .splash-rules h3 { color: var(--gold); margin-bottom: 12px; font-size: 16px; text-align: center; }
         .splash-rules ul { list-style: none; padding: 0; margin: 0; }
         .splash-rules ul li { position: relative; padding-left: 24px; margin-bottom: 8px; color: var(--sec); font-size: 14px; }
         .splash-rules ul li::before { content: '•'; position: absolute; left: 6px; color: var(--gold); font-size: 24px; }
-        .splash-btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, rgba(16,185,129,0.9), rgba(5,150,105,0.9)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; color: #fff; cursor: pointer; margin-top: 16px; }
+        .splash-btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #ec4899, #4f46e5); backdrop-filter: blur(10px); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 16px; color: #fff; cursor: pointer; margin-top: 16px; }
         .splash-btn:active { transform: scale(0.97); }
         .skin-modal, .stake-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.3s; }
         .skin-modal.hidden, .stake-modal.hidden { display: none; }
-        .skin-modal-content, .stake-modal-content { background: rgba(26,26,46,0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid rgba(255,255,255,0.2); position: relative; animation: slideUp 0.3s; }
+        .skin-modal-content, .stake-modal-content { background: linear-gradient(135deg, rgba(30, 58, 138, 0.8), rgba(15, 23, 42, 0.95)); backdrop-filter: blur(20px); border-radius: 20px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid rgba(79, 70, 229, 0.5); position: relative; animation: slideUp 0.3s; }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .skin-modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .skin-modal-close:active { transform: scale(0.9); }
-        .skin-modal-img { width: 220px; height: 220px; margin: 0 auto 16px; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4); background: rgba(26,26,46,0.5); display: flex; align-items: center; justify-content: center; }
+        .skin-modal-img { width: 220px; height: 220px; margin: 0 auto 16px; border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4); background: rgba(26, 31, 58, 0.5); display: flex; align-items: center; justify-content: center; }
         .skin-modal-img img { width: 100%; height: 100%; object-fit: contain; }
         .skin-modal-img .skin-emoji-fallback { font-size: 80px; }
         .skin-modal-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px; }
@@ -149,16 +163,16 @@
         .skin-modal-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
         .skin-modal-btn.buy { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
         .skin-modal-btn.equip { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
-        .skin-modal-btn.equipped { background: rgba(26,26,46,0.7); border: 1px solid var(--success); color: var(--success); cursor: default; }
+        .skin-modal-btn.equipped { background: rgba(26, 31, 58, 0.7); border: 1px solid var(--success); color: var(--success); cursor: default; }
         .skin-modal-btn:active { transform: scale(0.97); }
         .stake-modal-content { max-width: 360px; }
         .stake-modal-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 16px; }
         .stake-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-        .stake-preset-btn { padding: 12px 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; white-space: nowrap; }
+        .stake-preset-btn { padding: 12px 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10, 14, 39, 0.7); backdrop-filter: blur(10px); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; white-space: nowrap; }
         .stake-preset-btn:active { transform: scale(0.95); }
         .stake-preset-btn.selected { border-color: var(--gold); background: rgba(251,191,36,0.15); color: var(--gold); }
         .stake-input-group { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 12px; width: 100%; }
-        .stake-input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10,10,26,0.7); backdrop-filter: blur(10px); color: var(--text); font-size: 16px; text-align: center; outline: none; box-sizing: border-box; }
+        .stake-input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(10, 14, 39, 0.7); backdrop-filter: blur(10px); color: var(--text); font-size: 16px; text-align: center; outline: none; box-sizing: border-box; }
         .stake-input:focus { border-color: var(--primary); }
         .stake-error { font-size: 12px; color: var(--error); text-align: center; min-height: 16px; }
         .stake-confirm-btn { background: linear-gradient(135deg, #10b981, #059669); width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; color: #fff; cursor: pointer; margin-top: 12px; }
@@ -167,13 +181,13 @@
         .stats-header h2 { font-size: 22px; margin-bottom: 5px; }
         .stats-header .subtitle { color: var(--sec); font-size: 13px; }
         .stats-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 16px; padding: 14px 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-card { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border-radius: 16px; padding: 14px 10px; text-align: center; border: 1px solid rgba(79, 70, 229, 0.3); }
         .stat-card .stat-icon { font-size: 28px; margin-bottom: 6px; }
         .stat-card .stat-value { font-size: 18px; font-weight: 700; color: var(--primary); word-break: break-word; }
         .stat-card .stat-value.negative { color: var(--error); }
         .stat-card .stat-label { font-size: 10px; color: var(--sec); text-transform: uppercase; margin-top: 4px; }
-        .games-table { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
-        .games-table-header { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; background: rgba(99,102,241,0.1); font-size: 11px; color: var(--sec); text-transform: uppercase; font-weight: 600; }
+        .games-table { background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; border: 1px solid rgba(79, 70, 229, 0.3); }
+        .games-table-header { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; background: rgba(79, 102, 241, 0.1); font-size: 11px; color: var(--sec); text-transform: uppercase; font-weight: 600; }
         .game-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; align-items: center; }
         .game-opponent { color: var(--text); font-weight: 600; }
         .game-stake { color: var(--gold); }
@@ -185,10 +199,10 @@
         .game-move img { width: 24px; height: 24px; object-fit: contain; }
         .games-empty { text-align: center; padding: 30px; color: var(--sec); }
         .thinking-echidna-wrapper { display: flex; align-items: center; justify-content: center; margin: 0 10px; }
-        .thinking-echidna { width: 85px; height: 85px; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; overflow: hidden; animation: bounce 2s ease-in-out infinite; transition: all 0.2s; }
+        .thinking-echidna { width: 85px; height: 85px; border: 1px solid rgba(79, 70, 229, 0.3); border-radius: 20px; background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; overflow: hidden; animation: bounce 2s ease-in-out infinite; transition: all 0.2s; }
         .thinking-echidna img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .reveal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,26,0.98); backdrop-filter: blur(20px); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
+        .reveal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 14, 39, 0.98); backdrop-filter: blur(20px); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
         .reveal-overlay.hidden { display: none; }
         .reveal-title { font-size: 18px; color: var(--sec); margin-bottom: 30px; animation: slideDown 0.5s ease-out; }
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -199,9 +213,9 @@
         .reveal-card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; transform: rotateY(0deg); }
         .reveal-card-inner.flipped { transform: rotateY(180deg); }
         .reveal-card-front, .reveal-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
-        .reveal-card-front { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); }
+        .reveal-card-front { background: linear-gradient(135deg, rgba(30, 58, 138, 0.6), rgba(15, 23, 42, 0.8)); backdrop-filter: blur(10px); }
         .reveal-card-front .card-icon { font-size: 40px; }
-        .reveal-card-back { background: linear-gradient(135deg, rgba(99,102,241,0.9), rgba(139,92,246,0.9)); backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--primary); }
+        .reveal-card-back { background: linear-gradient(135deg, rgba(79, 102, 241, 0.9), rgba(124, 58, 237, 0.9)); backdrop-filter: blur(10px); transform: rotateY(180deg); border-color: var(--primary); }
         .reveal-card-back img { width: 90px; height: 90px; object-fit: contain; }
         .reveal-card-back .move-name { font-size: 14px; color: #fff; margin-top: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         .reveal-vs { font-size: 24px; font-weight: 700; color: var(--error); animation: pulse 1s infinite; }
@@ -220,22 +234,19 @@
         .leaderboard-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .leaderboard-left { display: flex; align-items: center; gap: 12px; }
         .leaderboard-right { display: flex; align-items: center; gap: 8px; }
-        .my-rank-card { background: rgba(99,102,241,0.15); border: 1px dashed var(--gold); margin-top: 16px; padding: 12px; border-radius: 14px; }
+        .my-rank-card { background: rgba(79, 102, 241, 0.15); border: 1px dashed var(--gold); margin-top: 16px; padding: 12px; border-radius: 14px; }
         
         /*  Стили рулетки (Улучшенные) */
-        .roulette-wrapper { margin-top: 20px; text-align: center; background: rgba(26,26,46,0.7); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); }
+        .roulette-wrapper { margin-top: 20px; text-align: center; background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(15, 23, 42, 0.6)); padding: 15px; border-radius: 16px; border: 1px solid rgba(79, 70, 229, 0.3); }
         .roulette-info { font-size: 12px; color: var(--sec); margin-bottom: 10px; }
-        .roulette-viewport { position: relative; height: 120px; overflow: hidden; border-radius: 12px; background: rgba(10,10,26,0.8); margin: 10px 0; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 0 10px #000; }
+        .roulette-viewport { position: relative; height: 120px; overflow: hidden; border-radius: 12px; background: rgba(10, 14, 39, 0.8); margin: 10px 0; border: 1px solid rgba(79, 70, 229, 0.3); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
         .roulette-strip { display: flex; height: 100%; align-items: center; will-change: transform; }
-        .roulette-card { flex: 0 0 100px; height: 100px; margin: 0 5px; background: rgba(26,26,46,0.9); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; transition: transform 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .roulette-card { flex: 0 0 100px; height: 100px; margin: 0 5px; background: linear-gradient(135deg, rgba(30, 58, 138, 0.6), rgba(15, 23, 42, 0.8)); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(79, 70, 229, 0.3); box-sizing: border-box; transition: transform 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .roulette-card img { width: 60px; height: 60px; object-fit: contain; }
         .roulette-card .name { font-size: 9px; margin-top: 4px; color: var(--sec); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; width: 90%; font-weight: 600; }
-        .roulette-pointer { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 3px; background: var(--error); transform: translateX(-50%); z-index: 10; box-shadow: 0 0 10px var(--error); border-radius: 2px; }
-        .roulette-pointer::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--error); }
-        .roulette-pointer::before { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--error); }
-        .roulette-result { display: none; margin-top: 10px; font-size: 16px; color: var(--gold); font-weight: bold; animation: fadeIn 0.5s; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; }
-        .roulette-result span { color: var(--success); }
-        .roulette-result span.loss { color: var(--error); }
+        .roulette-pointer { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 3px; background: var(--accent); transform: translateX(-50%); z-index: 10; box-shadow: 0 0 10px var(--accent); border-radius: 2px; }
+        .roulette-pointer::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--accent); }
+        .roulette-pointer::before { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--accent); }
         
         /*  Кнопка под карточками */
         .spin-btn { 
@@ -299,10 +310,10 @@
             <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
         </div>
         <div id="tasksScreen" class="hidden">
-            <div class="header"><h2> Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
+            <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
             <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
             <div class="daily-grid" id="dailyCardsGrid"></div>
-            <div class="daily-warning">️ Пропуск дня сбрасывает все карточки</div>
+            <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
             
             <!-- 🎰 Рулетка -->
             <div class="roulette-wrapper">
@@ -314,7 +325,6 @@
                     <div class="roulette-pointer"></div>
                 </div>
                 
-                <div id="rouletteResult" class="roulette-result"></div>
                 <button id="spinBtn" class="spin-btn">🎰 Крутить!</button>
             </div>
         </div>
@@ -335,7 +345,7 @@
                 <div class="thinking-echidna-wrapper"><div class="thinking-echidna"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-thinking.png" alt="Thinking" onerror="this.style.display='none';this.parentElement.innerHTML='🤔'"></div></div>
                 <div class="player-wrapper"><div class="player-avatar" id="opponentAvatar"></div><div class="player-stats-small" id="opponentStats"></div></div>
             </div>
-            <div class="game-stakes"><div class="stake-line"> Ставка: <span id="stakeAmount" class="stake-value">10</span> Spike</div><div class="stake-line"> Ты получишь: <span id="winAmount" class="stake-win">20</span> Spike</div></div>
+            <div class="game-stakes"><div class="stake-line">💰 Ставка: <span id="stakeAmount" class="stake-value">10</span> Spike</div><div class="stake-line">🏆 Ты получишь: <span id="winAmount" class="stake-win">20</span> Spike</div></div>
             <div class="status-box"><div id="statusMessage"><div class="spinner"></div></div><div class="timer-text" id="timerText">30s</div><div class="timer-bar-container" id="timerBarContainer"><div class="timer-bar" id="timerBar"></div></div></div>
             <div class="choices">
                 <button class="choice-btn" onclick="makeMove('rock')"><img src="move-rock.png" alt="Камень"><span>Камень</span></button>
@@ -344,13 +354,13 @@
             </div>
         </div>
         <div id="skinsScreen" class="hidden">
-            <div class="header"><h2> Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
+            <div class="header"><h2>🎨 Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
             <div id="skinsList"></div>
         </div>
         <div id="leaderboardScreen" class="hidden"><div class="header"><h2>🏆 Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
     </div>
     <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback">🦔</div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
-    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()"></button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
+    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
     <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
     <div id="confettiContainer" class="confetti-container hidden"></div>
     <div class="bottom-nav" id="bottomNav">
@@ -449,7 +459,7 @@
             { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна.' },
             { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png', emoji: '👟', name: 'Выживший', description: 'Ехидна в кроссовках.' },
             { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png', emoji: '🧢', name: 'Работяга', description: 'Практичная ехидна.' },
-            { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '', name: 'Мажор', description: 'Стильная ехидна.' },
+            { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '😎', name: 'Мажор', description: 'Стильная ехидна.' },
             { id: 'rich', price: 2000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-rich.png', emoji: '💰', name: 'Миллионер', description: 'Богатая ехидна.' },
             { id: 'collector', price: 3000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tycoon.png', emoji: '🏆', name: 'Магнат', description: 'Легендарная ехидна.' }
         ];
@@ -509,7 +519,7 @@
                             AUTH_TOKEN = result.session.access_token;
                             console.log('[AUTH] ✅ JWT received:', AUTH_TOKEN.substring(0, 30) + '...');
                         } else {
-                            console.warn('[AUTH] ️ No session in response, using fallback');
+                            console.warn('[AUTH] ⚠️ No session in response, using fallback');
                         }
                     } catch(e) { 
                         console.warn('[AUTH] Edge function call failed:', e.message); 
@@ -885,7 +895,7 @@
                 var room = roomData[0];
                 
                 if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
-                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert(' Вы уже в этой комнате'); resumeRoom(roomId); return; }
+                if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
                 if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
                 
                 if (room.room_password) { 
@@ -946,7 +956,7 @@
             closeRoomsScreen(); 
             ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); }); 
             document.getElementById('gameScreen').classList.remove('hidden'); 
-            if (!currentRoom) { document.getElementById('statusMessage').textContent = ' Комната не найдена'; return; } 
+            if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; } 
             var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID); 
             var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; 
             var choices = document.querySelectorAll('.choice-btn'); 
@@ -994,7 +1004,7 @@
                 if (myStats) {
                     document.getElementById('playerStats').innerHTML = 
                         '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
-                        '<span style="color:var(--error)"> ' + (myStats.losses || 0) + '</span>';
+                        '<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
                 }
                 
             } catch(e) {
@@ -1045,7 +1055,7 @@
         async function makeMove(choice) { 
             if (!currentRoom) { alert('❌ Комната не найдена'); return; }
             if (!currentRoom.opponent_tg_id && currentRoom.status === 'waiting') { 
-                alert(' Соперник еще не присоединился!'); 
+                alert('⏳ Соперник еще не присоединился!'); 
                 return; 
             } 
             var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
@@ -1060,7 +1070,7 @@
                 currentRoom[col] = choice; 
             } catch(e) { 
                 playErrorSound(); 
-                document.getElementById('statusMessage').textContent = ' Ошибка хода'; 
+                document.getElementById('statusMessage').textContent = '❌ Ошибка хода'; 
                 setTimeout(function() {
                      document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); 
                 }, 1000);
@@ -1193,7 +1203,8 @@
                     var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0]; 
                     var name = escapeHtml(u.username || 'User'); 
                     var el = document.createElement('div'); el.className = 'room-card'; 
-                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div>💰 ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
+                    // 🔥 ИСПРАВЛЕНИЕ: Вместо мешка показываем монету Spike
+                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(u.balance || 0) + '</div></div></div>'; 
                     c.appendChild(el); 
                 });
             } catch(e) { 
@@ -1335,7 +1346,7 @@
             } 
         }
 
-        // 🎰 ЛОГИКА РУЛЕТКИ
+        // 🎰 ЛОГИКА РУЛЕТКИ С ПЕРЕВОРАЧИВАЮЩИМИСЯ КАРТОЧКАМИ
         const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
         const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
         const MAX_ROULETTE_ATTEMPTS = 5; 
@@ -1371,7 +1382,6 @@
         function initRoulette() {
             const btn = document.getElementById('spinBtn');
             const strip = document.getElementById('rouletteStrip');
-            const resultDiv = document.getElementById('rouletteResult');
             const attemptsSpan = document.getElementById('rouletteAttempts');
             
             // Сброс
@@ -1399,7 +1409,7 @@
                     const newState = getRouletteState();
                     if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
                         btn.disabled = true;
-                        btn.textContent = ' Лимит исчерпан';
+                        btn.textContent = '🔒 Лимит исчерпан';
                         btn.style.opacity = '0.5';
                         return;
                     }
@@ -1408,8 +1418,6 @@
                     
                     btn.disabled = true;
                     btn.textContent = '🎰 Крутим...';
-                    resultDiv.style.display = 'none';
-                    resultDiv.innerHTML = '';
                     
                     const winningSkinId = getWeightedRandomSkin();
                     const reward = ROULETTE_REWARDS[winningSkinId];
@@ -1418,14 +1426,25 @@
                     renderRouletteStrip(60);
                     
                     const targetIndex = 50;
-                    const cards = strip.children;
                     
                     strip.innerHTML = '';
                     for(let i=0; i<60; i++) {
                         let skin = (i === targetIndex) ? winningSkin : SKINS[Math.floor(Math.random() * SKINS.length)];
                         const card = document.createElement('div');
                         card.className = 'roulette-card';
-                        card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
+                        // 🔥 Создаём карточку с переворотом (front/back)
+                        card.innerHTML = `
+                            <div class="daily-card-inner" style="width:100%;height:100%;position:relative;transform-style:preserve-3d;">
+                                <div class="daily-card-front" style="position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(30, 58, 138, 0.6), rgba(15, 23, 42, 0.8));">
+                                    <img src="${skin.img}" style="width:60px;height:60px;object-fit:contain;">
+                                    <div style="font-size:9px;margin-top:4px;color:var(--sec);font-weight:600;">${skin.name}</div>
+                                </div>
+                                <div class="daily-card-back" style="position:absolute;width:100%;height:100%;backface-visibility:hidden;transform:rotateY(180deg);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(251,191,36,0.9), rgba(245,158,11,0.9));">
+                                    <img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" style="width:50px;height:50px;object-fit:contain;">
+                                    <div style="font-size:20px;font-weight:800;color:#000;margin-top:4px;">+${reward}</div>
+                                </div>
+                            </div>
+                        `;
                         strip.appendChild(card);
                     }
                     
@@ -1453,8 +1472,15 @@
                     setTimeout(async () => {
                         clearInterval(tickInterval);
                         
-                        resultDiv.style.display = 'block';
-                        resultDiv.innerHTML = `🎉 Выпало: <b>${winningSkin.name}</b><br>Бонус: <span>+${reward} Spike</span>`;
+                        // 🔥 Переворачиваем выигрышную карточку
+                        const winningCard = strip.children[targetIndex];
+                        if (winningCard) {
+                            const inner = winningCard.querySelector('.daily-card-inner');
+                            if (inner) {
+                                inner.style.transform = 'rotateY(180deg)';
+                                playFlipCardSound();
+                            }
+                        }
                         
                         const success = await updateBalanceOnly(MY_ID, reward);
                         if (success) {
@@ -1476,7 +1502,6 @@
                             }
                             vibrate([50, 30, 50]);
                         } else {
-                            resultDiv.innerHTML += '<br><span style="color:var(--error);font-size:12px;">Ошибка начисления</span>';
                             btn.disabled = false;
                             btn.textContent = '🎰 Крутить!';
                         }
@@ -1492,7 +1517,10 @@
                 const skin = SKINS[i % SKINS.length];
                 const card = document.createElement('div');
                 card.className = 'roulette-card';
-                card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
+                card.innerHTML = `
+                    <img src="${skin.img}">
+                    <div class="name">${skin.name}</div>
+                `;
                 strip.appendChild(card);
             }
         }
