@@ -1025,86 +1025,87 @@
 
         // 🔥 FIX: Только Создатель обновляет баланс и статистику
         async function showRevealAnimation(room) { 
-            if (processedGames[room.id]) {
-                console.log('[GAME] Already processed, skipping...');
-                return; 
-            }
-            
-            processedGames[room.id] = true;
-            isProcessingGame = true;
-            
-            console.log('[GAME] Starting reveal animation for room:', room.id);
-            
-            clearAllIntervals();
-            var overlay = document.getElementById('revealOverlay'); 
-            var isCreator = String(room.creator_tg_id) === String(MY_ID); 
-            var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
-            var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
-            
-            document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
-            document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
-            document.getElementById('card1Img').src = moveImages[myMove]; 
-            document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
-            document.getElementById('card2Img').src = moveImages[oppMove]; 
-            document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
-            
-            overlay.classList.remove('hidden'); 
-            document.getElementById('card1').classList.remove('flipped'); 
-            document.getElementById('card2').classList.remove('flipped'); 
-            document.getElementById('revealResult').textContent = ''; 
-            document.getElementById('revealEmotion').classList.add('hidden'); 
-            
-            await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); 
-            await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); 
-            await sleep(800); 
-            
-            var result = calculateWinner(room); 
-            document.getElementById('revealResult').textContent = result.msg; 
-            document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat'); 
-            
-            var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
-            if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } 
-            else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
-            
-            var winnerId = result.winnerId; 
-            var stake = room.stake || 10;
-            
-            // 🔥 FIX: Только Создатель комнаты (Room Creator) обновляет базу данных!
-            // Это предотвращает двойное начисление очков и баланса.
-            if (winnerId && isCreator) {
-                console.log('[GAME] Creator detected. Updating DB results...');
-                var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
-                
-                // Update Wins/Losses
-                await updateWinsOnly(winnerId);
-                await updateLossesOnly(loserId);
-                
-                // Update Balance
-                var winOk = await updateBalanceOnly(winnerId, stake);
-                var loseOk = await updateBalanceOnly(loserId, -stake);
-                
-                if (winOk && loseOk) console.log('[GAME] DB Update Success');
-                else alert('⚠️ Ошибка обновления базы!');
-            } else if (!isCreator) {
-                console.log('[GAME] Non-creator. Skipping DB update to prevent double counting.');
-            }
-            
-            // Обновляем интерфейс для всех
-            updateBalanceDisplay(); 
-            updateStats();
-            
-            var countdown = 3; 
-            var countdownEl = document.getElementById('revealCountdown'); 
-            countdownEl.textContent = countdown; 
-            var countdownInterval = setInterval(function() { 
-                countdown--; 
-                if (countdown > 0) countdownEl.textContent = countdown; 
-                else { 
-                    clearInterval(countdownInterval); overlay.classList.add('hidden'); 
-                    showScreen('lobby'); 
-                } 
-            }, 1000); 
-        }
+    if (processedGames[room.id]) {
+        console.log('[GAME] Already processed, skipping...');
+        return; 
+    }
+    
+    processedGames[room.id] = true;
+    isProcessingGame = true;
+    
+    console.log('[GAME] Starting reveal animation for room:', room.id);
+    
+    clearAllIntervals();
+    var overlay = document.getElementById('revealOverlay'); 
+    var isCreator = String(room.creator_tg_id) === String(MY_ID); 
+    var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
+    var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
+    
+    document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
+    document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
+    document.getElementById('card1Img').src = moveImages[myMove]; 
+    document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+    document.getElementById('card2Img').src = moveImages[oppMove]; 
+    document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+    
+    overlay.classList.remove('hidden'); 
+    document.getElementById('card1').classList.remove('flipped'); 
+    document.getElementById('card2').classList.remove('flipped'); 
+    document.getElementById('revealResult').textContent = ''; 
+    document.getElementById('revealEmotion').classList.add('hidden'); 
+    
+    await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); 
+    await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); 
+    await sleep(800); 
+    
+    var result = calculateWinner(room); 
+    document.getElementById('revealResult').textContent = result.msg; 
+    document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat'); 
+    
+    var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
+    if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } 
+    else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
+    
+    var winnerId = result.winnerId; 
+    var stake = room.stake || 10;
+    
+    // 🔥 FIX: Обновляем статистику и баланс (только создатель)
+    if (winnerId && isCreator) {
+        console.log('[GAME] Creator detected. Updating DB results...');
+        var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
+        
+        await updateWinsOnly(winnerId);
+        await updateLossesOnly(loserId);
+        
+        var winOk = await updateBalanceOnly(winnerId, stake);
+        var loseOk = await updateBalanceOnly(loserId, -stake);
+        
+        if (winOk && loseOk) console.log('[GAME] DB Update Success');
+        else alert('️ Ошибка обновления базы!');
+    }
+    
+    // 🔥 FIX: Обновляем статус комнаты на 'finished' в базе данных!
+    console.log('[GAME] Updating room status to finished...');
+    await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id);
+    
+    // Обновляем интерфейс
+    updateBalanceDisplay(); 
+    updateStats();
+    
+    var countdown = 3; 
+    var countdownEl = document.getElementById('revealCountdown'); 
+    countdownEl.textContent = countdown; 
+    var countdownInterval = setInterval(function() { 
+        countdown--; 
+        if (countdown > 0) countdownEl.textContent = countdown; 
+        else { 
+            clearInterval(countdownInterval); 
+            overlay.classList.add('hidden'); 
+            // Возвращаемся в лобби — loadRooms() автоматически скроет finished комнаты
+            showScreen('lobby'); 
+        } 
+    }, 1000); 
+}
 
         function calculateWinner(room) { 
             var c1 = room.creator_choice, c2 = room.opponent_choice; 
