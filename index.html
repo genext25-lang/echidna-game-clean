@@ -1604,6 +1604,9 @@
                 btn.disabled = true;
                 btn.textContent = '🔒 Лимит исчерпан';
                 btn.style.opacity = '0.5';
+                // 🔥 Продолжаем крутить ленту даже когда лимит исчерпан
+                renderRouletteStrip(15);
+                startIdleAnimation();
             } else {
                 btn.disabled = false;
                 btn.textContent = '🎰 Крутить!';
