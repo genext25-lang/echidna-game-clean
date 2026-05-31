@@ -222,20 +222,30 @@
         .leaderboard-right { display: flex; align-items: center; gap: 8px; }
         .my-rank-card { background: rgba(99,102,241,0.15); border: 1px dashed var(--gold); margin-top: 16px; padding: 12px; border-radius: 14px; }
         
-        /*  Стили рулетки */
+        /*  Стили рулетки (Улучшенные) */
         .roulette-wrapper { margin-top: 20px; text-align: center; background: rgba(26,26,46,0.7); padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); }
         .roulette-info { font-size: 12px; color: var(--sec); margin-bottom: 10px; }
         .roulette-viewport { position: relative; height: 120px; overflow: hidden; border-radius: 12px; background: rgba(10,10,26,0.8); margin: 10px 0; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 0 10px #000; }
         .roulette-strip { display: flex; height: 100%; align-items: center; will-change: transform; }
-        .roulette-card { flex: 0 0 100px; height: 90px; margin: 0 5px; background: rgba(26,26,46,0.9); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; transition: transform 0.3s; }
-        .roulette-card img { width: 50px; height: 50px; object-fit: contain; }
-        .roulette-card .name { font-size: 9px; margin-top: 4px; color: var(--sec); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; width: 90%; }
+        .roulette-card { flex: 0 0 100px; height: 100px; margin: 0 5px; background: rgba(26,26,46,0.9); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; transition: transform 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .roulette-card img { width: 60px; height: 60px; object-fit: contain; }
+        .roulette-card .name { font-size: 9px; margin-top: 4px; color: var(--sec); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; width: 90%; font-weight: 600; }
         .roulette-pointer { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 3px; background: var(--error); transform: translateX(-50%); z-index: 10; box-shadow: 0 0 10px var(--error); border-radius: 2px; }
         .roulette-pointer::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--error); }
         .roulette-pointer::before { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--error); }
         .roulette-result { display: none; margin-top: 10px; font-size: 16px; color: var(--gold); font-weight: bold; animation: fadeIn 0.5s; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; }
         .roulette-result span { color: var(--success); }
         .roulette-result span.loss { color: var(--error); }
+        
+        /*  Кнопка под карточками */
+        .spin-btn { 
+            width: 100%; padding: 14px; font-size: 16px; font-weight: 700; 
+            background: linear-gradient(135deg, #fbbf24, #f59e0b); 
+            border: none; border-radius: 12px; color: #000; cursor: pointer; 
+            margin-top: 10px; transition: all 0.2s;
+        }
+        .spin-btn:active { transform: scale(0.97); }
+        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.8); }
     </style>
 </head>
 <body>
@@ -289,31 +299,31 @@
             <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
         </div>
         <div id="tasksScreen" class="hidden">
-            <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
-            <div class="daily-streak-info"> Открыто: <span id="dailyStreakNum">0</span> из 9</div>
+            <div class="header"><h2> Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
+            <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
             <div class="daily-grid" id="dailyCardsGrid"></div>
-            <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
+            <div class="daily-warning">️ Пропуск дня сбрасывает все карточки</div>
             
             <!-- 🎰 Рулетка -->
             <div class="roulette-wrapper">
-                <h3> Ежедневная рулетка</h3>
-                <div class="roulette-info" id="rouletteInfo">Попыток сегодня: <span id="rouletteAttempts">0</span> / 5</div>
-                <button id="spinBtn" class="btn-create" style="margin:10px 0; background:linear-gradient(135deg, #fbbf24, #f59e0b);">Крутить!</button>
-                <div id="rouletteContainer" style="display:none;">
-                    <div class="roulette-viewport">
-                        <div id="rouletteStrip" class="roulette-strip"></div>
-                        <div class="roulette-pointer"></div>
-                    </div>
-                    <div id="rouletteResult" class="roulette-result"></div>
+                <h3>🎰 Ежедневная рулетка</h3>
+                <div class="roulette-info">Попыток сегодня: <span id="rouletteAttempts">0</span> / 5</div>
+                
+                <div class="roulette-viewport">
+                    <div id="rouletteStrip" class="roulette-strip"></div>
+                    <div class="roulette-pointer"></div>
                 </div>
+                
+                <div id="rouletteResult" class="roulette-result"></div>
+                <button id="spinBtn" class="spin-btn">🎰 Крутить!</button>
             </div>
         </div>
         <div id="statsScreen" class="hidden">
-            <div class="stats-header"><h2> Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
+            <div class="stats-header"><h2>📊 Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
             <div class="stats-cards">
                 <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="statsWinRate">0%</div><div class="stat-label">Побед</div></div>
                 <div class="stat-card"><div class="stat-icon">✊</div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
-                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" id="statsTotalSpike">0</div><div class="stat-label">Выиграно/Проиграно</div></div>
+                <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value" id="statsTotalSpike">0</div><div class="stat-label">Выиграно/Проиграно</div></div>
             </div>
             <div class="section-title">🎮 Последние игры</div>
             <div class="games-table"><div class="games-table-header"><span>Соперник</span><span>Ставка</span><span>Результат</span><span>Ход</span></div><div id="gamesTableBody"><div class="loader" style="padding:20px;"><div class="spinner"></div></div></div></div>
@@ -337,10 +347,10 @@
             <div class="header"><h2>🎨 Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
             <div id="skinsList"></div>
         </div>
-        <div id="leaderboardScreen" class="hidden"><div class="header"><h2> Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
+        <div id="leaderboardScreen" class="hidden"><div class="header"><h2>🏆 Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
     </div>
     <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback">🦔</div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
-    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;"> Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
+    <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
     <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
     <div id="confettiContainer" class="confetti-container hidden"></div>
     <div class="bottom-nav" id="bottomNav">
@@ -385,7 +395,7 @@
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        // 🔑 ПУБЛИЧНЫЕ КЛЮЧИ
+        //  ПУБЛИЧНЫЕ КЛЮЧИ
         var AUTH_TOKEN = null;
         var URL = 'https://tejndwtckdvueufqhitu.supabase.co';
         var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
@@ -826,7 +836,7 @@
                 if (trulyMine || isOpponent) { el.onclick = function() { resumeRoom(r.id); }; el.style.cursor = 'pointer'; } 
                 var badgeHtml = '', btnHtml = '', timerHtml = ''; 
                 var hasPassword = r.room_password && r.room_password.length > 0; 
-                var lockIcon = hasPassword ? '<span class="lock-icon"></span>' : ''; 
+                var lockIcon = hasPassword ? '<span class="lock-icon">🔒</span>' : ''; 
                 if (isWaiting) { 
                     badgeHtml = '<span style="background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:9px;">ЖДЁТ</span>'; 
                     if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 1000; 
@@ -1063,7 +1073,7 @@
                 currentRoom[col] = choice; 
             } catch(e) { 
                 playErrorSound(); 
-                document.getElementById('statusMessage').textContent = '❌ Ошибка хода'; 
+                document.getElementById('statusMessage').textContent = ' Ошибка хода'; 
                 setTimeout(function() {
                      document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); 
                 }, 1000);
@@ -1229,7 +1239,7 @@
                     var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0]; 
                     var name = escapeHtml(u.username || 'User'); 
                     var el = document.createElement('div'); el.className = 'room-card'; 
-                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div>💰 ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
+                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div> ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
                     c.appendChild(el); 
                 });
                 
@@ -1254,7 +1264,7 @@
                 var balance = userData ? parseInt(userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE;
                 var winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
                 
-                // 🔥 ИСПРАВЛЕНИЕ: Показываем разницу между текущим балансом и стартовым (1000)
+                //  ИСПРАВЛЕНИЕ: Показываем разницу между текущим балансом и стартовым (1000)
                 var balanceDiff = balance - INITIAL_BALANCE;
                 var balanceText = '';
                 if (balanceDiff > 0) {
@@ -1391,10 +1401,12 @@
             } 
         }
 
-        // 🎰 ЛОГИКА РУЛЕТКИ (5 попыток в день для тестирования)
+        // 🎰 ЛОГИКА РУЛЕТКИ (Улучшенная с анимацией и звуком)
         const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
         const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
-        const MAX_ROULETTE_ATTEMPTS = 5; // 🔥 5 попыток в день
+        const MAX_ROULETTE_ATTEMPTS = 5; // 5 попыток в день
+        
+        var rouletteInterval = null; // Для медленной анимации
 
         function getWeightedRandomSkin() {
             let totalWeight = Object.values(ROULETTE_WEIGHTS).reduce((a,b) => a+b, 0);
@@ -1411,7 +1423,6 @@
             const stored = localStorage.getItem('echidna_roulette_state');
             let state = stored ? JSON.parse(stored) : { date: today, attempts: 0 };
             
-            // Если дата изменилась - сбрасываем счетчик
             if (state.date !== today) {
                 state = { date: today, attempts: 0 };
                 localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
@@ -1426,6 +1437,11 @@
             return state;
         }
 
+        // 🔥 Звук тиканья рулетки
+        function playTickSound() {
+            playBeep(1200, 0.05, 'square', 0.05);
+        }
+
         function initRoulette() {
             const btn = document.getElementById('spinBtn');
             const container = document.getElementById('rouletteContainer');
@@ -1436,16 +1452,28 @@
             const state = getRouletteState();
             attemptsSpan.textContent = state.attempts;
             
+            // 🔥 Очищаем старую анимацию
+            if (rouletteInterval) clearInterval(rouletteInterval);
+            strip.style.transition = 'none';
+            strip.style.transform = 'translateX(0)';
+            
             if (state.attempts >= MAX_ROULETTE_ATTEMPTS) {
                 btn.disabled = true;
                 btn.textContent = '🔒 Лимит исчерпан';
                 btn.style.opacity = '0.5';
+                // Скрываем рулетку если лимит исчерпан
                 container.style.display = 'none';
+                btn.style.display = 'none';
             } else {
                 btn.disabled = false;
-                btn.textContent = '🎰 Крутить! (' + (MAX_ROULETTE_ATTEMPTS - state.attempts) + ' ост.)';
+                btn.textContent = '🎰 Крутить!';
                 btn.style.opacity = '1';
-                container.style.display = 'none';
+                container.style.display = 'block';
+                btn.style.display = 'block';
+                
+                // 🔥 Запускаем медленную анимацию сразу при входе
+                renderRouletteStrip(15); // Короткая лента дляidle
+                startIdleAnimation();
                 
                 btn.onclick = async () => {
                     const newState = getRouletteState();
@@ -1456,9 +1484,11 @@
                         return;
                     }
                     
+                    // Останавливаем медленную анимацию
+                    stopIdleAnimation();
+                    
                     btn.disabled = true;
                     btn.textContent = '🎰 Крутим...';
-                    container.style.display = 'block';
                     resultDiv.style.display = 'none';
                     resultDiv.innerHTML = '';
                     
@@ -1466,64 +1496,123 @@
                     const reward = ROULETTE_REWARDS[winningSkinId];
                     const winningSkin = SKINS.find(s => s.id === winningSkinId);
                     
+                    // Генерируем длинную ленту (60 карточек)
+                    renderRouletteStrip(60);
+                    
+                    // Определяем позицию победителя (например, 50-я карточка)
+                    // 50 / 8 (кол-во скинов) = 6 полный круг + 2 скин (индекс 2)
+                    // Нам нужно, чтобы 50-я карточка была winningSkin.
+                    // Проще: просто перестроим ленту так, чтобы winningSkin был на позиции 50.
+                    const targetIndex = 50;
+                    const cards = strip.children;
+                    
+                    // Перестраиваем карточки: заполняем случайно, но на targetIndex ставим winner
                     strip.innerHTML = '';
+                    for(let i=0; i<60; i++) {
+                        let skin;
+                        if (i === targetIndex) {
+                            skin = winningSkin;
+                        } else {
+                            skin = SKINS[Math.floor(Math.random() * SKINS.length)];
+                        }
+                        const card = document.createElement('div');
+                        card.className = 'roulette-card';
+                        card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
+                        strip.appendChild(card);
+                    }
+                    
+                    // Сброс позиции
                     strip.style.transition = 'none';
                     strip.style.transform = 'translateX(0)';
                     
-                    const repeatCount = 30;
-                    const cardWidth = 110; // 100px width + 10px margin
-                    
-                    // Генерируем карточки
-                    for (let i = 0; i < repeatCount; i++) {
-                        SKINS.forEach(skin => {
-                            const card = document.createElement('div');
-                            card.className = 'roulette-card';
-                            card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
-                            strip.appendChild(card);
-                        });
-                    }
-                    
-                    // 🔥 ИСПРАВЛЕНИЕ: Точное позиционирование
-                    const targetIndex = 25 * SKINS.length + SKINS.findIndex(s => s.id === winningSkinId);
-                    
+                    // Расчет смещения
+                    // Карточка 100px + 10px margin = 110px
+                    const cardWidth = 110;
                     const viewportWidth = container.querySelector('.roulette-viewport').offsetWidth;
                     const centerOffset = viewportWidth / 2;
                     
+                    // Позиция центра выигрышной карточки
                     const cardCenterPos = (targetIndex * cardWidth) + (cardWidth / 2);
                     const translateX = -(cardCenterPos - centerOffset);
                     
+                    // Звуковой интервал во время вращения
+                    let tickCount = 0;
+                    const tickInterval = setInterval(() => {
+                        playTickSound();
+                        vibrate(10); // Короткая вибрация на каждый тик
+                        tickCount++;
+                    }, 100); // Частота тиков
+                    
                     requestAnimationFrame(() => {
-                        strip.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.25, 1)';
+                        // 🔥 Ускоренное вращение с замедлением (cubic-bezier)
+                        strip.style.transition = 'transform 5s cubic-bezier(0.1, 0.7, 0.1, 1)';
                         strip.style.transform = `translateX(${translateX}px)`;
                     });
                     
-                    setTimeout(async () => {
+                    // Остановка звуков после вращения
+                    setTimeout(() => {
+                        clearInterval(tickInterval);
+                        
                         resultDiv.style.display = 'block';
                         resultDiv.innerHTML = `🎉 Выпало: <b>${winningSkin.name}</b><br>Бонус: <span>+${reward} Spike</span>`;
                         
                         const success = await updateBalanceOnly(MY_ID, reward);
                         if (success) {
                             updateRouletteState();
-                            const newState = getRouletteState();
-                            attemptsSpan.textContent = newState.attempts;
+                            const finalState = getRouletteState();
+                            attemptsSpan.textContent = finalState.attempts;
                             
                             updateBalanceDisplay();
                             
-                            if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
+                            if (finalState.attempts >= MAX_ROULETTE_ATTEMPTS) {
                                 btn.textContent = '🔒 Лимит исчерпан';
                                 btn.style.opacity = '0.5';
+                                btn.disabled = true;
                             } else {
-                                btn.textContent = '🎰 Крутить! (' + (MAX_ROULETTE_ATTEMPTS - newState.attempts) + ' ост.)';
+                                btn.textContent = '🎰 Крутить!';
+                                btn.disabled = false;
                             }
                             
-                            vibrate([50, 30, 50]);
+                            vibrate([50, 30, 50]); // Финальная вибрация
                         } else {
                             resultDiv.innerHTML += '<br><span style="color:var(--error);font-size:12px;">Ошибка начисления</span>';
                             btn.disabled = false;
                             btn.textContent = '🎰 Крутить!';
                         }
-                    }, 4100);
+                    }, 5100); // Чуть больше времени вращения
                 };
+            }
+        }
+
+        function renderRouletteStrip(count) {
+            const strip = document.getElementById('rouletteStrip');
+            strip.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const skin = SKINS[i % SKINS.length];
+                const card = document.createElement('div');
+                card.className = 'roulette-card';
+                card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
+                strip.appendChild(card);
+            }
+        }
+
+        function startIdleAnimation() {
+            const strip = document.getElementById('rouletteStrip');
+            let pos = 0;
+            const speed = 1; // Скорость медленной анимации
+            
+            rouletteInterval = setInterval(() => {
+                pos -= speed;
+                // Если ушли далеко, сбрасываем (бесшовный цикл сложен без дублирования, просто сброс)
+                if (pos < -500) pos = 0; 
+                strip.style.transform = `translateX(${pos}px)`;
+            }, 20);
+        }
+
+        function stopIdleAnimation() {
+            if (rouletteInterval) {
+                clearInterval(rouletteInterval);
+                rouletteInterval = null;
             }
         }
 
