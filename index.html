@@ -1196,6 +1196,10 @@
                 const uniqueUsers = [];
                 const seenNames = new Set();
                 for (const u of usersList) {
+                    // 🔥 Фильтрация гостевых аккаунтов
+                    if (u.username && u.username.startsWith('Guest_')) {
+                        continue; // Пропускаем гостевые аккаунты
+                    }
                     if (!seenNames.has(u.username)) {
                         seenNames.add(u.username);
                         uniqueUsers.push(u);
@@ -1472,7 +1476,7 @@
                         strip.style.transform = `translateX(${translateX}px)`;
                     });
                     
-                    // 🔥 Увеличиваем время показа карточки до 3 секунд
+                    // 🔥 Показываем карточку 5 секунд, потом переворачиваем и еще 5 секунд показываем результат
                     setTimeout(async () => {
                         clearInterval(tickInterval);
                         
@@ -1485,6 +1489,9 @@
                                 playFlipCardSound();
                             }
                         }
+                        
+                        // 🔥 Ждем еще 5 секунд после переворота
+                        await sleep(5000);
                         
                         const success = await updateBalanceOnly(MY_ID, reward);
                         if (success) {
@@ -1509,7 +1516,7 @@
                             btn.disabled = false;
                             btn.textContent = '🎰 Крутить!';
                         }
-                    }, 8000); // Увеличено с 5100 до 8000 для более долгого показа
+                    }, 5000); // 5 секунд показываем карточку до переворота
                 };
             }
         }
