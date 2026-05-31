@@ -572,23 +572,41 @@
         }
 
         function showScreen(name) { 
-            var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
-            screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); }); 
-            var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden'); 
-            document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) {
-                btn.classList.remove('active');
-                if (btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active');
-            });
-            clearAllIntervals(); 
-            if (name === 'lobby') { 
-                currentRoom = null; isGameFinished = false; isProcessingGame = false; 
-                activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
-                updateBalanceDisplay(); updateStats(); updateHeroImage(); loadRooms();
-            } else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 50); } 
-            else if (name === 'stats') { loadStats(); }
-            else if (name === 'leaderboard') { loadLeaderboard(); }
-            if (name === 'skins') { renderSkins(); }
-        }
+    console.log('[SCREEN] Opening:', name);
+    
+    var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen']; 
+    screens.forEach(function(id) { 
+        var el = document.getElementById(id); 
+        if (el) el.classList.add('hidden'); 
+    }); 
+    
+    var target = document.getElementById(name + 'Screen'); 
+    if (target) target.classList.remove('hidden'); 
+    
+    document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active');
+    });
+    
+    clearAllIntervals(); 
+    
+    if (name === 'lobby') { 
+        currentRoom = null; isGameFinished = false; isProcessingGame = false; 
+        activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); 
+        updateBalanceDisplay(); updateStats(); updateHeroImage(); loadRooms();
+    } else if (name === 'tasks') { 
+        setTimeout(function() { renderDailyCards(); }, 50); 
+    } else if (name === 'stats') { 
+        alert('[STATS] Loading... MY_ID=' + MY_ID);
+        loadStats(); 
+    } else if (name === 'leaderboard') { 
+        alert('[LEADERBOARD] Loading...');
+        loadLeaderboard(); 
+    } else if (name === 'skins') { 
+        alert('[SKINS] Rendering... SKINS count=' + (SKINS ? SKINS.length : 0) + ', ownedSkins=' + JSON.stringify(ownedSkins));
+        renderSkins(); 
+    }
+}
 
         function renderSkins() { 
             var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; 
