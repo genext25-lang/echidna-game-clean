@@ -241,7 +241,7 @@
                     <li>Зарабатывай Spike и прокачивай Ехидну — покупай новые скины!</li>
                 </ul>
             </div>
-            <button class="splash-btn" id="startGameBtn">🎮 ИГРАТЬ</button>
+            <button class="splash-btn" id="startGameBtn"> ИГРАТЬ</button>
         </div>
     </div>
     <div class="container">
@@ -274,17 +274,17 @@
             <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
         </div>
         <div id="tasksScreen" class="hidden">
-            <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
+            <div class="header"><h2> Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
             <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
             <div class="daily-grid" id="dailyCardsGrid"></div>
-            <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
+            <div class="daily-warning">️ Пропуск дня сбрасывает все карточки</div>
         </div>
         <div id="statsScreen" class="hidden">
-            <div class="stats-header"><h2>📊 Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
+            <div class="stats-header"><h2> Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
             <div class="stats-cards">
                 <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="statsWinRate">0%</div><div class="stat-label">Побед</div></div>
                 <div class="stat-card"><div class="stat-icon">✊</div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
-                <div class="stat-card"><div class="stat-icon">🦔</div><div class="stat-value" id="statsTotalSpike">0 Spike</div><div class="stat-label">Выиграно Spike</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" id="statsTotalSpike">0 Spike</div><div class="stat-label">Выиграно Spike</div></div>
             </div>
             <div class="section-title">🎮 Последние игры</div>
             <div class="games-table"><div class="games-table-header"><span>Соперник</span><span>Ставка</span><span>Результат</span><span>Ход</span></div><div id="gamesTableBody"><div class="loader" style="padding:20px;"><div class="spinner"></div></div></div></div>
@@ -404,7 +404,7 @@
         var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
-            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
+            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
             { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png', emoji: '👟', name: 'Выживший', description: 'Ехидна в крутых кроссовках. +10% к шансу победы!' },
             { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png', emoji: '🧢', name: 'Работяга', description: 'Практичная ехидна в кепке. Никогда не сдаётся!' },
             { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '😎', name: 'Мажор', description: 'Стильная ехидна в солнечных очках. +15% к удаче!' },
@@ -508,20 +508,15 @@
             } catch(e) {} 
         }
 
+        // 🔥 FIX: Удалена логика создания пользователя (она сбрасывала баланс до 1000)
+        // Теперь мы только читаем баланс. Создание происходит на сервере.
         async function ensureUserExists() { 
             if (!MY_ID) return;
             try { 
-                var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1'); 
-                if (!existing || existing.length === 0) { 
-                    try {
-                        await db('users', 'POST', [{ telegram_id: MY_ID, username: escapeHtml(user.username || 'User_' + MY_ID), wins: 0, losses: 0, balance: 1000 }]); 
-                        currentBalance = 1000;
-                        if (!welcomeMessageShown) { welcomeMessageShown = true; }
-                    } catch(postError) {
-                        console.warn('User may already exist:', postError.message);
-                    }
-                } else { 
-                    currentBalance = existing[0].balance || 1000; 
+                // Просто запрашиваем баланс
+                var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1');
+                if (existing && existing.length > 0) {
+                    currentBalance = existing[0].balance || 1000;
                 }
                 await updateBalanceDisplay();
             } catch(e) { console.error('ensureUserExists error:', e); } 
@@ -633,17 +628,11 @@
         function renderSkins() { 
             console.log('[SKINS] Starting render...');
             var c = document.getElementById('skinsList'); 
-            if (!c) {
-                console.error('[SKINS] ERROR: Container #skinsList not found!');
-                return; 
-            }
+            if (!c) return;
             
             c.innerHTML = ''; 
             
-            if (!SKINS || SKINS.length === 0) {
-                c.innerHTML = '<div style="color:red;padding:20px;">Error: No skins data</div>';
-                return;
-            }
+            if (!SKINS || SKINS.length === 0) return;
 
             SKINS.forEach(function(s, i) { 
                 var owned = isSkinOwned(s.id); 
@@ -663,10 +652,7 @@
                 el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div><div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt=""></div><div class="room-info"><div>' + escapeHtml(getSkinNameById(s.id)) + '</div><div class="skin-description">' + escapeHtml(getSkinDescription(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; 
                 
                 c.appendChild(el); 
-                console.log('[SKINS] Appended skin #' + i);
             });
-            
-            console.log('[SKINS] Render complete!');
         }
 
         function openSkinModal(s) { 
@@ -677,7 +663,7 @@
             var priceEl = document.getElementById('modalPrice'); var btnEl = document.getElementById('modalBtn'); 
             if (currentSkin === s.id) { priceEl.textContent = '✅ Надето'; btnEl.textContent = 'Надето'; btnEl.className = 'skin-modal-btn equipped'; btnEl.disabled = true; } 
             else if (isSkinOwned(s.id)) { priceEl.textContent = '✅ Куплено'; btnEl.textContent = 'Надеть'; btnEl.className = 'skin-modal-btn equip'; btnEl.disabled = false; } 
-            else { priceEl.textContent = '💰 ' + formatCompactNumber(s.price) + ' Spike'; btnEl.textContent = currentBalance >= s.price ? 'Купить' : 'Недостаточно средств'; btnEl.className = 'skin-modal-btn buy'; btnEl.disabled = currentBalance < s.price; } 
+            else { priceEl.textContent = ' ' + formatCompactNumber(s.price) + ' Spike'; btnEl.textContent = currentBalance >= s.price ? 'Купить' : 'Недостаточно средств'; btnEl.className = 'skin-modal-btn buy'; btnEl.disabled = currentBalance < s.price; } 
             document.getElementById('skinModal').classList.remove('hidden'); 
         }
 
@@ -811,7 +797,7 @@
                 var creatorName = escapeHtml(r.creator_username || 'Anonymous'); 
                 if (trulyMine) { 
                     if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')">🔄 Вернуться</button>'; 
-                    var cancelBtn = !isPlaying && !r.opponent_tg_id ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + r.id + '\')">✕</button>' : ''; 
+                    var cancelBtn = !isPlaying && !r.opponent_tg_id ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + r.id + '\')"></button>' : ''; 
                     el.innerHTML = '<div class="room-icon">' + escapeHtml(MY_INITIAL) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div><div class="room-actions">' + btnHtml + cancelBtn + '</div>'; 
                 } else { 
                     btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();joinRoom(\'' + r.id + '\',this)">Войти</button>'; 
@@ -847,7 +833,7 @@
             isJoiningRoom = true;
 
             if (!user || !MY_ID) { 
-                alert('⚠️ Ошибка: Вы не вошли в систему!'); 
+                alert('️ Ошибка: Вы не вошли в систему!'); 
                 if(btnElement) btnElement.disabled = false; 
                 isJoiningRoom = false; 
                 return; 
@@ -861,7 +847,7 @@
                 
                 var room = roomData[0];
                 
-                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
+                if (String(room.creator_tg_id) === String(MY_ID)) { alert(' Это ваша комната'); resumeRoom(roomId); return; }
                 if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
                 if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
                 
@@ -1037,6 +1023,7 @@
             } 
         }
 
+        // 🔥 FIX: Только Создатель обновляет баланс и статистику
         async function showRevealAnimation(room) { 
             if (processedGames[room.id]) {
                 console.log('[GAME] Already processed, skipping...');
@@ -1082,24 +1069,27 @@
             var winnerId = result.winnerId; 
             var stake = room.stake || 10;
             
-            if (winnerId) {
-                console.log('[GAME] Updating DB. Winner:', winnerId, 'Stake:', stake);
-                
+            // 🔥 FIX: Только Создатель комнаты (Room Creator) обновляет базу данных!
+            // Это предотвращает двойное начисление очков и баланса.
+            if (winnerId && isCreator) {
+                console.log('[GAME] Creator detected. Updating DB results...');
                 var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
                 
-                var winOk = await updateWinsOnly(winnerId);
-                var loseOk = await updateLossesOnly(loserId);
+                // Update Wins/Losses
+                await updateWinsOnly(winnerId);
+                await updateLossesOnly(loserId);
                 
-                var balWinOk = await updateBalanceOnly(winnerId, stake);
-                var balLoseOk = await updateBalanceOnly(loserId, -stake);
+                // Update Balance
+                var winOk = await updateBalanceOnly(winnerId, stake);
+                var loseOk = await updateBalanceOnly(loserId, -stake);
                 
-                if (!balWinOk || !balLoseOk) {
-                    alert('⚠️ ОШИБКА: Баланс не обновился в базе!');
-                } else {
-                    console.log('[GAME] DB Update Success');
-                }
+                if (winOk && loseOk) console.log('[GAME] DB Update Success');
+                else alert('⚠️ Ошибка обновления базы!');
+            } else if (!isCreator) {
+                console.log('[GAME] Non-creator. Skipping DB update to prevent double counting.');
             }
             
+            // Обновляем интерфейс для всех
             updateBalanceDisplay(); 
             updateStats();
             
