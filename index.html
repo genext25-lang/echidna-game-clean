@@ -241,7 +241,7 @@
                     <li>Зарабатывай Spike и прокачивай Ехидну — покупай новые скины!</li>
                 </ul>
             </div>
-            <button class="splash-btn" id="startGameBtn"> ИГРАТЬ</button>
+            <button class="splash-btn" id="startGameBtn">🎮 ИГРАТЬ</button>
         </div>
     </div>
     <div class="container">
@@ -274,17 +274,17 @@
             <div id="roomsList" style="margin-top: 8px;"><div class="loader"><div class="spinner"></div></div></div>
         </div>
         <div id="tasksScreen" class="hidden">
-            <div class="header"><h2> Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
+            <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
             <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
             <div class="daily-grid" id="dailyCardsGrid"></div>
-            <div class="daily-warning">️ Пропуск дня сбрасывает все карточки</div>
+            <div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
         </div>
         <div id="statsScreen" class="hidden">
-            <div class="stats-header"><h2> Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
+            <div class="stats-header"><h2>📊 Статистика</h2><div class="subtitle">Твоя игровая история</div></div>
             <div class="stats-cards">
-                <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="statsWinRate">0%</div><div class="stat-label">Побед</div></div>
+                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" id="statsWinRate">0%</div><div class="stat-label">Побед</div></div>
                 <div class="stat-card"><div class="stat-icon">✊</div><div class="stat-value" id="statsFavMove">-</div><div class="stat-label">Любимый ход</div></div>
-                <div class="stat-card"><div class="stat-icon"></div><div class="stat-value" id="statsTotalSpike">0 Spike</div><div class="stat-label">Выиграно Spike</div></div>
+                <div class="stat-card"><div class="stat-icon">🦔</div><div class="stat-value" id="statsTotalSpike">0 Spike</div><div class="stat-label">Выиграно Spike</div></div>
             </div>
             <div class="section-title">🎮 Последние игры</div>
             <div class="games-table"><div class="games-table-header"><span>Соперник</span><span>Ставка</span><span>Результат</span><span>Ход</span></div><div id="gamesTableBody"><div class="loader" style="padding:20px;"><div class="spinner"></div></div></div></div>
@@ -308,7 +308,7 @@
             <div class="header"><h2>🎨 Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
             <div id="skinsList"></div>
         </div>
-        <div id="leaderboardScreen" class="hidden"><div class="header"><h2>🏆 Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
+        <div id="leaderboardScreen" class="hidden"><div class="header"><h2> Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
     </div>
     <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback">🦔</div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
     <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
@@ -356,7 +356,7 @@
         function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
         function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
         
-        // 🔑 ПУБЛИЧНЫЕ КЛЮЧИ
+        //  ПУБЛИЧНЫЕ КЛЮЧИ
         var AUTH_TOKEN = null;
         var URL = 'https://tejndwtckdvueufqhitu.supabase.co';
         var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
@@ -404,7 +404,7 @@
         var SKINS = [ 
             { id: 'default', price: 0, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-default.png', emoji: '🦔', name: 'Обычная ехидна', description: 'Обычная колючая ехидна. Баланс скорости и удачи.' },
             { id: 'socks', price: 10000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-beggar.png', emoji: '🧦', name: 'Оборванец', description: 'Ехидна в рваных носках. +5% к удаче от безысходности!' },
-            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
+            { id: 'sporty', price: 50000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-tramp.png', emoji: '🏃', name: 'Нищий', description: 'Спортивная ехидна. Быстрее принимает решения на ринге!' },
             { id: 'sneakers', price: 100000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-poor.png', emoji: '👟', name: 'Выживший', description: 'Ехидна в крутых кроссовках. +10% к шансу победы!' },
             { id: 'cap', price: 500000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-survivor.png', emoji: '🧢', name: 'Работяга', description: 'Практичная ехидна в кепке. Никогда не сдаётся!' },
             { id: 'cool', price: 1000000, img: 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/skin-worker.png', emoji: '😎', name: 'Мажор', description: 'Стильная ехидна в солнечных очках. +15% к удаче!' },
@@ -508,12 +508,9 @@
             } catch(e) {} 
         }
 
-        // 🔥 FIX: Удалена логика создания пользователя (она сбрасывала баланс до 1000)
-        // Теперь мы только читаем баланс. Создание происходит на сервере.
         async function ensureUserExists() { 
             if (!MY_ID) return;
             try { 
-                // Просто запрашиваем баланс
                 var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1');
                 if (existing && existing.length > 0) {
                     currentBalance = existing[0].balance || 1000;
@@ -796,7 +793,7 @@
                 var stakeDisplay = formatStakeDisplay(r); 
                 var creatorName = escapeHtml(r.creator_username || 'Anonymous'); 
                 if (trulyMine) { 
-                    if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')">🔄 Вернуться</button>'; 
+                    if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')"> Вернуться</button>'; 
                     var cancelBtn = !isPlaying && !r.opponent_tg_id ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + r.id + '\')"></button>' : ''; 
                     el.innerHTML = '<div class="room-icon">' + escapeHtml(MY_INITIAL) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div><div class="room-actions">' + btnHtml + cancelBtn + '</div>'; 
                 } else { 
@@ -833,7 +830,7 @@
             isJoiningRoom = true;
 
             if (!user || !MY_ID) { 
-                alert('️ Ошибка: Вы не вошли в систему!'); 
+                alert('⚠️ Ошибка: Вы не вошли в систему!'); 
                 if(btnElement) btnElement.disabled = false; 
                 isJoiningRoom = false; 
                 return; 
@@ -847,12 +844,12 @@
                 
                 var room = roomData[0];
                 
-                if (String(room.creator_tg_id) === String(MY_ID)) { alert(' Это ваша комната'); resumeRoom(roomId); return; }
+                if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
                 if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
                 if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
                 
                 if (room.room_password) { 
-                    var pwd = prompt('🔒 Введите пароль:'); 
+                    var pwd = prompt(' Введите пароль:'); 
                     if (pwd !== room.room_password) { 
                         alert('❌ Неверный пароль'); 
                         if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
@@ -950,7 +947,7 @@
                     }
                 } else {
                     document.getElementById('opponentAvatar').innerHTML = '?';
-                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>';
+                    document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)"> Ожидание...</span>';
                 }
                 
                 var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true);
@@ -996,21 +993,29 @@
             }, 2000); 
         }
 
+        // 🔥 FIX: Отслеживание ходов в localStorage
+        function trackMove(move) {
+            try {
+                var key = 'echidna_moves_' + MY_ID;
+                var moves = JSON.parse(localStorage.getItem(key) || '{"rock":0,"paper":0,"scissors":0}');
+                moves[move] = (moves[move] || 0) + 1;
+                localStorage.setItem(key, JSON.stringify(moves));
+            } catch(e) {}
+        }
+
         async function makeMove(choice) { 
             if (!currentRoom) { alert('❌ Комната не найдена'); return; }
-            
             if (!currentRoom.opponent_tg_id && currentRoom.status === 'waiting') { 
-                alert('⏳ Соперник еще не присоединился!'); 
+                alert(' Соперник еще не присоединился!'); 
                 return; 
             } 
-
             var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; 
-            
             if (currentRoom[col]) return; 
-
+            
+            trackMove(choice); // 🔥 Запоминаем ход
+            
             document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); 
             document.getElementById('statusMessage').textContent = '✅ Ход записан'; 
-            
             try { 
                 await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + currentRoom.id); 
                 currentRoom[col] = choice; 
@@ -1023,98 +1028,98 @@
             } 
         }
 
-        // 🔥 FIX: Только Создатель обновляет баланс и статистику
         async function showRevealAnimation(room) { 
-    if (processedGames[room.id]) {
-        console.log('[GAME] Already processed, skipping...');
-        return; 
-    }
-    
-    processedGames[room.id] = true;
-    isProcessingGame = true;
-    
-    console.log('[GAME] Starting reveal animation for room:', room.id);
-    
-    clearAllIntervals();
-    var overlay = document.getElementById('revealOverlay'); 
-    var isCreator = String(room.creator_tg_id) === String(MY_ID); 
-    var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
-    var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
-    
-    document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
-    document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
-    document.getElementById('card1Img').src = moveImages[myMove]; 
-    document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
-    document.getElementById('card2Img').src = moveImages[oppMove]; 
-    document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
-    
-    overlay.classList.remove('hidden'); 
-    document.getElementById('card1').classList.remove('flipped'); 
-    document.getElementById('card2').classList.remove('flipped'); 
-    document.getElementById('revealResult').textContent = ''; 
-    document.getElementById('revealEmotion').classList.add('hidden'); 
-    
-    await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); 
-    await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); 
-    await sleep(800); 
-    
-    var result = calculateWinner(room); 
-    document.getElementById('revealResult').textContent = result.msg; 
-    document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat'); 
-    
-    var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
-    if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } 
-    else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
-    
-    var winnerId = result.winnerId; 
-    var stake = room.stake || 10;
-    
-    // 🔥 FIX: Обновляем статистику и баланс (только создатель)
-    if (winnerId && isCreator) {
-        console.log('[GAME] Creator detected. Updating DB results...');
-        var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
-        
-        await updateWinsOnly(winnerId);
-        await updateLossesOnly(loserId);
-        
-        var winOk = await updateBalanceOnly(winnerId, stake);
-        var loseOk = await updateBalanceOnly(loserId, -stake);
-        
-        if (winOk && loseOk) console.log('[GAME] DB Update Success');
-        else alert('️ Ошибка обновления базы!');
-    }
-    
-    // 🔥 FIX: Обновляем статус комнаты на 'finished' в базе данных!
-    console.log('[GAME] Updating room status to finished...');
-    await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id);
-    
-    // Обновляем интерфейс
-    updateBalanceDisplay(); 
-    updateStats();
-    
-    var countdown = 3; 
-    var countdownEl = document.getElementById('revealCountdown'); 
-    countdownEl.textContent = countdown; 
-    var countdownInterval = setInterval(function() { 
-        countdown--; 
-        if (countdown > 0) countdownEl.textContent = countdown; 
-        else { 
-            clearInterval(countdownInterval); 
-            overlay.classList.add('hidden'); 
-            // Возвращаемся в лобби — loadRooms() автоматически скроет finished комнаты
-            showScreen('lobby'); 
-        } 
-    }, 1000); 
-}
+            if (processedGames[room.id]) {
+                console.log('[GAME] Already processed, skipping...');
+                return; 
+            }
+            
+            processedGames[room.id] = true;
+            isProcessingGame = true;
+            
+            console.log('[GAME] Starting reveal animation for room:', room.id);
+            
+            clearAllIntervals();
+            var overlay = document.getElementById('revealOverlay'); 
+            var isCreator = String(room.creator_tg_id) === String(MY_ID); 
+            var myMove = isCreator ? room.creator_choice : room.opponent_choice; 
+            var oppMove = isCreator ? room.opponent_choice : room.creator_choice; 
+            
+            document.getElementById('revealPlayer1Label').textContent = 'Вы'; 
+            document.getElementById('revealPlayer2Label').textContent = 'Соперник'; 
+            document.getElementById('card1Img').src = moveImages[myMove]; 
+            document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            document.getElementById('card2Img').src = moveImages[oppMove]; 
+            document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; 
+            
+            overlay.classList.remove('hidden'); 
+            document.getElementById('card1').classList.remove('flipped'); 
+            document.getElementById('card2').classList.remove('flipped'); 
+            document.getElementById('revealResult').textContent = ''; 
+            document.getElementById('revealEmotion').classList.add('hidden'); 
+            
+            await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); 
+            await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); 
+            await sleep(800); 
+            
+            var result = calculateWinner(room); 
+            document.getElementById('revealResult').textContent = result.msg; 
+            document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat'); 
+            
+            var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); 
+            if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } 
+            else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } 
+            
+            var winnerId = result.winnerId; 
+            var stake = room.stake || 10;
+            
+            if (winnerId && isCreator) {
+                console.log('[GAME] Creator detected. Updating DB results...');
+                var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
+                
+                await updateWinsOnly(winnerId);
+                await updateLossesOnly(loserId);
+                
+                var winOk = await updateBalanceOnly(winnerId, stake);
+                var loseOk = await updateBalanceOnly(loserId, -stake);
+                
+                if (winOk && loseOk) console.log('[GAME] DB Update Success');
+                else alert('⚠️ Ошибка обновления базы!');
+            }
+            
+            // 🔥 FIX: Принудительно закрываем комнату в БД
+            console.log('[GAME] Updating room status to finished...');
+            try {
+                await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id);
+            } catch(e) {
+                console.error('[GAME] Failed to update room status:', e);
+            }
+            
+            updateBalanceDisplay(); 
+            updateStats();
+            
+            var countdown = 3; 
+            var countdownEl = document.getElementById('revealCountdown'); 
+            countdownEl.textContent = countdown; 
+            var countdownInterval = setInterval(function() { 
+                countdown--; 
+                if (countdown > 0) countdownEl.textContent = countdown; 
+                else { 
+                    clearInterval(countdownInterval); 
+                    overlay.classList.add('hidden'); 
+                    showScreen('lobby'); // Автоматически обновит список комнат
+                } 
+            }, 1000); 
+        }
 
         function calculateWinner(room) { 
             var c1 = room.creator_choice, c2 = room.opponent_choice; 
             var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; 
             if (!c1 || !c2) return { msg: 'Ошибка', winnerId: null }; 
-            if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; 
+            if (c1 === c2) return { msg: ' Ничья!', winnerId: null }; 
             var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; 
             var creatorWins = beats[c1] === c2; 
-            return { msg: (creatorWins ? (MY_ID == id1) : (MY_ID == id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; 
+            return { msg: (creatorWins ? (MY_ID == id1) : (MY_ID == id2)) ? '🏆 Победа!' : ' Поражение', winnerId: creatorWins ? id1 : id2 }; 
         }
 
         function showGameResult(room) { 
@@ -1164,7 +1169,7 @@
                     var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0]; 
                     var name = escapeHtml(u.username || 'User'); 
                     var el = document.createElement('div'); el.className = 'room-card'; 
-                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div>💰 ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
+                    el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div> ' + formatCompactNumber(u.balance || 0) + '</div></div>'; 
                     c.appendChild(el); 
                 });
                 
@@ -1175,15 +1180,46 @@
             } 
         }
 
+        // 🔥 FIX: Полностью переписана логика статистики
         async function loadStats() { 
             console.log('[STATS] Loading stats...');
             if (!MY_ID) return; 
             var tableBody = document.getElementById('gamesTableBody'); 
             tableBody.innerHTML = '<div class="loader"><div class="spinner"></div></div>'; 
             try { 
+                // 1. Загружаем данные пользователя
+                var userData = await db('users', 'GET', null, '?select=wins,losses,balance&telegram_id=eq.' + MY_ID, true);
+                var wins = userData ? (userData.wins || 0) : 0;
+                var losses = userData ? (userData.losses || 0) : 0;
+                var balance = userData ? (userData.balance || 1000) : 1000;
+                var coinsWon = Math.max(0, balance - 1000); // Считаем от стартовых 1000
+                var winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+
+                // Обновляем карточки статистики
+                document.getElementById('statsWinRate').textContent = winRate + '%';
+                document.getElementById('statsTotalSpike').textContent = '+' + formatCompactNumber(coinsWon) + ' Spike';
+                
+                // Любимый ход из localStorage
+                var favMove = '-';
+                try {
+                    var moves = JSON.parse(localStorage.getItem('echidna_moves_' + MY_ID) || '{}');
+                    var maxCount = 0;
+                    for (var m in moves) {
+                        if (moves[m] > maxCount) {
+                            maxCount = moves[m];
+                            favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '️ Ножницы';
+                        }
+                    }
+                } catch(e) {}
+                document.getElementById('statsFavMove').textContent = favMove;
+
+                // 2. Загружаем историю игр (если таблица есть)
                 var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); 
                 var gamesList = Array.isArray(games) ? games : []; 
-                if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty">Пока нет игр</div>'; return; } 
+                if (gamesList.length === 0) { 
+                    tableBody.innerHTML = '<div class="games-empty">Пока нет игр</div>'; 
+                    return; 
+                } 
                 var rowsHtml = ''; 
                 gamesList.forEach(function(game) { 
                     var opponentName = escapeHtml(game.opponent_name || '???'); 
@@ -1192,7 +1228,10 @@
                     rowsHtml += '<div class="game-row"><span>' + opponentName + '</span><span>' + formatCompactNumber(Math.abs(game.stake || 0)) + ' Spike</span><span class="game-result ' + resultClass + '">' + resultText + '</span><span>' + (game.player_move || '?') + '</span></div>'; 
                 }); 
                 tableBody.innerHTML = rowsHtml; 
-            } catch(e) { tableBody.innerHTML = '<div class="games-empty">Ошибка загрузки</div>'; } 
+            } catch(e) { 
+                console.error('[STATS] Error:', e);
+                tableBody.innerHTML = '<div class="games-empty">Ошибка загрузки</div>'; 
+            } 
         }
 
         async function loadDailyDataFromDB() { 
