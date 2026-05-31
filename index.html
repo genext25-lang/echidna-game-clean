@@ -1244,5 +1244,28 @@
             }); 
         }, 1000);
     </script>
+<!-- ТЕСТОВАЯ КНОПКА ДЛЯ ОТЛАДКИ -->
+<div style="position:fixed; bottom:80px; right:10px; z-index:99999;">
+    <button onclick="testScreens()" style="background:red; color:white; padding:10px; border:none; border-radius:8px; font-size:12px;">
+        🧪 ТЕСТ ЭКРАНОВ
+    </button>
+</div>
+
+<script>
+function testScreens() {
+    alert('Проверка экранов...\n\nЛобби: ' + document.getElementById('lobbyScreen').classList.contains('hidden') + 
+          '\nСкины: ' + document.getElementById('skinsScreen').classList.contains('hidden') +
+          '\nРейтинг: ' + document.getElementById('leaderboardScreen').classList.contains('hidden'));
+    
+    // Принудительно покажем скины
+    document.getElementById('skinsScreen').classList.remove('hidden');
+    document.getElementById('lobbyScreen').classList.add('hidden');
+    document.getElementById('statsScreen').classList.add('hidden');
+    document.getElementById('leaderboardScreen').classList.add('hidden');
+    document.getElementById('tasksScreen').classList.add('hidden');
+    
+    alert('Экран скинов включен принудительно!');
+}
+</script>
 </body>
 </html>
