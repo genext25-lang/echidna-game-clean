@@ -609,19 +609,51 @@
 }
 
         function renderSkins() { 
-            var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; 
-            SKINS.forEach(function(s, i) { 
-                var owned = isSkinOwned(s.id); var equipped = currentSkin === s.id; var canBuy = !owned && currentBalance >= s.price; 
-                var el = document.createElement('div'); el.className = 'room-card' + (equipped ? ' equipped' : ''); el.onclick = function() { openSkinModal(s); }; 
-                var btnHtml = ''; 
-                if (equipped) btnHtml = '<button class="room-btn equipped">Надето</button>'; 
-                else if (owned) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + s.id + '\')">Надеть</button>'; 
-                else if (canBuy) btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + s.id + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; 
-                else btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; 
-                el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div><div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt=""></div><div class="room-info"><div>' + escapeHtml(getSkinNameById(s.id)) + '</div><div class="skin-description">' + escapeHtml(getSkinDescription(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; 
-                c.appendChild(el); 
-            }); 
-        }
+    console.log('[SKINS] Starting render...');
+    
+    var c = document.getElementById('skinsList'); 
+    if (!c) {
+        console.error('[SKINS] ERROR: Container #skinsList NOT FOUND!');
+        alert('❌ Ошибка: Контейнер скинов не найден!');
+        return; 
+    }
+    
+    console.log('[SKINS] Container found:', c);
+    c.innerHTML = ''; 
+    
+    if (!SKINS || SKINS.length === 0) {
+        console.error('[SKINS] ERROR: SKINS array is empty!');
+        c.innerHTML = '<div style="color:red;padding:20px;">Ошибка: нет данных о скинах</div>';
+        return;
+    }
+    
+    console.log('[SKINS] Rendering', SKINS.length, 'skins...');
+    
+    SKINS.forEach(function(s, i) { 
+        console.log('[SKINS] Rendering skin #' + i + ':', s.id);
+        
+        var owned = isSkinOwned(s.id); 
+        var equipped = currentSkin === s.id; 
+        var canBuy = !owned && currentBalance >= s.price; 
+        
+        var el = document.createElement('div'); 
+        el.className = 'room-card' + (equipped ? ' equipped' : ''); 
+        
+        var btnHtml = ''; 
+        if (equipped) btnHtml = '<button class="room-btn equipped">Надето</button>'; 
+        else if (owned) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + s.id + '\')">Надеть</button>'; 
+        else if (canBuy) btnHtml = '<button class="room-btn buy" onclick="event.stopPropagation();buySkin(\'' + s.id + '\')">' + formatCompactNumber(s.price) + ' Spike</button>'; 
+        else btnHtml = '<button class="room-btn buy-disabled" disabled>' + formatCompactNumber(s.price) + ' Spike</button>'; 
+        
+        el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (i + 1) + '</div><div class="room-icon skin-room-icon"><img src="' + escapeHtml(s.img) + '" alt=""></div><div class="room-info"><div>' + escapeHtml(getSkinNameById(s.id)) + '</div><div class="skin-description">' + escapeHtml(getSkinDescription(s.id)) + '</div>' + (!owned ? '<div class="skin-price">💰 ' + formatCompactNumber(s.price) + ' Spike</div>' : '<div class="skin-price" style="color:var(--success);">✅ Куплено</div>') + '</div><div class="room-actions">' + btnHtml + '</div>'; 
+        
+        c.appendChild(el); 
+        console.log('[SKINS] Appended skin #' + i);
+    });
+    
+    console.log('[SKINS] Render complete!');
+    alert('✅ Скины отрисованы! Количество: ' + SKINS.length);
+}
 
         function openSkinModal(s) { 
             currentModalSkin = s; disableBottomNav(); 
