@@ -113,6 +113,7 @@ text-transform: none;
 .lb-coin-icon img { width: 100%; height: 100%; object-fit: contain; }
 .section-header { font-size: 16px; color: var(--text); text-align: center; margin-bottom: 16px; font-weight: 600; }
 .header { text-align: center; margin-bottom: 20px; }
+/* ПРАВКА: Убрали градиент с h2, чтобы эмодзи в заголовках были цветными */
 .header h2 { font-size: 22px; margin-bottom: 8px; color: #f8fafc; text-shadow: 0 2px 10px rgba(96, 165, 250, 0.4); }
 .header-sub { font-size: 14px; color: var(--sec); }
 .daily-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; padding: 0 4px; }
@@ -267,10 +268,10 @@ text-transform: none;
 .leaderboard-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .leaderboard-left { display: flex; align-items: center; gap: 12px; }
 .leaderboard-right { display: flex; align-items: center; gap: 8px; }
-.my-rank-card { background: rgba(251, 191, 36, 0.1); border: 1px dashed var(--gold); margin-top: 16px; padding: 12px; border-radius: 14px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-/*  Стили рулетки */
+.my-rank-card { background: rgba(79, 102, 241, 0.15); border: 1px dashed var(--gold); margin-top: 16px; padding: 12px; border-radius: 14px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+/*  Стили рулетки (Улучшенные) */
 .roulette-wrapper { margin-top: 20px; text-align: center; background: var(--glass-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
-.roulette-info { font-size: 13px; color: var(--gold); margin-bottom: 10px; font-weight: 600; }
+.roulette-info { font-size: 12px; color: var(--sec); margin-bottom: 10px; }
 .roulette-viewport { position: relative; height: 120px; overflow: hidden; border-radius: 12px; background: rgba(10, 14, 39, 0.8); margin: 10px 0; border: 1px solid var(--glass-border); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
 .roulette-strip { display: flex; height: 100%; align-items: center; will-change: transform; }
 .roulette-card { flex: 0 0 100px; height: 100px; margin: 0 5px; background: var(--glass-bg); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid var(--glass-border); box-sizing: border-box; transition: transform 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
@@ -279,6 +280,7 @@ text-transform: none;
 .roulette-pointer { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 3px; background: var(--accent); transform: translateX(-50%); z-index: 10; box-shadow: 0 0 10px var(--accent); border-radius: 2px; }
 .roulette-pointer::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--accent); }
 .roulette-pointer::before { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--accent); }
+/*  Кнопка под карточками */
 .spin-btn {
 width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
 background: linear-gradient(135deg, rgba(79, 70, 229, 0.8), rgba(124, 58, 237, 0.8));
@@ -344,11 +346,11 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
 <div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
 <div class="daily-grid" id="dailyCardsGrid"></div>
-<div class="daily-warning">⚠️ После 9 дней цикл начинается заново</div>
-<!-- 🎰 Рулетка Naklz -->
+<div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
+<!-- 🎰 Рулетка -->
 <div class="roulette-wrapper">
-<h3>🎰 Рулетка Naklz</h3>
-<div class="roulette-info">Таймер: <span id="rouletteTimer">Готово!</span></div>
+<h3>🎰 Ежедневная рулетка</h3>
+<div class="roulette-info">Попыток сегодня: <span id="rouletteAttempts">0</span> / 5</div>
 <div class="roulette-viewport">
 <div id="rouletteStrip" class="roulette-strip"></div>
 <div class="roulette-pointer"></div>
@@ -386,10 +388,7 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 <div class="header"><h2>🎨 Скины</h2><div class="header-sub">Покупай и меняй скины за Spike</div></div>
 <div id="skinsList"></div>
 </div>
-<div id="leaderboardScreen" class="hidden">
-<div class="header"><h2>🏆 Рейтинг</h2><div class="header-sub">ТОП-20 игроков по Spike</div></div>
-<div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div>
-</div>
+<div id="leaderboardScreen" class="hidden"><div class="header"><h2>🏆 Рейтинг</h2><div class="header-sub">Топ игроков по Spike</div></div><div id="leaderboardList"><div class="loader"><div class="spinner"></div></div></div></div>
 </div>
 <div id="skinModal" class="skin-modal hidden" onclick="closeSkinModal(event)"><div class="skin-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeSkinModal()">✕</button><div class="skin-modal-img" id="modalImgContainer"><div id="modalImgFallback" class="skin-emoji-fallback">🦔</div></div><div class="skin-modal-title" id="modalTitle"></div><div class="skin-modal-price" id="modalPrice"></div><div class="skin-modal-desc" id="modalDesc"></div><button class="skin-modal-btn" id="modalBtn" onclick="handleSkinAction()">Купить</button></div></div>
 <div id="stakeModal" class="stake-modal hidden" onclick="closeStakeModal(event)"><div class="stake-modal-content" onclick="event.stopPropagation()"><button class="skin-modal-close" onclick="closeStakeModal()">✕</button><div class="stake-modal-title">🦔 Выбери ставку Spike</div><div class="stake-presets" id="stakePresets"><button class="stake-preset-btn selected" data-stake="10" onclick="selectStakePreset(10,this)">10</button><button class="stake-preset-btn" data-stake="50" onclick="selectStakePreset(50,this)">50</button><button class="stake-preset-btn" data-stake="100" onclick="selectStakePreset(100,this)">100</button><button class="stake-preset-btn" data-stake="200" onclick="selectStakePreset(200,this)">200</button><button class="stake-preset-btn" data-stake="500" onclick="selectStakePreset(500,this)">500</button><button class="stake-preset-btn" data-stake="1000" onclick="selectStakePreset(1000,this)">1K</button></div><div class="stake-input-group"><span>Или введи:</span><input type="number" class="stake-input" id="stakeInput" placeholder="10 - 1000" min="10" max="1000" step="10" oninput="onStakeInput()"></div><div class="stake-error" id="stakeError"></div><div style="margin-top:12px;"><label style="font-size:12px;color:var(--sec);display:block;margin-bottom:4px;">🔒 Пароль (1-4 цифры):</label><input type="password" id="roomPassword" class="stake-input" placeholder="1234" maxlength="4" style="text-align:center;"></div><button class="stake-confirm-btn" onclick="confirmStake()">Создать комнату</button></div></div>
@@ -400,17 +399,35 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 <h2 id="playerModalTitle">Профиль игрока</h2>
 <div class="header-sub" id="playerModalUsername">@username</div>
 </div>
+<!-- ПРАВКА: Блок статистики в профиле игрока теперь выглядит как на странице статистики -->
 <div class="stats-cards">
-  <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="playerStatWinRate">0%</div><div class="stat-label">Побед</div></div>
-  <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value" id="playerStatBalance">0</div><div class="stat-label">Spike</div></div>
-  <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-value" id="playerStatFavMove">-</div><div class="stat-label">Любимый ход</div></div>
-  <div class="stat-card"><div class="stat-icon">🎮</div><div class="stat-value" id="playerStatTotalGames">0</div><div class="stat-label">Всего игр</div></div>
+  <div class="stat-card">
+    <div class="stat-icon">🏆</div>
+    <div class="stat-value" id="playerStatWinRate">0%</div>
+    <div class="stat-label">Побед</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value" id="playerStatBalance">0</div>
+    <div class="stat-label">Spike</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🎯</div>
+    <div class="stat-value" id="playerStatFavMove">-</div>
+    <div class="stat-label">Любимый ход</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🎮</div>
+    <div class="stat-value" id="playerStatTotalGames">0</div>
+    <div class="stat-label">Всего игр</div>
+  </div>
 </div>
 </div>
 </div>
 <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
 <div id="confettiContainer" class="confetti-container hidden"></div>
 <div class="bottom-nav" id="bottomNav">
+  <!-- ПРАВКА: Нижняя панель с монохромными векторными картинками (SVG) -->
 <button class="nav-btn active" onclick="showScreen('lobby')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Лобби</span></button>
 <button class="nav-btn" onclick="showScreen('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg><span>Задания</span></button>
 <button class="nav-btn" onclick="showScreen('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Статистика</span></button>
@@ -425,42 +442,75 @@ var isJoiningRoom = false;
 var isProcessingGame = false;
 var welcomeMessageShown = false;
 var processedGames = {};
-var rouletteInterval = null;
-var rouletteTimerInterval = null;
-var isSpinning = false;
-var lastTickX = 0;
-var currentViewedPlayer = null;
-
+var rouletteInterval = null; // Для медленной анимации
+var currentViewedPlayer = null; // Для просмотра профиля другого игрока
 function initAudio() {
 if (soundsInitialized) return true;
 try {
 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 if (audioCtx.state === 'suspended') {
-audioCtx.resume().then(function() { soundsInitialized = true; }).catch(function(e) { console.warn('Audio resume failed:', e); });
-} else { soundsInitialized = true; }
+audioCtx.resume().then(function() {
+soundsInitialized = true;
+}).catch(function(e) {
+console.warn('Audio resume failed:', e);
+});
+} else {
+soundsInitialized = true;
+}
 return soundsInitialized;
-} catch(e) { console.warn('Audio init failed:', e); return false; }
+} catch(e) {
+console.warn('Audio init failed:', e);
+return false;
+}
 }
 function forceUnlockAudio() {
 if (!soundsInitialized && audioUnlockAttempts < 5) {
-audioUnlockAttempts++; initAudio();
-try { if (audioCtx && audioCtx.state === 'suspended') { var osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.value = 0.001; osc.start(); osc.stop(audioCtx.currentTime + 0.01); soundsInitialized = true; } } catch(e) {}
+audioUnlockAttempts++;
+initAudio();
+try {
+if (audioCtx && audioCtx.state === 'suspended') {
+var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+gain.gain.value = 0.001;
+osc.start();
+osc.stop(audioCtx.currentTime + 0.01);
+soundsInitialized = true;
+}
+} catch(e) {}
 }
 }
 ['click', 'touchstart', 'touchend'].forEach(function(evt) {
-document.addEventListener(evt, function() { if (!soundsInitialized) forceUnlockAudio(); }, { passive: true });
+document.addEventListener(evt, function() {
+if (!soundsInitialized) forceUnlockAudio();
+}, { passive: true });
 });
+function vibrate(pattern) {
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+if (pattern === 'light' || pattern === 50) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+else if (pattern === 'medium' || pattern === 100) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+else if (pattern === 'heavy' || pattern === 200) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+else if (Array.isArray(pattern) && navigator.vibrate) navigator.vibrate(pattern);
+} else if (navigator.vibrate) {
+navigator.vibrate(pattern);
+}
+}
 function playBeep(frequency, duration, type, volume) {
-if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
+if (!soundsInitialized) {
+forceUnlockAudio();
+if (!audioCtx || audioCtx.state !== 'running') return;
+}
 if (!audioCtx) return;
 try {
 var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-osc.connect(gain); gain.connect(audioCtx.destination);
+osc.connect(gain);
+gain.connect(audioCtx.destination);
 osc.type = type || 'sine';
 osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
 gain.gain.setValueAtTime(volume || 0.1, audioCtx.currentTime);
 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-osc.start(); osc.stop(audioCtx.currentTime + duration);
+osc.start();
+osc.stop(audioCtx.currentTime + duration);
 } catch(e) {}
 }
 function playJoinSound() { playBeep(523, 0.15, 'sine', 0.15); setTimeout(function() { playBeep(784, 0.15, 'sine', 0.1); }, 80); vibrate([30, 20, 30]); }
@@ -469,6 +519,7 @@ function playWinSound() { playBeep(523, 0.1, 'triangle', 0.15); setTimeout(funct
 function playLoseSound() { playBeep(280, 0.3, 'sawtooth', 0.12); setTimeout(function() { playBeep(180, 0.2, 'sawtooth', 0.08); }, 200); vibrate([100]); }
 function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
 function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
+function playTickSound() { playBeep(1200, 0.05, 'square', 0.05); }
 function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
 function formatCompactNumber(num) {
 if (num === null || num === undefined) return '0';
@@ -479,8 +530,8 @@ return sign + absNum.toFixed(2).replace(/\.?0+$/, '');
 }
 function formatBalance(num) { return formatCompactNumber(num); }
 function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
-function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
-
+function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
+// 🔑 ПУБЛИЧНЫЕ КЛЮЧИ
 var AUTH_TOKEN = null;
 var URL = 'https://tejndwtckdvueufqhitu.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
@@ -495,10 +546,9 @@ var selectedStake = 10;
 var currentRoom = null;
 var isGameFinished = false;
 var currentBalance = 0;
-var INITIAL_BALANCE = 1000;
+var INITIAL_BALANCE = 1000; // Стартовый баланс
 window.roomExpiry = {};
 var activeIntervals = { pollInterval: null, lobbyRefreshInterval: null, timerInterval: null };
-
 async function db(table, method, payload, filters, single) {
 if (!navigator.onLine) { throw new Error('Нет соединения с интернетом'); }
 payload = payload || null; filters = filters || ''; single = single || false;
@@ -548,53 +598,195 @@ function closeRoomsScreen() { document.getElementById('roomsScreen').classList.r
 function formatCountdown(ms) { if (ms <= 0) return "00:00"; var totalSeconds = Math.floor(ms / 1000); var minutes = Math.floor(totalSeconds / 60); var seconds = totalSeconds % 60; return (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds; }
 function formatStakeDisplay(room) { return (room.stake || 0) + ' Spike'; }
 async function getUserFromTelegram() {
-if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) { return window.Telegram.WebApp.initDataUnsafe.user; }
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+return window.Telegram.WebApp.initDataUnsafe.user;
+}
 return null;
 }
 async function authenticateWithTelegram() {
 console.log('[AUTH] Starting...');
 if (!window.Telegram || !window.Telegram.WebApp) { console.error('[AUTH] No WebApp'); return false; }
 var tg = window.Telegram.WebApp;
+console.log('[AUTH] Platform:', tg.platform);
 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-user = { id: tg.initDataUnsafe.user.id, username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User', photo_url: tg.initDataUnsafe.user.photo_url || null };
+user = {
+id: tg.initDataUnsafe.user.id,
+username: tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name || 'User',
+photo_url: tg.initDataUnsafe.user.photo_url || null
+};
 MY_ID = Number(user.id);
+console.log('[AUTH] ✅ User:', user.username, 'ID:', MY_ID);
 if (tg.initData) {
 try {
-var response = await fetch(URL + '/functions/v1/verify-telegram', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY }, body: JSON.stringify({ initData: tg.initData }) });
+var response = await fetch(URL + '/functions/v1/verify-telegram', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': 'Bearer ' + ANON_KEY
+},
+body: JSON.stringify({ initData: tg.initData })
+});
 var result = await response.json();
-if (result.success && result.session && result.session.access_token) { AUTH_TOKEN = result.session.access_token; }
-} catch(e) { console.warn('[AUTH] Edge function call failed:', e.message); }
+console.log('[AUTH] Edge function response:', result);
+if (result.success && result.session && result.session.access_token) {
+AUTH_TOKEN = result.session.access_token;
+console.log('[AUTH] ✅ JWT received:', AUTH_TOKEN.substring(0, 30) + '...');
+} else {
+console.warn('[AUTH] ⚠️ No session in response, using fallback');
+}
+} catch(e) {
+console.warn('[AUTH] Edge function call failed:', e.message);
+}
+}
+return true;
+}
+console.error('[AUTH] No user data');
+return false;
+}
+async function getUserBalanceFromDB() {
+if (!MY_ID) return INITIAL_BALANCE;
+try {
+var userData = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&select=balance', true);
+return userData ? (userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE;
+} catch(e) { return INITIAL_BALANCE; }
+}
+async function updateBalanceDisplay() {
+try {
+currentBalance = await getUserBalanceFromDB();
+var el = document.getElementById('balanceSpike');
+if (el) el.textContent = formatBalance(currentBalance);
+} catch(e) {}
+}
+async function updateStats() {
+try {
+if (!MY_ID) return;
+var data = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, false);
+var wins = data[0] ? (data[0].wins || 0) : 0;
+var losses = data[0] ? (data[0].losses || 0) : 0;
+document.getElementById('statWins').textContent = wins;
+document.getElementById('statGames').textContent = wins + losses;
+document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin);
+console.log('[STATS] Wins:', wins, 'Losses:', losses);
+} catch(e) {}
+}
+async function ensureUserExists() {
+if (!MY_ID) return;
+try {
+var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1');
+if (existing && existing.length > 0) {
+currentBalance = existing[0].balance || INITIAL_BALANCE;
+}
+await updateBalanceDisplay();
+} catch(e) { console.error('ensureUserExists error:', e); }
+}
+async function updateBalanceOnly(playerId, amountChange) {
+if (!playerId) return false;
+try {
+var userData = await db('users', 'GET', null, '?select=balance&telegram_id=eq.' + playerId, true);
+var currentBal = parseInt(userData ? userData.balance : INITIAL_BALANCE);
+var newBal = currentBal + amountChange;
+console.log('[BALANCE] Updating', playerId, 'Current:', currentBal, 'Change:', amountChange, 'New:', newBal);
+var success = await db('users', 'PATCH', { balance: newBal }, '?telegram_id=eq.' + playerId);
+if (success) {
+if (String(playerId) === String(MY_ID)) {
+currentBalance = newBal;
+updateBalanceDisplay();
 }
 return true;
 }
 return false;
+} catch(e) { console.error('[BALANCE] Error:', e); return false; }
 }
-async function getUserBalanceFromDB() { if (!MY_ID) return INITIAL_BALANCE; try { var userData = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&select=balance', true); return userData ? (userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE; } catch(e) { return INITIAL_BALANCE; } }
-async function updateBalanceDisplay() { try { currentBalance = await getUserBalanceFromDB(); var el = document.getElementById('balanceSpike'); if (el) el.textContent = formatBalance(currentBalance); } catch(e) {} }
-async function updateStats() { try { if (!MY_ID) return; var data = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, false); var wins = data[0] ? (data[0].wins || 0) : 0; var losses = data[0] ? (data[0].losses || 0) : 0; document.getElementById('statWins').textContent = wins; document.getElementById('statGames').textContent = wins + losses; document.getElementById('statSkinName').textContent = getSkinNameById(currentSkin); } catch(e) {} }
-async function ensureUserExists() { if (!MY_ID) return; try { var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1'); if (existing && existing.length > 0) { currentBalance = existing[0].balance || INITIAL_BALANCE; } await updateBalanceDisplay(); } catch(e) { console.error('ensureUserExists error:', e); } }
-async function updateBalanceOnly(playerId, amountChange) { if (!playerId) return false; try { var userData = await db('users', 'GET', null, '?select=balance&telegram_id=eq.' + playerId, true); var currentBal = parseInt(userData ? userData.balance : INITIAL_BALANCE); var newBal = currentBal + amountChange; var success = await db('users', 'PATCH', { balance: newBal }, '?telegram_id=eq.' + playerId); if (success) { if (String(playerId) === String(MY_ID)) { currentBalance = newBal; updateBalanceDisplay(); } return true; } return false; } catch(e) { console.error('[BALANCE] Error:', e); return false; } }
-async function updateWinsOnly(playerId) { if (!playerId) return false; try { var userData = await db('users', 'GET', null, '?select=wins&telegram_id=eq.' + playerId, true); var currentWins = userData ? (userData.wins || 0) : 0; var success = await db('users', 'PATCH', { wins: currentWins + 1 }, '?telegram_id=eq.' + playerId); if (success) return true; return false; } catch(e) { return false; } }
-async function updateLossesOnly(playerId) { if (!playerId) return false; try { var userData = await db('users', 'GET', null, '?select=losses&telegram_id=eq.' + playerId, true); var currentLosses = userData ? (userData.losses || 0) : 0; var success = await db('users', 'PATCH', { losses: currentLosses + 1 }, '?telegram_id=eq.' + playerId); if (success) return true; return false; } catch(e) { return false; } }
-function renderAvatar(elementId, photoUrl, username) { var el = document.getElementById(elementId); if (!el) return; if (photoUrl) { el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(username || 'User') + '" onerror="this.parentElement.innerHTML=\'' + escapeHtml(username ? username.charAt(0).toUpperCase() : '?') + '\'">'; } else { el.innerHTML = escapeHtml(username ? username.charAt(0).toUpperCase() : '?'); } }
-function startGame() { document.getElementById('splashScreen').classList.add('hidden'); document.getElementById('lobbyScreen').classList.remove('hidden'); forceUnlockAudio(); if (window.Telegram && window.Telegram.WebApp) { try { window.Telegram.WebApp.expand(); } catch(e) {} } showScreen('lobby'); }
+async function updateWinsOnly(playerId) {
+if (!playerId) return false;
+try {
+var userData = await db('users', 'GET', null, '?select=wins&telegram_id=eq.' + playerId, true);
+var currentWins = userData ? (userData.wins || 0) : 0;
+var success = await db('users', 'PATCH', { wins: currentWins + 1 }, '?telegram_id=eq.' + playerId);
+if (success) {
+console.log('[STATS] Wins updated for', playerId, '->', currentWins + 1);
+return true;
+}
+return false;
+} catch(e) { console.error('[STATS] Error updating wins:', e); return false; }
+}
+async function updateLossesOnly(playerId) {
+if (!playerId) return false;
+try {
+var userData = await db('users', 'GET', null, '?select=losses&telegram_id=eq.' + playerId, true);
+var currentLosses = userData ? (userData.losses || 0) : 0;
+var success = await db('users', 'PATCH', { losses: currentLosses + 1 }, '?telegram_id=eq.' + playerId);
+if (success) {
+console.log('[STATS] Losses updated for', playerId, '->', currentLosses + 1);
+return true;
+}
+return false;
+} catch(e) { console.error('[STATS] Error updating losses:', e); return false; }
+}
+function renderAvatar(elementId, photoUrl, username) {
+var el = document.getElementById(elementId); if (!el) return;
+if (photoUrl) { el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="' + escapeHtml(username || 'User') + '" onerror="this.parentElement.innerHTML=\'' + escapeHtml(username ? username.charAt(0).toUpperCase() : '?') + '\'">'; }
+else { el.innerHTML = escapeHtml(username ? username.charAt(0).toUpperCase() : '?'); }
+}
+function startGame() {
+console.log('[START] Button clicked!');
+document.getElementById('splashScreen').classList.add('hidden');
+document.getElementById('lobbyScreen').classList.remove('hidden');
+forceUnlockAudio();
+if (window.Telegram && window.Telegram.WebApp) {
+try { window.Telegram.WebApp.expand(); } catch(e) {}
+}
+showScreen('lobby');
+}
 function showScreen(name) {
+console.log('[SCREEN] Opening:', name);
 var screens = ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'];
-screens.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); });
-var target = document.getElementById(name + 'Screen'); if (target) target.classList.remove('hidden');
-document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) { btn.classList.remove('active'); if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active'); });
-clearAllIntervals(); stopIdleAnimation();
-if (name === 'lobby') { currentRoom = null; isGameFinished = false; isProcessingGame = false; activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000); updateBalanceDisplay(); updateStats(); updateHeroImage(); loadRooms(); } 
-else if (name === 'tasks') { setTimeout(function() { renderDailyCards(); }, 50); startRouletteTimer(); } 
-else if (name === 'stats') { loadStats(); } 
-else if (name === 'leaderboard') { loadLeaderboard(); } 
-else if (name === 'skins') { renderSkins(); }
+screens.forEach(function(id) {
+var el = document.getElementById(id);
+if (el) {
+el.classList.add('hidden');
+}
+});
+var target = document.getElementById(name + 'Screen');
+if (target) {
+target.classList.remove('hidden');
+}
+document.querySelectorAll('#bottomNav .nav-btn').forEach(function(btn) {
+btn.classList.remove('active');
+if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active');
+});
+clearAllIntervals();
+stopIdleAnimation(); // Останавливаем рулетку если уходим
+if (name === 'lobby') {
+currentRoom = null; isGameFinished = false; isProcessingGame = false;
+activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000);
+updateBalanceDisplay();
+updateStats();
+updateHeroImage();
+loadRooms();
+} else if (name === 'tasks') {
+setTimeout(function() { renderDailyCards(); }, 50);
+initRoulette(); // 🔥 Инициализация рулетки
+} else if (name === 'stats') {
+loadStats();
+} else if (name === 'leaderboard') {
+loadLeaderboard();
+} else if (name === 'skins') {
+renderSkins();
+}
 }
 function renderSkins() {
-var c = document.getElementById('skinsList'); if (!c) return; c.innerHTML = ''; if (!SKINS || SKINS.length === 0) return;
+var c = document.getElementById('skinsList');
+if (!c) return;
+c.innerHTML = '';
+if (!SKINS || SKINS.length === 0) return;
 SKINS.forEach(function(s, i) {
-var owned = isSkinOwned(s.id); var equipped = currentSkin === s.id; var canBuy = !owned && currentBalance >= s.price;
-var el = document.createElement('div'); el.className = 'room-card' + (equipped ? ' equipped' : ''); el.onclick = function() { openSkinModal(s); };
+var owned = isSkinOwned(s.id);
+var equipped = currentSkin === s.id;
+var canBuy = !owned && currentBalance >= s.price;
+var el = document.createElement('div');
+el.className = 'room-card' + (equipped ? ' equipped' : '');
+el.onclick = function() { openSkinModal(s); };
 var btnHtml = '';
 if (equipped) btnHtml = '<button class="room-btn equipped">Надето</button>';
 else if (owned) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();equipSkin(\'' + s.id + '\')">Надеть</button>';
@@ -604,100 +796,575 @@ el.innerHTML = '<div style="font-weight:700;width:30px;color:var(--sec);">#' + (
 c.appendChild(el);
 });
 }
-function openSkinModal(s) { currentModalSkin = s; disableBottomNav(); document.getElementById('modalImgContainer').innerHTML = '<img src="' + escapeHtml(s.img) + '" alt="" style="width:100%;height:100%;object-fit:contain;">'; document.getElementById('modalTitle').textContent = getSkinNameById(s.id) + ' ' + getSkinEmoji(s.id); document.getElementById('modalDesc').textContent = getSkinDescription(s.id); var priceEl = document.getElementById('modalPrice'); var btnEl = document.getElementById('modalBtn'); if (currentSkin === s.id) { priceEl.textContent = '✅ Надето'; btnEl.textContent = 'Надето'; btnEl.className = 'skin-modal-btn equipped'; btnEl.disabled = true; } else if (isSkinOwned(s.id)) { priceEl.textContent = '✅ Куплено'; btnEl.textContent = 'Надеть'; btnEl.className = 'skin-modal-btn equip'; btnEl.disabled = false; } else { priceEl.textContent = '💰 ' + formatCompactNumber(s.price) + ' Spike'; btnEl.textContent = currentBalance >= s.price ? 'Купить' : 'Недостаточно средств'; btnEl.className = 'skin-modal-btn buy'; btnEl.disabled = currentBalance < s.price; } document.getElementById('skinModal').classList.remove('hidden'); }
+function openSkinModal(s) {
+currentModalSkin = s; disableBottomNav();
+document.getElementById('modalImgContainer').innerHTML = '<img src="' + escapeHtml(s.img) + '" alt="" style="width:100%;height:100%;object-fit:contain;">';
+document.getElementById('modalTitle').textContent = getSkinNameById(s.id) + ' ' + getSkinEmoji(s.id);
+document.getElementById('modalDesc').textContent = getSkinDescription(s.id);
+var priceEl = document.getElementById('modalPrice'); var btnEl = document.getElementById('modalBtn');
+if (currentSkin === s.id) { priceEl.textContent = '✅ Надето'; btnEl.textContent = 'Надето'; btnEl.className = 'skin-modal-btn equipped'; btnEl.disabled = true; }
+else if (isSkinOwned(s.id)) { priceEl.textContent = '✅ Куплено'; btnEl.textContent = 'Надеть'; btnEl.className = 'skin-modal-btn equip'; btnEl.disabled = false; }
+else { priceEl.textContent = '💰 ' + formatCompactNumber(s.price) + ' Spike'; btnEl.textContent = currentBalance >= s.price ? 'Купить' : 'Недостаточно средств'; btnEl.className = 'skin-modal-btn buy'; btnEl.disabled = currentBalance < s.price; }
+document.getElementById('skinModal').classList.remove('hidden');
+}
 function closeSkinModal(e) { if (!e || e.target.id === 'skinModal' || e.target.className === 'skin-modal-close') { document.getElementById('skinModal').classList.add('hidden'); currentModalSkin = null; enableBottomNav(); } }
 function handleSkinAction() { if (!currentModalSkin) return; if (currentSkin === currentModalSkin.id) return; if (isSkinOwned(currentModalSkin.id)) equipSkin(currentModalSkin.id); else buySkin(currentModalSkin.id); }
-async function buySkin(skinId) { if (isSkinOwned(skinId)) return; var price = getSkinPrice(skinId); if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); return; } var success = await updateBalanceOnly(MY_ID, -price); if (success) { ownedSkins.push(skinId); await saveSkinsToDB(); updateBalanceDisplay(); renderSkins(); playBuySound(); } else { alert('Ошибка при покупке!'); } }
+async function buySkin(skinId) {
+if (isSkinOwned(skinId)) return;
+var price = getSkinPrice(skinId);
+if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); return; }
+var success = await updateBalanceOnly(MY_ID, -price);
+if (success) {
+ownedSkins.push(skinId);
+await saveSkinsToDB();
+updateBalanceDisplay();
+renderSkins();
+playBuySound();
+} else {
+alert('Ошибка при покупке!');
+}
+}
 async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; await saveSkinsToDB(); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); enableBottomNav(); }
-async function loadSkinsFromDB() { if (!MY_ID) return false; try { var result = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { if (result[0].owned_skins) { try { var loadedOwned = JSON.parse(result[0].owned_skins); if (Array.isArray(loadedOwned) && loadedOwned.length > 0) { ownedSkins = loadedOwned; if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } } catch(e) {} } if (result[0].current_skin) currentSkin = result[0].current_skin; return true; } return false; } catch(e) { return false; } }
-async function saveSkinsToDB() { try { if (!MY_ID) return false; var existing = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, owned_skins: JSON.stringify(ownedSkins), current_skin: currentSkin, updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('user_skins', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('user_skins', 'POST', [payload]); return true; } catch(e) { return false; } }
-async function canCreateRoom() { try { var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10'); var activeRooms = Array.isArray(myRooms) ? myRooms.filter(function(r) { return r.status !== 'finished'; }) : []; if (activeRooms.length >= 5) { playErrorSound(); alert('❌ У вас уже есть 5 активных комнат!'); return false; } return true; } catch(e) { return true; } }
-function openStakeModal() { if (currentBalance < 10) { playErrorSound(); alert('Недостаточно средств!'); return; } selectedStake = 10; document.getElementById('stakeInput').value = ''; document.getElementById('stakeError').textContent = ''; document.getElementById('roomPassword').value = ''; document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); }); var defBtn = document.querySelector('.stake-preset-btn[data-stake="10"]'); if (defBtn) defBtn.classList.add('selected'); disableBottomNav(); document.getElementById('stakeModal').classList.remove('hidden'); }
+async function loadSkinsFromDB() {
+if (!MY_ID) return false;
+try {
+var result = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1');
+if (result && result.length > 0) {
+if (result[0].owned_skins) { try { var loadedOwned = JSON.parse(result[0].owned_skins); if (Array.isArray(loadedOwned) && loadedOwned.length > 0) { ownedSkins = loadedOwned; if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } } catch(e) {} }
+if (result[0].current_skin) currentSkin = result[0].current_skin;
+return true;
+}
+return false;
+} catch(e) { return false; }
+}
+async function saveSkinsToDB() {
+try {
+if (!MY_ID) return false;
+var existing = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1');
+var payload = { player_id: MY_ID, owned_skins: JSON.stringify(ownedSkins), current_skin: currentSkin, updated_at: new Date().toISOString() };
+if (existing && existing.length > 0) await db('user_skins', 'PATCH', payload, '?player_id=eq.' + MY_ID);
+else await db('user_skins', 'POST', [payload]);
+return true;
+} catch(e) { return false; }
+}
+async function canCreateRoom() {
+try {
+var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10');
+var activeRooms = Array.isArray(myRooms) ? myRooms.filter(function(r) { return r.status !== 'finished'; }) : [];
+if (activeRooms.length >= 5) { playErrorSound(); alert('❌ У вас уже есть 5 активных комнат!'); return false; }
+return true;
+} catch(e) { return true; }
+}
+function openStakeModal() {
+if (currentBalance < 10) { playErrorSound(); alert('Недостаточно средств!'); return; }
+selectedStake = 10; document.getElementById('stakeInput').value = ''; document.getElementById('stakeError').textContent = ''; document.getElementById('roomPassword').value = '';
+document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); });
+var defBtn = document.querySelector('.stake-preset-btn[data-stake="10"]'); if (defBtn) defBtn.classList.add('selected');
+disableBottomNav(); document.getElementById('stakeModal').classList.remove('hidden');
+}
 function closeStakeModal(e) { if (!e || e.target.id === 'stakeModal' || e.target.className === 'skin-modal-close') { document.getElementById('stakeModal').classList.add('hidden'); enableBottomNav(); } }
-function selectStakePreset(value, btn) { selectedStake = value; document.getElementById('stakeInput').value = ''; document.getElementById('stakeError').textContent = ''; document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); }); if (btn) btn.classList.add('selected'); }
-function onStakeInput() { var val = parseInt(document.getElementById('stakeInput').value); document.getElementById('stakeError').textContent = ''; document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); }); if (isNaN(val)) { selectedStake = 10; return; } if (val < 10) { document.getElementById('stakeError').textContent = 'Мин: 10 Spike'; selectedStake = 10; } else if (val > 1000) { document.getElementById('stakeError').textContent = 'Макс: 1000 Spike'; selectedStake = 1000; } else { selectedStake = Math.round(val / 10) * 10; } }
-async function confirmStake() { if (isCreatingRoom) return; isCreatingRoom = true; try { var canCreate = await canCreateRoom(); if (!canCreate) { isCreatingRoom = false; return; } var inputVal = document.getElementById('stakeInput').value; var finalStake = selectedStake; if (inputVal) { var parsed = parseInt(inputVal); if (parsed < 10 || parsed > 1000 || isNaN(parsed)) { playErrorSound(); document.getElementById('stakeError').textContent = 'Введи от 10 до 1000'; isCreatingRoom = false; return; } finalStake = Math.round(parsed / 10) * 10; } if (currentBalance < finalStake) { playErrorSound(); document.getElementById('stakeError').textContent = 'Недостаточно средств!'; isCreatingRoom = false; return; } var rawPassword = document.getElementById('roomPassword').value.trim(); if (rawPassword && !/^\d{1,4}$/.test(rawPassword)) { playErrorSound(); isCreatingRoom = false; return; } closeStakeModal(); var room = await db('rooms', 'POST', [{ creator_tg_id: MY_ID, creator_username: escapeHtml(user.username || 'Anonymous'), stake: finalStake, status: 'waiting', room_password: rawPassword || null }], '', true); currentRoom = room; showGameScreen(); startPolling(); loadRooms(); } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); } finally { isCreatingRoom = false; } }
-async function loadRooms() { if (!MY_ID) return; try { var my = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&order=created_at.desc&limit=10'); var all = await db('rooms', 'GET', null, '?status=neq.finished&order=created_at.desc&limit=50'); renderRooms('myRoomsList', Array.isArray(my) ? my : [], true); renderRooms('roomsList', (Array.isArray(all) ? all : []).filter(function(r) { return Number(r.creator_tg_id) !== MY_ID; }), false); } catch(e) {} }
-function renderRooms(id, rooms, isMy) { var c = document.getElementById(id); if (!c) return; c.innerHTML = ''; if (!rooms || rooms.length === 0) { c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Нет комнат</div>'; return; } rooms.forEach(function(r) { var trulyMine = Number(r.creator_tg_id) === MY_ID; var isOpponent = Number(r.opponent_tg_id) === MY_ID; var isPlaying = r.status === 'playing'; var isWaiting = r.status === 'waiting'; var el = document.createElement('div'); el.className = 'room-card' + (trulyMine ? ' my-room' : ''); if (trulyMine || isOpponent) { el.onclick = function() { resumeRoom(r.id); }; el.style.cursor = 'pointer'; } var badgeHtml = '', btnHtml = '', timerHtml = ''; var hasPassword = r.room_password && r.room_password.length > 0; var lockIcon = hasPassword ? '<span class="lock-icon">🔒</span>' : ''; if (isWaiting) { badgeHtml = '<span style="background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:9px;">ЖДЁТ</span>'; if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 1000; timerHtml = '<span class="room-timer" data-room-id="' + r.id + '">' + formatCountdown(window.roomExpiry[r.id] - Date.now()) + '</span>'; } var stakeDisplay = formatStakeDisplay(r); var creatorName = escapeHtml(r.creator_username || 'Anonymous'); if (trulyMine) { if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')">🔄 Вернуться</button>'; var cancelBtn = !isPlaying && !r.opponent_tg_id ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + r.id + '\')">✕</button>' : ''; el.innerHTML = '<div class="room-icon">' + escapeHtml(MY_INITIAL) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div><div class="room-actions">' + btnHtml + cancelBtn + '</div>'; } else { btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();joinRoom(\'' + r.id + '\',this)">Войти</button>'; el.innerHTML = '<div class="room-icon">' + escapeHtml(creatorName.charAt(0).toUpperCase()) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">@' + creatorName + '</div></div><div class="room-actions">' + btnHtml + '</div>'; } c.appendChild(el); }); }
-async function resumeRoom(roomId) { try { var room = await db('rooms', 'GET', null, '?id=eq.' + roomId, true); if (!room) { loadRooms(); return; } currentRoom = room; if (currentRoom.status === 'finished') { showGameScreen(); showGameResult(currentRoom); return; } showGameScreen(); startPolling(); } catch(e) { alert('Ошибка: ' + e.message); } }
-async function cancelRoom(roomId) { if (!roomId) return; try { await db('rooms', 'DELETE', null, '?id=eq.' + roomId); delete window.roomExpiry[roomId]; if (currentRoom && currentRoom.id == roomId) { currentRoom = null; clearAllIntervals(); } loadRooms(); } catch(e) { loadRooms(); } }
-async function joinRoom(roomId, btnElement) { isJoiningRoom = false; if (isJoiningRoom) return; isJoiningRoom = true; if (!user || !MY_ID) { alert('⚠️ Ошибка: Вы не вошли в систему!'); if(btnElement) btnElement.disabled = false; isJoiningRoom = false; return; } if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; } try { var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false); if (!roomData || roomData.length === 0) throw new Error('Комната не найдена'); var room = roomData[0]; if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; } if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; } if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята'); if (room.room_password) { var pwd = prompt('🔒 Введите пароль:'); if (pwd !== room.room_password) { alert('❌ Неверный пароль'); if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } isJoiningRoom = false; return; } } var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId; var res = await fetch(patchUrl, { method: 'PATCH', headers: { 'apikey': ANON_KEY, 'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ opponent_tg_id: String(MY_ID), opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' }) }); if (!res.ok) { var errText = await res.text(); throw new Error('Сервер отказал (' + res.status + '): ' + errText); } currentRoom = { id: room.id, creator_tg_id: room.creator_tg_id, creator_username: room.creator_username, opponent_tg_id: String(MY_ID), opponent_username: user.username, status: 'playing', stake: room.stake, room_password: room.room_password }; showGameScreen(); startPolling(); loadRooms(); closeRoomsScreen(); } catch(e) { alert('❌ ' + e.message); if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } } finally { isJoiningRoom = false; } }
-function showGameScreen() { closeRoomsScreen(); ['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); }); document.getElementById('gameScreen').classList.remove('hidden'); if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; } var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID); var myCol = isCreator ? 'creator_choice' : 'opponent_choice'; var choices = document.querySelectorAll('.choice-btn'); if (currentRoom[myCol]) { choices.forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; } else { choices.forEach(function(b) { b.disabled = false; }); document.getElementById('statusMessage').textContent = 'Выберите ход'; } isGameFinished = false; window._timerRunning = false; document.getElementById('stakeAmount').textContent = (currentRoom.stake || 10) + ' Spike'; document.getElementById('winAmount').textContent = ((currentRoom.stake || 10) * 2) + ' Spike'; renderPlayerStats(); }
-async function renderPlayerStats() { if (!currentRoom || !currentRoom.id) return; try { var creatorId = currentRoom.creator_tg_id; var opponentId = currentRoom.opponent_tg_id; var opponentUsername = currentRoom.opponent_username; renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?'); if (opponentId) { renderAvatar('opponentAvatar', null, opponentUsername || 'Игрок'); try { var oppStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, true); if (oppStats) { document.getElementById('opponentStats').innerHTML = '<span style="color:var(--success)">✅ ' + (oppStats.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (oppStats.losses || 0) + '</span>'; } } catch(e) { document.getElementById('opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>'; } } else { document.getElementById('opponentAvatar').innerHTML = '?'; document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>'; } var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true); if (myStats) { document.getElementById('playerStats').innerHTML = '<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br><span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>'; } } catch(e) { console.error('[STATS] Error:', e); } }
-function startPolling() { clearAllIntervals(); if (!currentRoom) return; isGameFinished = false; var opponentJoined = false; activeIntervals.pollInterval = setInterval(async function() { if (!currentRoom || isGameFinished || isProcessingGame) return; try { var res = await db('rooms', 'GET', null, '?id=eq.' + currentRoom.id); var room = res[0]; if (!room) return; if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); } var isCreator = String(room.creator_tg_id) === String(MY_ID); var safeRoom = { id: room.id, creator_tg_id: room.creator_tg_id, opponent_tg_id: room.opponent_tg_id, creator_username: room.creator_username, opponent_username: room.opponent_username, stake: room.stake, status: room.status }; if (isCreator) safeRoom.creator_choice = room.creator_choice; else safeRoom.opponent_choice = room.opponent_choice; currentRoom = safeRoom; renderPlayerStats(); if (room.creator_choice && room.opponent_choice && !isProcessingGame && !processedGames[room.id]) { await showRevealAnimation(room); } if (room.status === 'finished') { isGameFinished = true; processedGames[room.id] = true; clearAllIntervals(); } } catch(e) { console.error('[POLL] Error:', e); } }, 2000); }
-function trackMove(move) { try { var key = 'echidna_moves_' + MY_ID; var moves = JSON.parse(localStorage.getItem(key) || '{"rock":0,"paper":0,"scissors":0}'); moves[move] = (moves[move] || 0) + 1; localStorage.setItem(key, JSON.stringify(moves)); } catch(e) {} }
-async function makeMove(choice) { if (!currentRoom) { alert('❌ Комната не найдена'); return; } if (!currentRoom.opponent_tg_id && currentRoom.status === 'waiting') { alert('⏳ Соперник еще не присоединился!'); return; } var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'; if (currentRoom[col]) return; trackMove(choice); document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; }); document.getElementById('statusMessage').textContent = '✅ Ход записан'; try { await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + currentRoom.id); currentRoom[col] = choice; } catch(e) { playErrorSound(); document.getElementById('statusMessage').textContent = '❌ Ошибка хода'; setTimeout(function() { document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; }); }, 1000); } }
-async function showRevealAnimation(room) { if (processedGames[room.id]) { return; } processedGames[room.id] = true; isProcessingGame = true; clearAllIntervals(); var overlay = document.getElementById('revealOverlay'); try { var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + room.id, true); if (freshRoom) room = freshRoom; } catch(e) {} var isCreator = String(room.creator_tg_id) === String(MY_ID); var myMove = isCreator ? room.creator_choice : room.opponent_choice; var oppMove = isCreator ? room.opponent_choice : room.creator_choice; document.getElementById('revealPlayer1Label').textContent = 'Вы'; document.getElementById('revealPlayer2Label').textContent = 'Соперник'; document.getElementById('card1Img').src = moveImages[myMove] || ''; document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага'; document.getElementById('card2Img').src = moveImages[oppMove] || ''; document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага'; overlay.classList.remove('hidden'); document.getElementById('card1').classList.remove('flipped'); document.getElementById('card2').classList.remove('flipped'); document.getElementById('revealResult').textContent = ''; document.getElementById('revealEmotion').classList.add('hidden'); await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound(); await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound(); await sleep(800); var result = calculateWinner(room); document.getElementById('revealResult').textContent = result.msg; document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat'); var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg'); if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); } else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); } var winnerId = result.winnerId; var stake = room.stake || 10; if (winnerId && isCreator) { var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id; if (winnerId) await updateBalanceOnly(winnerId, stake); if (loserId) await updateBalanceOnly(loserId, -stake); await updateWinsOnly(winnerId); await updateLossesOnly(loserId); } try { await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id); } catch(e) {} updateBalanceDisplay(); updateStats(); var countdown = 3; var countdownEl = document.getElementById('revealCountdown'); countdownEl.textContent = countdown; var countdownInterval = setInterval(function() { countdown--; if (countdown > 0) countdownEl.textContent = countdown; else { clearInterval(countdownInterval); overlay.classList.add('hidden'); showScreen('lobby'); } }, 1000); }
-function calculateWinner(room) { var c1 = room.creator_choice, c2 = room.opponent_choice; var id1 = room.creator_tg_id, id2 = room.opponent_tg_id; if (!c1 || !c2) return { msg: 'Ошибка', winnerId: null }; if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null }; var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' }; var creatorWins = beats[c1] === c2; return { msg: (creatorWins ? (MY_ID == id1) : (MY_ID == id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 }; }
-function showGameResult(room) { var msg = calculateWinner(room).msg; document.getElementById('statusMessage').innerHTML = '<div style="font-size:18px;">' + msg + '</div>'; setTimeout(function() { showScreen('lobby'); }, 3000); }
-function filterRooms() { var query = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('#roomsList .room-card').forEach(function(el) { var creatorText = (el.querySelector('.room-creator') && el.querySelector('.room-creator').textContent || '').toLowerCase(); el.style.display = creatorText.indexOf(query) !== -1 ? 'flex' : 'none'; }); }
-
-// ==========================================
-// 🏆 РЕЙТИНГ: ТОП-20 + МОЕ МЕСТО
-// ==========================================
+function selectStakePreset(value, btn) {
+selectedStake = value; document.getElementById('stakeInput').value = ''; document.getElementById('stakeError').textContent = '';
+document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); });
+if (btn) btn.classList.add('selected');
+}
+function onStakeInput() {
+var val = parseInt(document.getElementById('stakeInput').value);
+document.getElementById('stakeError').textContent = '';
+document.querySelectorAll('.stake-preset-btn').forEach(function(b) { b.classList.remove('selected'); });
+if (isNaN(val)) { selectedStake = 10; return; }
+if (val < 10) { document.getElementById('stakeError').textContent = 'Мин: 10 Spike'; selectedStake = 10; }
+else if (val > 1000) { document.getElementById('stakeError').textContent = 'Макс: 1000 Spike'; selectedStake = 1000; }
+else { selectedStake = Math.round(val / 10) * 10; }
+}
+async function confirmStake() {
+if (isCreatingRoom) return;
+isCreatingRoom = true;
+try {
+var canCreate = await canCreateRoom(); if (!canCreate) { isCreatingRoom = false; return; }
+var inputVal = document.getElementById('stakeInput').value; var finalStake = selectedStake;
+if (inputVal) { var parsed = parseInt(inputVal); if (parsed < 10 || parsed > 1000 || isNaN(parsed)) { playErrorSound(); document.getElementById('stakeError').textContent = 'Введи от 10 до 1000'; isCreatingRoom = false; return; } finalStake = Math.round(parsed / 10) * 10; }
+if (currentBalance < finalStake) { playErrorSound(); document.getElementById('stakeError').textContent = 'Недостаточно средств!'; isCreatingRoom = false; return; }
+var rawPassword = document.getElementById('roomPassword').value.trim();
+if (rawPassword && !/^\d{1,4}$/.test(rawPassword)) { playErrorSound(); isCreatingRoom = false; return; }
+closeStakeModal();
+var room = await db('rooms', 'POST', [{ creator_tg_id: MY_ID, creator_username: escapeHtml(user.username || 'Anonymous'), stake: finalStake, status: 'waiting', room_password: rawPassword || null }], '', true);
+currentRoom = room;
+showGameScreen(); startPolling(); loadRooms();
+} catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); } finally { isCreatingRoom = false; }
+}
+async function loadRooms() {
+if (!MY_ID) return;
+try {
+var my = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&order=created_at.desc&limit=10');
+var all = await db('rooms', 'GET', null, '?status=neq.finished&order=created_at.desc&limit=50');
+renderRooms('myRoomsList', Array.isArray(my) ? my : [], true);
+renderRooms('roomsList', (Array.isArray(all) ? all : []).filter(function(r) { return Number(r.creator_tg_id) !== MY_ID; }), false);
+} catch(e) {}
+}
+function renderRooms(id, rooms, isMy) {
+var c = document.getElementById(id); if (!c) return; c.innerHTML = '';
+if (!rooms || rooms.length === 0) { c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Нет комнат</div>'; return; }
+rooms.forEach(function(r) {
+var trulyMine = Number(r.creator_tg_id) === MY_ID;
+var isOpponent = Number(r.opponent_tg_id) === MY_ID;
+var isPlaying = r.status === 'playing';
+var isWaiting = r.status === 'waiting';
+var el = document.createElement('div');
+el.className = 'room-card' + (trulyMine ? ' my-room' : '');
+if (trulyMine || isOpponent) { el.onclick = function() { resumeRoom(r.id); }; el.style.cursor = 'pointer'; }
+var badgeHtml = '', btnHtml = '', timerHtml = '';
+var hasPassword = r.room_password && r.room_password.length > 0;
+var lockIcon = hasPassword ? '<span class="lock-icon">🔒</span>' : '';
+if (isWaiting) {
+badgeHtml = '<span style="background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;font-size:9px;">ЖДЁТ</span>';
+if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 1000;
+timerHtml = '<span class="room-timer" data-room-id="' + r.id + '">' + formatCountdown(window.roomExpiry[r.id] - Date.now()) + '</span>';
+}
+var stakeDisplay = formatStakeDisplay(r);
+var creatorName = escapeHtml(r.creator_username || 'Anonymous');
+if (trulyMine) {
+if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')">🔄 Вернуться</button>';
+var cancelBtn = !isPlaying && !r.opponent_tg_id ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + r.id + '\')">✕</button>' : '';
+el.innerHTML = '<div class="room-icon">' + escapeHtml(MY_INITIAL) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div><div class="room-actions">' + btnHtml + cancelBtn + '</div>';
+} else {
+btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();joinRoom(\'' + r.id + '\',this)">Войти</button>';
+el.innerHTML = '<div class="room-icon">' + escapeHtml(creatorName.charAt(0).toUpperCase()) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">@' + creatorName + '</div></div><div class="room-actions">' + btnHtml + '</div>';
+}
+c.appendChild(el);
+});
+}
+async function resumeRoom(roomId) {
+try {
+var room = await db('rooms', 'GET', null, '?id=eq.' + roomId, true);
+if (!room) { loadRooms(); return; }
+currentRoom = room;
+if (currentRoom.status === 'finished') { showGameScreen(); showGameResult(currentRoom); return; }
+showGameScreen(); startPolling();
+} catch(e) { alert('Ошибка: ' + e.message); }
+}
+async function cancelRoom(roomId) {
+if (!roomId) return;
+try {
+await db('rooms', 'DELETE', null, '?id=eq.' + roomId);
+delete window.roomExpiry[roomId];
+if (currentRoom && currentRoom.id == roomId) { currentRoom = null; clearAllIntervals(); }
+loadRooms();
+} catch(e) { loadRooms(); }
+}
+async function joinRoom(roomId, btnElement) {
+isJoiningRoom = false;
+if (isJoiningRoom) return;
+isJoiningRoom = true;
+if (!user || !MY_ID) {
+alert('⚠️ Ошибка: Вы не вошли в систему!');
+if(btnElement) btnElement.disabled = false;
+isJoiningRoom = false;
+return;
+}
+if (btnElement) { btnElement.disabled = true; btnElement.textContent = '⏳...'; }
+try {
+var roomData = await db('rooms', 'GET', null, '?id=eq.' + roomId, false);
+if (!roomData || roomData.length === 0) throw new Error('Комната не найдена');
+var room = roomData[0];
+if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
+if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
+if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
+if (room.room_password) {
+var pwd = prompt('🔒 Введите пароль:');
+if (pwd !== room.room_password) {
+alert('❌ Неверный пароль');
+if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; }
+isJoiningRoom = false; return;
+}
+}
+var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
+var res = await fetch(patchUrl, {
+method: 'PATCH',
+headers: {
+'apikey': ANON_KEY,
+'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY,
+'Content-Type': 'application/json',
+'Prefer': 'return=minimal'
+},
+body: JSON.stringify({
+opponent_tg_id: String(MY_ID),
+opponent_username: escapeHtml(user.username || 'Anonymous'),
+status: 'playing'
+})
+});
+if (!res.ok) {
+var errText = await res.text();
+throw new Error('Сервер отказал (' + res.status + '): ' + errText);
+}
+currentRoom = {
+id: room.id,
+creator_tg_id: room.creator_tg_id,
+creator_username: room.creator_username,
+opponent_tg_id: String(MY_ID),
+opponent_username: user.username,
+status: 'playing',
+stake: room.stake,
+room_password: room.room_password
+};
+showGameScreen();
+startPolling();
+loadRooms();
+closeRoomsScreen();
+} catch(e) {
+alert('❌ ' + e.message);
+if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; }
+} finally {
+isJoiningRoom = false;
+}
+}
+function showGameScreen() {
+closeRoomsScreen();
+['lobbyScreen', 'statsScreen', 'gameScreen', 'skinsScreen', 'leaderboardScreen', 'tasksScreen'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); });
+document.getElementById('gameScreen').classList.remove('hidden');
+if (!currentRoom) { document.getElementById('statusMessage').textContent = '❌ Комната не найдена'; return; }
+var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID);
+var myCol = isCreator ? 'creator_choice' : 'opponent_choice';
+var choices = document.querySelectorAll('.choice-btn');
+if (currentRoom[myCol]) {
+choices.forEach(function(b) { b.disabled = true; });
+document.getElementById('statusMessage').textContent = '✅ Ход записан';
+} else {
+choices.forEach(function(b) { b.disabled = false; });
+document.getElementById('statusMessage').textContent = 'Выберите ход';
+}
+isGameFinished = false; window._timerRunning = false;
+document.getElementById('stakeAmount').textContent = (currentRoom.stake || 10) + ' Spike';
+document.getElementById('winAmount').textContent = ((currentRoom.stake || 10) * 2) + ' Spike';
+renderPlayerStats();
+}
+async function renderPlayerStats() {
+if (!currentRoom || !currentRoom.id) return;
+try {
+var creatorId = currentRoom.creator_tg_id;
+var opponentId = currentRoom.opponent_tg_id;
+var opponentUsername = currentRoom.opponent_username;
+var isCreator = String(creatorId) === String(MY_ID);
+renderAvatar('playerAvatar', MY_PHOTO_URL, user.username || '?');
+if (opponentId) {
+renderAvatar('opponentAvatar', null, opponentUsername || 'Игрок');
+try {
+var oppStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + opponentId, true);
+if (oppStats) {
+document.getElementById('opponentStats').innerHTML =
+'<span style="color:var(--success)">✅ ' + (oppStats.wins || 0) + '</span><br>' +
+'<span style="color:var(--error)">❌ ' + (oppStats.losses || 0) + '</span>';
+}
+} catch(e) {
+document.getElementById('opponentStats').innerHTML = '<span>✅ 0</span><br><span>❌ 0</span>';
+}
+} else {
+document.getElementById('opponentAvatar').innerHTML = '?';
+document.getElementById('opponentStats').innerHTML = '<span style="color:var(--sec)">⏳ Ожидание...</span>';
+}
+var myStats = await db('users', 'GET', null, '?select=wins,losses&telegram_id=eq.' + MY_ID, true);
+if (myStats) {
+document.getElementById('playerStats').innerHTML =
+'<span style="color:var(--success)">✅ ' + (myStats.wins || 0) + '</span><br>' +
+'<span style="color:var(--error)">❌ ' + (myStats.losses || 0) + '</span>';
+}
+} catch(e) {
+console.error('[STATS] Error:', e);
+}
+}
+function startPolling() {
+clearAllIntervals(); if (!currentRoom) return;
+isGameFinished = false; var opponentJoined = false;
+activeIntervals.pollInterval = setInterval(async function() {
+if (!currentRoom || isGameFinished || isProcessingGame) return;
+try {
+var res = await db('rooms', 'GET', null, '?id=eq.' + currentRoom.id);
+var room = res[0]; if (!room) return;
+if (room.opponent_tg_id && !opponentJoined) { opponentJoined = true; playJoinSound(); }
+var isCreator = String(room.creator_tg_id) === String(MY_ID);
+var safeRoom = { id: room.id, creator_tg_id: room.creator_tg_id, opponent_tg_id: room.opponent_tg_id, creator_username: room.creator_username, opponent_username: room.opponent_username, stake: room.stake, status: room.status };
+if (isCreator) safeRoom.creator_choice = room.creator_choice; else safeRoom.opponent_choice = room.opponent_choice;
+currentRoom = safeRoom; renderPlayerStats();
+if (room.creator_choice && room.opponent_choice && !isProcessingGame && !processedGames[room.id]) {
+await showRevealAnimation(room);
+}
+if (room.status === 'finished') {
+isGameFinished = true;
+processedGames[room.id] = true;
+clearAllIntervals();
+}
+} catch(e) {
+console.error('[POLL] Error:', e);
+}
+}, 2000);
+}
+function trackMove(move) {
+try {
+var key = 'echidna_moves_' + MY_ID;
+var moves = JSON.parse(localStorage.getItem(key) || '{"rock":0,"paper":0,"scissors":0}');
+moves[move] = (moves[move] || 0) + 1;
+localStorage.setItem(key, JSON.stringify(moves));
+} catch(e) {}
+}
+async function makeMove(choice) {
+if (!currentRoom) { alert('❌ Комната не найдена'); return; }
+if (!currentRoom.opponent_tg_id && currentRoom.status === 'waiting') {
+alert('⏳ Соперник еще не присоединился!');
+return;
+}
+var col = String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice';
+if (currentRoom[col]) return;
+trackMove(choice);
+document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; });
+document.getElementById('statusMessage').textContent = '✅ Ход записан';
+try {
+await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + currentRoom.id);
+currentRoom[col] = choice;
+} catch(e) {
+playErrorSound();
+document.getElementById('statusMessage').textContent = '❌ Ошибка хода';
+setTimeout(function() {
+document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = false; });
+}, 1000);
+}
+}
+async function showRevealAnimation(room) {
+if (processedGames[room.id]) {
+console.log('[GAME] Already processed, skipping...');
+return;
+}
+processedGames[room.id] = true;
+isProcessingGame = true;
+clearAllIntervals();
+var overlay = document.getElementById('revealOverlay');
+try {
+var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + room.id, true);
+if (freshRoom) room = freshRoom;
+} catch(e) {}
+var isCreator = String(room.creator_tg_id) === String(MY_ID);
+var myMove = isCreator ? room.creator_choice : room.opponent_choice;
+var oppMove = isCreator ? room.opponent_choice : room.creator_choice;
+document.getElementById('revealPlayer1Label').textContent = 'Вы';
+document.getElementById('revealPlayer2Label').textContent = 'Соперник';
+document.getElementById('card1Img').src = moveImages[myMove] || '';
+document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага';
+document.getElementById('card2Img').src = moveImages[oppMove] || '';
+document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага';
+overlay.classList.remove('hidden');
+document.getElementById('card1').classList.remove('flipped');
+document.getElementById('card2').classList.remove('flipped');
+document.getElementById('revealResult').textContent = '';
+document.getElementById('revealEmotion').classList.add('hidden');
+await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound();
+await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound();
+await sleep(800);
+var result = calculateWinner(room);
+document.getElementById('revealResult').textContent = result.msg;
+document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat');
+var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg');
+if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); }
+else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); }
+var winnerId = result.winnerId;
+var stake = room.stake || 10;
+if (winnerId && isCreator) {
+var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
+if (winnerId) await updateBalanceOnly(winnerId, stake);
+if (loserId) await updateBalanceOnly(loserId, -stake);
+await updateWinsOnly(winnerId);
+await updateLossesOnly(loserId);
+}
+try {
+await db('rooms', 'PATCH', { status: 'finished' }, '?id=eq.' + room.id);
+} catch(e) {}
+updateBalanceDisplay();
+updateStats();
+var countdown = 3;
+var countdownEl = document.getElementById('revealCountdown');
+countdownEl.textContent = countdown;
+var countdownInterval = setInterval(function() {
+countdown--;
+if (countdown > 0) countdownEl.textContent = countdown;
+else {
+clearInterval(countdownInterval);
+overlay.classList.add('hidden');
+showScreen('lobby');
+}
+}, 1000);
+}
+function calculateWinner(room) {
+var c1 = room.creator_choice, c2 = room.opponent_choice;
+var id1 = room.creator_tg_id, id2 = room.opponent_tg_id;
+if (!c1 || !c2) return { msg: 'Ошибка', winnerId: null };
+if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null };
+var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
+var creatorWins = beats[c1] === c2;
+return { msg: (creatorWins ? (MY_ID == id1) : (MY_ID == id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 };
+}
+function showGameResult(room) {
+var msg = calculateWinner(room).msg;
+document.getElementById('statusMessage').innerHTML = '<div style="font-size:18px;">' + msg + '</div>';
+setTimeout(function() { showScreen('lobby'); }, 3000);
+}
+function filterRooms() {
+var query = document.getElementById('searchInput').value.toLowerCase();
+document.querySelectorAll('#roomsList .room-card').forEach(function(el) {
+var creatorText = (el.querySelector('.room-creator') && el.querySelector('.room-creator').textContent || '').toLowerCase();
+el.style.display = creatorText.indexOf(query) !== -1 ? 'flex' : 'none';
+});
+}
 async function loadLeaderboard() {
 var c = document.getElementById('leaderboardList');
 if (!c) return;
 c.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 try {
-var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses,balance&order=balance.desc.nullslast&limit=100', false);
+var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=balance.desc.nullslast&limit=50', false);
 var usersList = Array.isArray(allUsers) ? allUsers : [];
-var validUsers = usersList.filter(u => !u.username || !u.username.startsWith('Guest_'));
-
-var myIndex = validUsers.findIndex(u => String(u.telegram_id) === String(MY_ID));
-var myRank = myIndex !== -1 ? myIndex + 1 : null;
-var myUserData = myIndex !== -1 ? validUsers[myIndex] : null;
-
+if (usersList.length === 0) {
+c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Пока нет игроков</div>';
+return;
+}
+const uniqueUsers = [];
+const seenNames = new Set();
+let myRank = null;
+for (const u of usersList) {
+// 🔥 Фильтрация гостевых аккаунтов
+if (u.username && u.username.startsWith('Guest_')) {
+continue; // Пропускаем гостевые аккаунты
+}
+if (!seenNames.has(u.username)) {
+seenNames.add(u.username);
+uniqueUsers.push(u);
+if (String(u.telegram_id) === String(MY_ID)) {
+myRank = uniqueUsers.length;
+}
+}
+}
 c.innerHTML = '';
-var top20 = validUsers.slice(0, 20);
-
-top20.forEach(function(u, i) {
-var isMe = (myRank === i + 1);
+// 🔥 Показываем ТОП-20
+uniqueUsers.slice(0, 20).forEach(function(u, i) {
 var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0];
 var name = escapeHtml(u.username || 'User');
-var el = document.createElement('div'); 
-el.className = 'room-card' + (isMe ? ' my-rank-card' : '');
-el.style.cursor = 'pointer';
+var el = document.createElement('div'); el.className = 'room-card';
 el.onclick = function() { openPlayerProfile(u); };
-el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;' + (isMe ? 'color:var(--gold);' : '') + '">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>' + (isMe ? 'Вы: @' : '@') + name + '</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(u.balance || 0) + '</div></div></div>';
+el.style.cursor = 'pointer';
+// 🔥 ИСПРАВЛЕНИЕ: Вместо мешка показываем монету Spike
+el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(u.balance || 0) + '</div></div></div>';
 c.appendChild(el);
 });
-
-if (myRank && myRank > 20 && myUserData) {
-var sk = SKINS[Math.min(Math.floor(Math.abs(myUserData.balance || 0) / 100000), 7)] || SKINS[0];
-var name = escapeHtml(myUserData.username || 'User');
+// 🔥 Добавляем мое место в конце
+if (myRank && myRank > 20) {
+var myUser = usersList.find(u => String(u.telegram_id) === String(MY_ID));
+if (myUser) {
+var sk = SKINS[Math.min(Math.floor(Math.abs(myUser.balance || 0) / 100000), 7)] || SKINS[0];
+var name = escapeHtml(myUser.username || 'User');
 var el = document.createElement('div');
 el.className = 'room-card my-rank-card';
+el.onclick = function() { openPlayerProfile(myUser); };
 el.style.cursor = 'pointer';
-el.onclick = function() { openPlayerProfile(myUserData); };
-el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">' + myRank + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(myUserData.balance || 0) + '</div></div></div>';
-c.appendChild(el);
-} else if (!myRank && MY_ID) {
-var singleUser = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses,balance&telegram_id=eq.' + MY_ID, true);
-if (singleUser) {
-var el = document.createElement('div');
-el.className = 'room-card my-rank-card';
-el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">?</div><div class="room-icon">🦔</div><div>@' + escapeHtml(singleUser.username || 'User') + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(singleUser.balance || 0) + '</div></div></div>';
+el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">' + myRank + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(myUser.balance || 0) + '</div></div></div>';
 c.appendChild(el);
 }
 }
-
-if (validUsers.length === 0) { c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Пока нет игроков</div>'; }
-} catch(e) { c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки</div>'; }
+} catch(e) {
+c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки</div>';
 }
-
-async function openPlayerProfile(playerData) { currentViewedPlayer = playerData; document.getElementById('playerModalUsername').textContent = '@' + escapeHtml(playerData.username || 'User'); document.getElementById('playerModalTitle').textContent = 'Профиль игрока'; var wins = playerData.wins || 0; var losses = playerData.losses || 0; var balance = playerData.balance || 0; var totalGames = wins + losses; var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0; document.getElementById('playerStatWinRate').textContent = winRate + '%'; document.getElementById('playerStatBalance').textContent = formatCompactNumber(balance); document.getElementById('playerStatTotalGames').textContent = totalGames; var favMove = '-'; if (String(playerData.telegram_id) === String(MY_ID)) { try { var moves = JSON.parse(localStorage.getItem('echidna_moves_' + MY_ID) || '{}'); var maxCount = 0; for (var m in moves) { if (moves[m] > maxCount) { maxCount = moves[m]; favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '✌️ Ножницы'; } } } catch(e) {} } document.getElementById('playerStatFavMove').textContent = favMove; document.getElementById('playerModal').classList.remove('hidden'); }
-function closePlayerModal(e) { if (!e || e.target.id === 'playerModal' || e.target.className === 'skin-modal-close') { document.getElementById('playerModal').classList.add('hidden'); currentViewedPlayer = null; } }
-async function loadStats() { var tableBody = document.getElementById('gamesTableBody'); tableBody.innerHTML = '<div class="loader"><div class="spinner"></div></div>'; try { var userData = await db('users', 'GET', null, '?select=wins,losses,balance&telegram_id=eq.' + MY_ID, true); var wins = userData ? (userData.wins || 0) : 0; var losses = userData ? (userData.losses || 0) : 0; var balance = userData ? parseInt(userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE; var winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0; var balanceDiff = balance - INITIAL_BALANCE; var balanceText = balanceDiff > 0 ? '+' + formatCompactNumber(balanceDiff) : (balanceDiff < 0 ? '-' + formatCompactNumber(Math.abs(balanceDiff)) : '0'); document.getElementById('statsWinRate').textContent = winRate + '%'; document.getElementById('statsTotalSpike').textContent = balanceText + ' Spike'; document.getElementById('statsTotalGames').textContent = wins + losses; var favMove = '-'; try { var moves = JSON.parse(localStorage.getItem('echidna_moves_' + MY_ID) || '{}'); var maxCount = 0; for (var m in moves) { if (moves[m] > maxCount) { maxCount = moves[m]; favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '✌️ Ножницы'; } } } catch(e) {} document.getElementById('statsFavMove').textContent = favMove; var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false); var gamesList = Array.isArray(games) ? games : []; if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty">Пока нет игр</div>'; return; } var rowsHtml = ''; gamesList.forEach(function(game) { var opponentName = escapeHtml(game.opponent_name || '???'); var resultText = game.result === 'win' ? 'Победа' : game.result === 'lose' ? 'Поражение' : 'Ничья'; var resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw'; rowsHtml += '<div class="game-row"><span>' + opponentName + '</span><span>' + formatCompactNumber(Math.abs(game.stake || 0)) + ' Spike</span><span class="game-result ' + resultClass + '">' + resultText + '</span><span>' + (game.player_move || '?') + '</span></div>'; }); tableBody.innerHTML = rowsHtml; } catch(e) { tableBody.innerHTML = '<div class="games-empty">Ошибка загрузки</div>'; } }
-
-// ==========================================
-// 📅 ЕЖЕДНЕВНЫЕ ЗАДАНИЯ (Зациклено на 9 дней)
-// ==========================================
-async function loadDailyDataFromDB() { try { if (!MY_ID) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var collected = result[0].collected_cards || []; if (typeof collected === 'string') { try { collected = JSON.parse(collected); } catch(e) { collected = []; } } return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: collected }; } return null; } catch(e) { return null; } }
-async function saveDailyDataToDB(data) { try { if (!MY_ID) return; var existing = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, streak: data.streak || 0, last_claim_date: data.lastClaimDate || null, collected_cards: JSON.stringify(data.collectedCards || []), updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('daily_tasks', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('daily_tasks', 'POST', [payload]); } catch(e) {} }
-async function getDailyData() { var dbData = await loadDailyDataFromDB(); if (dbData && dbData.collectedCards && dbData.collectedCards.length > 0) return dbData; try { var s = localStorage.getItem('echidna_daily_v5'); if (s) return JSON.parse(s); } catch(e) {} return { streak: 0, lastClaimDate: null, collectedCards: [] }; }
+}
+async function openPlayerProfile(playerData) {
+currentViewedPlayer = playerData;
+document.getElementById('playerModalUsername').textContent = '@' + escapeHtml(playerData.username || 'User');
+document.getElementById('playerModalTitle').textContent = 'Профиль игрока';
+var wins = playerData.wins || 0;
+var losses = playerData.losses || 0;
+var balance = playerData.balance || 0;
+var totalGames = wins + losses;
+var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+document.getElementById('playerStatWinRate').textContent = winRate + '%';
+document.getElementById('playerStatBalance').textContent = formatCompactNumber(balance);
+document.getElementById('playerStatTotalGames').textContent = totalGames;
+// Получаем любимый ход из localStorage (если это мой профиль) или показываем "-"
+var favMove = '-';
+if (String(playerData.telegram_id) === String(MY_ID)) {
+try {
+var moves = JSON.parse(localStorage.getItem('echidna_moves_' + MY_ID) || '{}');
+var maxCount = 0;
+for (var m in moves) {
+if (moves[m] > maxCount) {
+maxCount = moves[m];
+favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '✌️ Ножницы';
+}
+}
+} catch(e) {}
+}
+document.getElementById('playerStatFavMove').textContent = favMove;
+document.getElementById('playerModal').classList.remove('hidden');
+}
+function closePlayerModal(e) {
+if (!e || e.target.id === 'playerModal' || e.target.className === 'skin-modal-close') {
+document.getElementById('playerModal').classList.add('hidden');
+currentViewedPlayer = null;
+}
+}
+async function loadStats() {
+var tableBody = document.getElementById('gamesTableBody');
+tableBody.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+try {
+var userData = await db('users', 'GET', null, '?select=wins,losses,balance&telegram_id=eq.' + MY_ID, true);
+var wins = userData ? (userData.wins || 0) : 0;
+var losses = userData ? (userData.losses || 0) : 0;
+var balance = userData ? parseInt(userData.balance || INITIAL_BALANCE) : INITIAL_BALANCE;
+var winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+var balanceDiff = balance - INITIAL_BALANCE;
+var balanceText = balanceDiff > 0 ? '+' + formatCompactNumber(balanceDiff) : (balanceDiff < 0 ? '-' + formatCompactNumber(Math.abs(balanceDiff)) : '0');
+document.getElementById('statsWinRate').textContent = winRate + '%';
+document.getElementById('statsTotalSpike').textContent = balanceText + ' Spike';
+document.getElementById('statsTotalGames').textContent = wins + losses;
+var favMove = '-';
+try {
+var moves = JSON.parse(localStorage.getItem('echidna_moves_' + MY_ID) || '{}');
+var maxCount = 0;
+for (var m in moves) {
+if (moves[m] > maxCount) {
+maxCount = moves[m];
+favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '✌️ Ножницы';
+}
+}
+} catch(e) {}
+document.getElementById('statsFavMove').textContent = favMove;
+var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false);
+var gamesList = Array.isArray(games) ? games : [];
+if (gamesList.length === 0) {
+tableBody.innerHTML = '<div class="games-empty">Пока нет игр</div>';
+return;
+}
+var rowsHtml = '';
+gamesList.forEach(function(game) {
+var opponentName = escapeHtml(game.opponent_name || '???');
+var resultText = game.result === 'win' ? 'Победа' : game.result === 'lose' ? 'Поражение' : 'Ничья';
+var resultClass = game.result === 'win' ? 'win' : game.result === 'lose' ? 'lose' : 'draw';
+rowsHtml += '<div class="game-row"><span>' + opponentName + '</span><span>' + formatCompactNumber(Math.abs(game.stake || 0)) + ' Spike</span><span class="game-result ' + resultClass + '">' + resultText + '</span><span>' + (game.player_move || '?') + '</span></div>';
+});
+tableBody.innerHTML = rowsHtml;
+} catch(e) {
+tableBody.innerHTML = '<div class="games-empty">Ошибка загрузки</div>';
+}
+}
+async function loadDailyDataFromDB() {
+try { if (!MY_ID) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var collected = result[0].collected_cards || []; if (typeof collected === 'string') { try { collected = JSON.parse(collected); } catch(e) { collected = []; } } return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: collected }; } return null; } catch(e) { return null; }
+}
+async function saveDailyDataToDB(data) {
+try { if (!MY_ID) return; var existing = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, streak: data.streak || 0, last_claim_date: data.lastClaimDate || null, collected_cards: JSON.stringify(data.collectedCards || []), updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('daily_tasks', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('daily_tasks', 'POST', [payload]); } catch(e) {}
+}
+async function getDailyData() {
+var dbData = await loadDailyDataFromDB(); if (dbData && dbData.collectedCards && dbData.collectedCards.length > 0) return dbData;
+try { var s = localStorage.getItem('echidna_daily_v5'); if (s) return JSON.parse(s); } catch(e) {}
+return { streak: 0, lastClaimDate: null, collectedCards: [] };
+}
 function saveDailyData(data) { try { localStorage.setItem('echidna_daily_v5', JSON.stringify(data)); } catch(e) {} saveDailyDataToDB(data); }
-function isSameUTCDate(dateStr1, dateStr2) { if (!dateStr1 || !dateStr2) return false; const d1 = new Date(dateStr1 + 'T00:00:00Z'); const d2 = new Date(dateStr2 + 'T00:00:00Z'); return d1.getUTCFullYear() === d2.getUTCFullYear() && d1.getUTCMonth() === d2.getUTCMonth() && d1.getUTCDate() === d2.getUTCDate(); }
+function isSameUTCDate(dateStr1, dateStr2) {
+if (!dateStr1 || !dateStr2) return false;
+const d1 = new Date(dateStr1 + 'T00:00:00Z'); const d2 = new Date(dateStr2 + 'T00:00:00Z');
+return d1.getUTCFullYear() === d2.getUTCFullYear() && d1.getUTCMonth() === d2.getUTCMonth() && d1.getUTCDate() === d2.getUTCDate();
+}
 function getTodayDate() { var d = new Date(); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
 function getDailyReward(day) { return (day + 1) * 100; }
 async function claimDailyCard(cardIndex) {
@@ -708,158 +1375,126 @@ if (isSameUTCDate(data.lastClaimDate, today)) { alert('Уже открывали
 if (data.streak !== cardIndex) { alert('Открывайте по порядку!'); return; }
 var reward = getDailyReward(cardIndex);
 var card = document.querySelector(`.daily-card[data-index="${cardIndex}"] .daily-card-inner`);
-if (card) { card.classList.add('flipped'); playFlipCardSound(); }
+if (card) {
+card.classList.add('flipped');
+playFlipCardSound();
+}
 await sleep(600);
 data.streak = cardIndex + 1; data.lastClaimDate = today; data.collectedCards.push(cardIndex);
 saveDailyData(data);
 var success = await updateBalanceOnly(MY_ID, reward);
-if (success) { updateBalanceDisplay(); renderDailyCards(); alert('✅ +' + reward + ' Spike!'); } else { alert('Ошибка начисления!'); }
+if (success) {
+updateBalanceDisplay();
+renderDailyCards();
+alert('✅ +' + reward + ' Spike!');
+vibrate([50, 30, 50]);
+} else {
+alert('Ошибка начисления!');
+}
 }
 async function renderDailyCards() {
 var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.getElementById('dailyStreakNum');
 if (!grid || !streakNum) return;
 var data = await getDailyData();
 if (!data.collectedCards) data.collectedCards = [];
-
-var today = getTodayDate();
-if (data.streak >= 9 && !isSameUTCDate(data.lastClaimDate, today)) {
-data.streak = 0;
-data.collectedCards = [];
-data.lastClaimDate = null;
-saveDailyData(data);
-}
-
 streakNum.textContent = data.streak || 0; grid.innerHTML = '';
 for (var i = 0; i < 9; i++) {
 var reward = getDailyReward(i); var isCollected = data.collectedCards.indexOf(i) !== -1;
-var isToday = (i === data.streak && !isCollected);
-var wrapper = document.createElement('div'); wrapper.className = 'daily-card'; wrapper.setAttribute('data-index', String(i));
-var inner = document.createElement('div'); inner.className = 'daily-card-inner'; if (isCollected) inner.classList.add('flipped');
-var front = document.createElement('div'); front.className = 'daily-card-front'; if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today');
+var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, getTodayDate()));
+var wrapper = document.createElement('div');
+wrapper.className = 'daily-card';
+wrapper.setAttribute('data-index', String(i));
+var inner = document.createElement('div');
+inner.className = 'daily-card-inner';
+if (isCollected) inner.classList.add('flipped');
+var front = document.createElement('div'); front.className = 'daily-card-front';
+if (isCollected) front.classList.add('collected'); else if (isToday) front.classList.add('today');
 var cardImgUrl = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/daily-card-' + (i + 1) + '.png';
-front.innerHTML = '<img class="card-cover" src="' + cardImgUrl + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'"><div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : '#' + (i + 1)) + '</div></div>';
+front.innerHTML = '<img class="card-cover" src="' + cardImgUrl + '" alt="Card ' + (i + 1) + '" onerror="this.style.display=\'none\'">' +
+'<div class="card-overlay"><div class="day-badge">' + (isCollected ? '✓' : '#' + (i + 1)) + '</div></div>';
 var back = document.createElement('div'); back.className = 'daily-card-back';
-back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'"><div class="reward-amount">+' + reward + '</div>';
+back.innerHTML = '<img class="reward-coin" src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" onerror="this.style.display=\'none\'">' +
+'<div class="reward-amount">+' + reward + '</div>';
 inner.appendChild(front); inner.appendChild(back); wrapper.appendChild(inner);
 if (isToday) { wrapper.addEventListener('click', (function(idx) { return function() { claimDailyCard(idx); }; })(i)); }
 grid.appendChild(wrapper);
 }
 }
-
-// ==========================================
-// 🎰 РУЛЕТКА NAKLZ (5 часов, звук синхронизирован)
-// ==========================================
-const ROULETTE_COOLDOWN_MS = 5 * 60 * 60 * 1000; // 5 часов
+// 🎰 ЛОГИКА РУЛЕТКИ С ПЕРЕВОРАЧИВАЮЩИМИСЯ КАРТОЧКАМИ
+const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
 const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
-
+const MAX_ROULETTE_ATTEMPTS = 5;
 function getWeightedRandomSkin() {
-const weights = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
-let totalWeight = Object.values(weights).reduce((a,b) => a+b, 0);
+let totalWeight = Object.values(ROULETTE_WEIGHTS).reduce((a,b) => a+b, 0);
 let random = Math.random() * totalWeight;
-for (let skinId in weights) { if (random < weights[skinId]) return skinId; random -= weights[skinId]; }
+for (let skinId in ROULETTE_WEIGHTS) {
+if (random < ROULETTE_WEIGHTS[skinId]) return skinId;
+random -= ROULETTE_WEIGHTS[skinId];
+}
 return 'default';
 }
-
-function startRouletteTimer() {
-if (rouletteTimerInterval) clearInterval(rouletteTimerInterval);
-updateRouletteButtonState();
-rouletteTimerInterval = setInterval(updateRouletteButtonState, 1000);
+function getRouletteState() {
+const today = getTodayDate();
+const stored = localStorage.getItem('echidna_roulette_state');
+let state = stored ? JSON.parse(stored) : { date: today, attempts: 0 };
+if (state.date !== today) {
+state = { date: today, attempts: 0 };
+localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
 }
-
-function updateRouletteButtonState() {
+return state;
+}
+function updateRouletteState() {
+const state = getRouletteState();
+state.attempts++;
+localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
+return state;
+}
+function initRoulette() {
 const btn = document.getElementById('spinBtn');
-const timerSpan = document.getElementById('rouletteTimer');
-if (!btn || !timerSpan) return;
-const stateStr = localStorage.getItem('echidna_roulette_time');
-const lastSpin = stateStr ? parseInt(stateStr) : 0;
-const now = Date.now();
-const diff = now - lastSpin;
-
-if (diff >= ROULETTE_COOLDOWN_MS) {
+const strip = document.getElementById('rouletteStrip');
+const attemptsSpan = document.getElementById('rouletteAttempts');
+// Сброс
+if (rouletteInterval) clearInterval(rouletteInterval);
+strip.style.transition = 'none';
+strip.style.transform = 'translateX(0)';
+const state = getRouletteState();
+attemptsSpan.textContent = state.attempts;
+if (state.attempts >= MAX_ROULETTE_ATTEMPTS) {
+btn.disabled = true;
+btn.textContent = '🔒 Лимит исчерпан';
+btn.style.opacity = '0.5';
+// 🔥 Продолжаем крутить ленту даже когда лимит исчерпан
+renderRouletteStrip(15);
+startIdleAnimation();
+} else {
 btn.disabled = false;
 btn.textContent = '🎰 Крутить!';
 btn.style.opacity = '1';
-timerSpan.textContent = 'Готово!';
-if (!isSpinning && !rouletteInterval) { renderRouletteStrip(15); startIdleAnimation(); }
-} else {
+// Запускаем медленную анимацию
+renderRouletteStrip(15);
+startIdleAnimation();
+btn.onclick = async () => {
+const newState = getRouletteState();
+if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
 btn.disabled = true;
-const remaining = ROULETTE_COOLDOWN_MS - diff;
-const hours = Math.floor(remaining / (1000 * 60 * 60));
-const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-btn.textContent = `⏳ Доступно через: ${hours}ч ${minutes}м ${seconds}с`;
-btn.style.opacity = '0.7';
-timerSpan.textContent = `${hours}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-stopIdleAnimation();
+btn.textContent = '🔒 Лимит исчерпан';
+btn.style.opacity = '0.5';
+return;
 }
-}
-
-function renderRouletteStrip(count) {
-const strip = document.getElementById('rouletteStrip');
-strip.innerHTML = '';
-for (let i = 0; i < count; i++) {
-const skin = SKINS[i % SKINS.length];
-const card = document.createElement('div');
-card.className = 'roulette-card';
-card.innerHTML = `<img src="${skin.img}"><div class="name">${skin.name}</div>`;
-strip.appendChild(card);
-}
-}
-
-function startIdleAnimation() {
-const strip = document.getElementById('rouletteStrip');
-let pos = 0;
-rouletteInterval = setInterval(() => {
-pos -= 1;
-if (pos < -500) pos = 0;
-strip.style.transform = `translateX(${pos}px)`;
-}, 20);
-}
-function stopIdleAnimation() {
-if (rouletteInterval) { clearInterval(rouletteInterval); rouletteInterval = null; }
-}
-
-function trackRouletteTick() {
-if (!isSpinning) return;
-const strip = document.getElementById('rouletteStrip');
-const currentTransform = window.getComputedStyle(strip).transform;
-if (currentTransform !== 'none') {
-const matrix = new DOMMatrix(currentTransform);
-const currentX = Math.abs(matrix.m41);
-// Щелчок каждые ~45px движения (синхронно с карточками)
-if (Math.abs(currentX - lastTickX) > 45) {
-playBeep(1500, 0.03, 'square', 0.08); // Резкий щелчок
-if (navigator.vibrate) navigator.vibrate(15);
-lastTickX = currentX;
-}
-}
-requestAnimationFrame(trackRouletteTick);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-const btn = document.getElementById('spinBtn');
-btn.onclick = async function() {
-const stateStr = localStorage.getItem('echidna_roulette_time');
-const lastSpin = stateStr ? parseInt(stateStr) : 0;
-if (Date.now() - lastSpin < ROULETTE_COOLDOWN_MS) return;
-
 stopIdleAnimation();
 btn.disabled = true;
 btn.textContent = '🎰 Крутим...';
-isSpinning = true;
-lastTickX = 0;
-
 const winningSkinId = getWeightedRandomSkin();
 const reward = ROULETTE_REWARDS[winningSkinId];
 const winningSkin = SKINS.find(s => s.id === winningSkinId);
+renderRouletteStrip(60);
 const targetIndex = 50;
-
-const strip = document.getElementById('rouletteStrip');
 strip.innerHTML = '';
 for(let i=0; i<60; i++) {
 let skin = (i === targetIndex) ? winningSkin : SKINS[Math.floor(Math.random() * SKINS.length)];
 const card = document.createElement('div');
 card.className = 'roulette-card';
+// 🔥 Создаём карточку с переворотом (front/back)
 card.innerHTML = `
 <div class="daily-card-inner" style="width:100%;height:100%;position:relative;transform-style:preserve-3d;">
 <div class="daily-card-front" style="position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
@@ -870,10 +1505,10 @@ card.innerHTML = `
 <img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike" style="width:50px;height:50px;object-fit:contain;">
 <div style="font-size:20px;font-weight:800;color:#000;margin-top:4px;">+${reward}</div>
 </div>
-</div>`;
+</div>
+`;
 strip.appendChild(card);
 }
-
 strip.style.transition = 'none';
 strip.style.transform = 'translateX(0)';
 const cardWidth = 110;
@@ -881,33 +1516,86 @@ const viewportWidth = strip.parentElement.offsetWidth;
 const centerOffset = viewportWidth / 2;
 const cardCenterPos = (targetIndex * cardWidth) + (cardWidth / 2);
 const translateX = -(cardCenterPos - centerOffset);
-
+let tickCount = 0;
+const tickInterval = setInterval(() => {
+playTickSound();
+vibrate(10);
+tickCount++;
+}, 100);
 requestAnimationFrame(() => {
-strip.style.transition = 'transform 5s cubic-bezier(0.4, 0, 0.2, 1)';
+strip.style.transition = 'transform 5s cubic-bezier(0.1, 0.7, 0.1, 1)';
 strip.style.transform = `translateX(${translateX}px)`;
-trackRouletteTick(); // Запуск синхронного звука
 });
-
+// 🔥 Показываем карточку 5 секунд, потом переворачиваем и еще 5 секунд показываем результат
 setTimeout(async () => {
-isSpinning = false;
+clearInterval(tickInterval);
+// 🔥 Переворачиваем выигрышную карточку
 const winningCard = strip.children[targetIndex];
 if (winningCard) {
 const inner = winningCard.querySelector('.daily-card-inner');
-if (inner) { inner.style.transform = 'rotateY(180deg)'; playFlipCardSound(); }
+if (inner) {
+inner.style.transform = 'rotateY(180deg)';
+playFlipCardSound();
 }
-await sleep(2500); // Пауза чтобы увидеть результат
-
-localStorage.setItem('echidna_roulette_time', Date.now().toString());
+}
+// 🔥 Ждем еще 5 секунд после переворота
+await sleep(5000);
 const success = await updateBalanceOnly(MY_ID, reward);
 if (success) {
+updateRouletteState();
+const finalState = getRouletteState();
+attemptsSpan.textContent = finalState.attempts;
 updateBalanceDisplay();
-vibrate([50, 30, 50]);
+if (finalState.attempts >= MAX_ROULETTE_ATTEMPTS) {
+btn.textContent = '🔒 Лимит исчерпан';
+btn.style.opacity = '0.5';
+btn.disabled = true;
+} else {
+btn.textContent = '🎰 Крутить!';
+btn.disabled = false;
+// Перезапуск idle анимации
+renderRouletteStrip(15);
+startIdleAnimation();
 }
-updateRouletteButtonState(); // Перезапуск таймера и UI
-}, 5000);
+vibrate([50, 30, 50]);
+} else {
+btn.disabled = false;
+btn.textContent = '🎰 Крутить!';
+}
+}, 5000); // 5 секунд показываем карточку до переворота
 };
-});
-
+}
+}
+function renderRouletteStrip(count) {
+const strip = document.getElementById('rouletteStrip');
+strip.innerHTML = '';
+for (let i = 0; i < count; i++) {
+const skin = SKINS[i % SKINS.length];
+const card = document.createElement('div');
+card.className = 'roulette-card';
+card.innerHTML = `
+<img src="${skin.img}">
+<div class="name">${skin.name}</div>
+`;
+strip.appendChild(card);
+}
+}
+function startIdleAnimation() {
+const strip = document.getElementById('rouletteStrip');
+let pos = 0;
+const speed = 1;
+rouletteInterval = setInterval(() => {
+pos -= speed;
+if (pos < -500) pos = 0;
+strip.style.transform = `translateX(${pos}px)`;
+}, 20);
+}
+function stopIdleAnimation() {
+if (rouletteInterval) {
+clearInterval(rouletteInterval);
+rouletteInterval = null;
+}
+}
 document.getElementById('startGameBtn').addEventListener('click', startGame);
 window.addEventListener('load', async function() {
 console.log('[INIT] Starting...');
