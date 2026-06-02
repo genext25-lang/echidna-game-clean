@@ -442,6 +442,7 @@ var welcomeMessageShown = false;
 var processedGames = {};
 var rouletteInterval = null;
 var currentViewedPlayer = null;
+var isRouletteSpinning = false;
 function initAudio() {
 if (soundsInitialized) return true;
 try {
@@ -518,13 +519,12 @@ function playLoseSound() { playBeep(280, 0.3, 'sawtooth', 0.12); setTimeout(func
 function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
 function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
 function playTickSound(speed) {
-// speed: 0.1 (slow) to 1.0 (fast) - controls frequency and volume
 if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
 if (!audioCtx) return;
 try {
 var baseFreq = 600;
-var freq = baseFreq + (speed * 600); // 600-1200 Hz
-var vol = 0.03 + (speed * 0.04); // 0.03-0.07
+var freq = baseFreq + (speed * 600);
+var vol = 0.03 + (speed * 0.04);
 var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
 osc.connect(gain); gain.connect(audioCtx.destination);
 osc.type = 'square';
@@ -1231,12 +1231,14 @@ var c = document.getElementById('leaderboardList');
 if (!c) return;
 c.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 try {
-var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses,balance&order=balance.desc.nullslast&limit=100', false);
+// 🔥 Загружаем больше пользователей для точного ранжирования
+var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses,balance&order=balance.desc.nullslast&limit=500', false);
 var usersList = Array.isArray(allUsers) ? allUsers : [];
 if (usersList.length === 0) {
 c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Пока нет игроков</div>';
 return;
 }
+// 🔥 Фильтруем дубликаты и гостевые аккаунты
 const uniqueUsers = [];
 const seenNames = new Set();
 let myRank = null;
@@ -1253,6 +1255,7 @@ myUserData = u;
 }
 }
 c.innerHTML = '';
+// 🔥 Показываем ТОП-20
 uniqueUsers.slice(0, 20).forEach(function(u, i) {
 var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0];
 var name = escapeHtml(u.username || 'User');
@@ -1262,18 +1265,31 @@ el.style.cursor = 'pointer';
 el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(u.balance || 0) + '</div></div></div>';
 c.appendChild(el);
 });
-if (myRank && myRank > 20 && myUserData) {
+// 🔥 Показываем МОЁ МЕСТО, если я не в ТОП-20
+if (myUserData) {
+if (!myRank || myRank > 20) {
 var sk = SKINS[Math.min(Math.floor(Math.abs(myUserData.balance || 0) / 100000), 7)] || SKINS[0];
 var name = escapeHtml(myUserData.username || 'User');
 var el = document.createElement('div');
 el.className = 'room-card my-rank-card';
 el.onclick = function() { openPlayerProfile(myUserData); };
 el.style.cursor = 'pointer';
-el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">' + myRank + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(myUserData.balance || 0) + '</div></div></div>';
+el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">' + (myRank || '?') + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(myUserData.balance || 0) + '</div></div></div>';
 c.appendChild(el);
 }
+// 🔥 Если я в ТОП-20, добавляем пометку "(Вы)"
+else if (myRank <= 20) {
+var items = c.querySelectorAll('.room-card');
+if (items[myRank - 1]) {
+var existingText = items[myRank - 1].querySelector('.leaderboard-left div:last-child');
+if (existingText && !existingText.textContent.includes('(Вы)')) {
+existingText.textContent = '@' + escapeHtml(myUserData.username || 'User') + ' (Вы)';
+}
+}
+}
+}
 } catch(e) {
-c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки</div>';
+c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки: ' + e.message + '</div>';
 }
 }
 async function openPlayerProfile(playerData) {
@@ -1379,7 +1395,6 @@ var today = getTodayDate(); var data = await getDailyData();
 if (!data.collectedCards || !Array.isArray(data.collectedCards)) data.collectedCards = [];
 if (data.collectedCards.indexOf(cardIndex) !== -1) return;
 if (isSameUTCDate(data.lastClaimDate, today)) { alert('Уже открывали сегодня!'); return; }
-// Проверка порядка: можно открыть только текущий день цикла
 var currentDayInCycle = data.streak % 9;
 if (currentDayInCycle !== cardIndex) { alert('Открывайте по порядку!'); return; }
 var reward = getDailyReward(cardIndex);
@@ -1389,7 +1404,6 @@ card.classList.add('flipped');
 playFlipCardSound();
 }
 await sleep(600);
-// После 9-го дня сбрасываем цикл
 if (cardIndex === 8) {
 data.streak = 0;
 data.collectedCards = [];
@@ -1437,7 +1451,7 @@ if (isToday) { wrapper.addEventListener('click', (function(idx) { return functio
 grid.appendChild(wrapper);
 }
 }
-// 🎰 РУЛЕТКА NAKLZ - 5 часов кулдаун + звук щелчков
+// 🎰 РУЛЕТКА NAKLZ - 5 часов кулдаун + звук щелчков + защита от мультиклика
 const ROULETTE_COOLDOWN_HOURS = 5;
 const ROULETTE_COOLDOWN_MS = ROULETTE_COOLDOWN_HOURS * 60 * 60 * 1000;
 const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
@@ -1452,13 +1466,13 @@ random -= ROULETTE_WEIGHTS[skinId];
 return 'default';
 }
 function getRouletteState() {
-const stored = localStorage.getItem('echidna_roulette_naklz_v2');
+const stored = localStorage.getItem('echidna_roulette_naklz_v3');
 let state = stored ? JSON.parse(stored) : { lastSpin: 0 };
 return state;
 }
 function updateRouletteState() {
 const state = { lastSpin: Date.now() };
-localStorage.setItem('echidna_roulette_naklz_v2', JSON.stringify(state));
+localStorage.setItem('echidna_roulette_naklz_v3', JSON.stringify(state));
 return state;
 }
 function formatRouletteCountdown(ms) {
@@ -1481,7 +1495,7 @@ const state = getRouletteState();
 const now = Date.now();
 const timeSinceSpin = now - state.lastSpin;
 const remaining = ROULETTE_COOLDOWN_MS - timeSinceSpin;
-if (remaining <= 0) {
+if (remaining <= 0 && !isRouletteSpinning) {
 btn.disabled = false;
 btn.textContent = '🎰 Крутить!';
 btn.style.opacity = '1';
@@ -1491,6 +1505,14 @@ timerEl.textContent = '';
 timerEl.className = 'roulette-timer';
 renderRouletteStrip(15);
 startIdleAnimation();
+} else if (isRouletteSpinning) {
+btn.disabled = true;
+btn.textContent = '🎰 Крутим...';
+btn.style.opacity = '0.6';
+statusEl.textContent = 'Крутим...';
+statusEl.className = 'roulette-info';
+timerEl.textContent = '';
+timerEl.className = 'roulette-timer';
 } else {
 btn.disabled = true;
 btn.textContent = '⏳ Ожидание...';
@@ -1500,6 +1522,8 @@ statusEl.className = 'roulette-info';
 timerEl.textContent = formatRouletteCountdown(remaining);
 timerEl.className = 'roulette-timer waiting';
 stopIdleAnimation();
+renderRouletteStrip(15);
+startIdleAnimation();
 }
 }
 function initRoulette() {
@@ -1509,10 +1533,10 @@ const statusEl = document.getElementById('rouletteStatus');
 const timerEl = document.getElementById('rouletteTimer');
 if (!btn || !strip || !statusEl || !timerEl) return;
 updateRouletteUI();
-// Обновляем таймер каждую секунду
 if (window.rouletteTimerInterval) clearInterval(window.rouletteTimerInterval);
 window.rouletteTimerInterval = setInterval(updateRouletteUI, 1000);
 btn.onclick = async () => {
+if (isRouletteSpinning) return;
 const state = getRouletteState();
 const now = Date.now();
 const remaining = ROULETTE_COOLDOWN_MS - (now - state.lastSpin);
@@ -1520,6 +1544,7 @@ if (remaining > 0) {
 alert('Подождите ещё ' + formatRouletteCountdown(remaining));
 return;
 }
+isRouletteSpinning = true;
 stopIdleAnimation();
 btn.disabled = true;
 btn.textContent = '🎰 Крутим...';
@@ -1556,33 +1581,29 @@ const viewportWidth = strip.parentElement.offsetWidth;
 const centerOffset = viewportWidth / 2;
 const cardCenterPos = (targetIndex * cardWidth) + (cardWidth / 2);
 const translateX = -(cardCenterPos - centerOffset);
-// Звук щелчков с ускорением/замедлением
-let tickInterval = null;
 let tickCount = 0;
 const totalTicks = 100;
+let tickInterval = null;
 function startTickSound() {
 tickCount = 0;
 tickInterval = setInterval(() => {
-// Кривая: медленно → быстро → медленно (синусоида)
 const progress = tickCount / totalTicks;
-const speedFactor = Math.sin(progress * Math.PI); // 0→1→0
-const speed = 0.2 + (speedFactor * 0.8); // 0.2→1.0→0.2
+const speedFactor = Math.sin(progress * Math.PI);
+const speed = 0.2 + (speedFactor * 0.8);
 playTickSound(speed);
 vibrate(10);
 tickCount++;
 if (tickCount >= totalTicks) {
 clearInterval(tickInterval);
 }
-}, 50); // Базовый интервал, регулируется speedFactor
+}, 50);
 }
 startTickSound();
 requestAnimationFrame(() => {
 strip.style.transition = 'transform 5s cubic-bezier(0.1, 0.7, 0.1, 1)';
 strip.style.transform = `translateX(${translateX}px)`;
 });
-// После остановки показываем результат
 setTimeout(async () => {
-// Переворачиваем выигрышную карточку
 const winningCard = strip.children[targetIndex];
 if (winningCard) {
 const inner = winningCard.querySelector('.daily-card-inner');
@@ -1591,20 +1612,18 @@ inner.style.transform = 'rotateY(180deg)';
 playFlipCardSound();
 }
 }
-// Ждём 2 секунды, затем начисляем
 await sleep(2000);
 const success = await updateBalanceOnly(MY_ID, reward);
 if (success) {
 updateRouletteState();
-updateRouletteUI();
 updateBalanceDisplay();
 vibrate([50, 30, 50]);
 alert('🎉 +' + reward + ' Spike!');
 } else {
-btn.disabled = false;
-btn.textContent = '🎰 Крутить!';
-statusEl.textContent = 'Ошибка! Попробуйте позже';
+alert('Ошибка начисления!');
 }
+isRouletteSpinning = false;
+updateRouletteUI();
 }, 5000);
 };
 }
