@@ -2,9 +2,26 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Echidna Naklz</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  // 🚀 Принудительное раскрытие Telegram Web App на весь экран сразу при загрузке
+  if (window.Telegram && window.Telegram.WebApp) {
+      var tg = window.Telegram.WebApp;
+      tg.ready();               // Сообщаем Telegram, что приложение готово
+      tg.expand();              // ПРИНУДИТЕЛЬНО разворачиваем на весь экран
+      
+      // Делаем фон самого Telegram таким же, как у нашей игры, чтобы не было белых полос
+      tg.setBackgroundColor('#0a0e27');
+      tg.setHeaderColor('#0a0e27');
+      
+      // Запрещаем свайп вниз для закрытия (делает игру более "нативной")
+      if (tg.disableVerticalSwipes) {
+          tg.disableVerticalSwipes();
+      }
+  }
+</script>
 <style>
 :root {
 --bg: #0a0e27;
@@ -24,7 +41,18 @@
 --glass-border: rgba(79, 70, 229, 0.3);
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+html, body { 
+  height: 100dvh; /* Динамическая высота для мобильных (учитывает адресную строку) */
+  height: 100vh;  /* Резервный вариант */
+  height: 100%;   /* Резервный вариант */
+  width: 100%; 
+  margin: 0; 
+  padding: 0; 
+  overflow: hidden; 
+  background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%); 
+  color: var(--text); 
+  font-family: system-ui, -apple-system, sans-serif; 
+}
 .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 15px; padding-bottom: 100px; box-sizing: border-box; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .balance-mini { background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(79, 70, 229, 0.3)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 16px; padding: 10px 18px; border: 1px solid rgba(236, 72, 153, 0.4); display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
