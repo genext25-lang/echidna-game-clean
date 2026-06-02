@@ -113,7 +113,6 @@ text-transform: none;
 .lb-coin-icon img { width: 100%; height: 100%; object-fit: contain; }
 .section-header { font-size: 16px; color: var(--text); text-align: center; margin-bottom: 16px; font-weight: 600; }
 .header { text-align: center; margin-bottom: 20px; }
-/* ПРАВКА: Убрали градиент с h2, чтобы эмодзи в заголовках были цветными */
 .header h2 { font-size: 22px; margin-bottom: 8px; color: #f8fafc; text-shadow: 0 2px 10px rgba(96, 165, 250, 0.4); }
 .header-sub { font-size: 14px; color: var(--sec); }
 .daily-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; padding: 0 4px; }
@@ -269,7 +268,6 @@ text-transform: none;
 .leaderboard-left { display: flex; align-items: center; gap: 12px; }
 .leaderboard-right { display: flex; align-items: center; gap: 8px; }
 .my-rank-card { background: rgba(79, 102, 241, 0.15); border: 1px dashed var(--gold); margin-top: 16px; padding: 12px; border-radius: 14px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-/*  Стили рулетки (Улучшенные) */
 .roulette-wrapper { margin-top: 20px; text-align: center; background: var(--glass-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
 .roulette-info { font-size: 12px; color: var(--sec); margin-bottom: 10px; }
 .roulette-viewport { position: relative; height: 120px; overflow: hidden; border-radius: 12px; background: rgba(10, 14, 39, 0.8); margin: 10px 0; border: 1px solid var(--glass-border); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
@@ -280,7 +278,6 @@ text-transform: none;
 .roulette-pointer { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 3px; background: var(--accent); transform: translateX(-50%); z-index: 10; box-shadow: 0 0 10px var(--accent); border-radius: 2px; }
 .roulette-pointer::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--accent); }
 .roulette-pointer::before { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid var(--accent); }
-/*  Кнопка под карточками */
 .spin-btn {
 width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
 background: linear-gradient(135deg, rgba(79, 70, 229, 0.8), rgba(124, 58, 237, 0.8));
@@ -290,6 +287,8 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 .spin-btn:active { transform: scale(0.97); }
 .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.8); }
+.roulette-timer { font-size: 11px; color: var(--gold); margin-top: 8px; font-weight: 600; }
+.roulette-timer.waiting { color: var(--error); animation: pulse 1s infinite; }
 </style>
 </head>
 <body>
@@ -344,17 +343,18 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 </div>
 <div id="tasksScreen" class="hidden">
 <div class="header"><h2>📋 Ежедневные награды</h2><div class="header-sub">Открывай по одной карточке каждый день!</div></div>
-<div class="daily-streak-info">🔥 Открыто: <span id="dailyStreakNum">0</span> из 9</div>
+<div class="daily-streak-info">🔥 День: <span id="dailyStreakNum">1</span> из 9</div>
 <div class="daily-grid" id="dailyCardsGrid"></div>
-<div class="daily-warning">⚠️ Пропуск дня сбрасывает все карточки</div>
-<!-- 🎰 Рулетка -->
+<div class="daily-warning">⚠️ После 9-го дня цикл начнётся заново</div>
+<!-- 🎰 Рулетка Naklz -->
 <div class="roulette-wrapper">
-<h3>🎰 Ежедневная рулетка</h3>
-<div class="roulette-info">Попыток сегодня: <span id="rouletteAttempts">0</span> / 5</div>
+<h3>🎰 Рулетка Naklz</h3>
+<div class="roulette-info" id="rouletteStatus">Доступно: сейчас</div>
 <div class="roulette-viewport">
 <div id="rouletteStrip" class="roulette-strip"></div>
 <div class="roulette-pointer"></div>
 </div>
+<div class="roulette-timer" id="rouletteTimer"></div>
 <button id="spinBtn" class="spin-btn">🎰 Крутить!</button>
 </div>
 </div>
@@ -399,7 +399,6 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 <h2 id="playerModalTitle">Профиль игрока</h2>
 <div class="header-sub" id="playerModalUsername">@username</div>
 </div>
-<!-- ПРАВКА: Блок статистики в профиле игрока теперь выглядит как на странице статистики -->
 <div class="stats-cards">
   <div class="stat-card">
     <div class="stat-icon">🏆</div>
@@ -427,7 +426,6 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 <div id="revealOverlay" class="reveal-overlay hidden"><div class="reveal-title">Раскрытие ходов</div><div id="revealEmotion" class="reveal-emotion hidden"><img src="" alt="Emotion" id="emotionImg"></div><div class="reveal-players"><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer1Label">Вы</div><div class="reveal-card"><div class="reveal-card-inner" id="card1"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card1Img" src="" alt=""><div class="move-name" id="card1Name"></div></div></div></div></div><div class="reveal-vs">VS</div><div class="reveal-player"><div class="reveal-player-label" id="revealPlayer2Label">Соперник</div><div class="reveal-card"><div class="reveal-card-inner" id="card2"><div class="reveal-card-front"><div class="card-icon">❓</div></div><div class="reveal-card-back"><img id="card2Img" src="" alt=""><div class="move-name" id="card2Name"></div></div></div></div></div></div><div class="reveal-result" id="revealResult"></div><div class="reveal-countdown" id="revealCountdown"></div></div>
 <div id="confettiContainer" class="confetti-container hidden"></div>
 <div class="bottom-nav" id="bottomNav">
-  <!-- ПРАВКА: Нижняя панель с монохромными векторными картинками (SVG) -->
 <button class="nav-btn active" onclick="showScreen('lobby')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Лобби</span></button>
 <button class="nav-btn" onclick="showScreen('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg><span>Задания</span></button>
 <button class="nav-btn" onclick="showScreen('stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Статистика</span></button>
@@ -442,8 +440,8 @@ var isJoiningRoom = false;
 var isProcessingGame = false;
 var welcomeMessageShown = false;
 var processedGames = {};
-var rouletteInterval = null; // Для медленной анимации
-var currentViewedPlayer = null; // Для просмотра профиля другого игрока
+var rouletteInterval = null;
+var currentViewedPlayer = null;
 function initAudio() {
 if (soundsInitialized) return true;
 try {
@@ -519,7 +517,24 @@ function playWinSound() { playBeep(523, 0.1, 'triangle', 0.15); setTimeout(funct
 function playLoseSound() { playBeep(280, 0.3, 'sawtooth', 0.12); setTimeout(function() { playBeep(180, 0.2, 'sawtooth', 0.08); }, 200); vibrate([100]); }
 function playBuySound() { playBeep(880, 0.1, 'sine', 0.15); setTimeout(function() { playBeep(1175, 0.15, 'sine', 0.1); }, 80); vibrate([20, 20, 20]); }
 function playErrorSound() { playBeep(150, 0.2, 'square', 0.1); vibrate([50, 30, 50]); }
-function playTickSound() { playBeep(1200, 0.05, 'square', 0.05); }
+function playTickSound(speed) {
+// speed: 0.1 (slow) to 1.0 (fast) - controls frequency and volume
+if (!soundsInitialized) { forceUnlockAudio(); if (!audioCtx || audioCtx.state !== 'running') return; }
+if (!audioCtx) return;
+try {
+var baseFreq = 600;
+var freq = baseFreq + (speed * 600); // 600-1200 Hz
+var vol = 0.03 + (speed * 0.04); // 0.03-0.07
+var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+osc.connect(gain); gain.connect(audioCtx.destination);
+osc.type = 'square';
+osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.025);
+osc.start();
+osc.stop(audioCtx.currentTime + 0.025);
+} catch(e) {}
+}
 function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
 function formatCompactNumber(num) {
 if (num === null || num === undefined) return '0';
@@ -531,7 +546,6 @@ return sign + absNum.toFixed(2).replace(/\.?0+$/, '');
 function formatBalance(num) { return formatCompactNumber(num); }
 function escapeHtml(str) { if (!str) return ''; const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;', '(': '&#40;', ')': '&#41;' }; return String(str).replace(/[&<>"'\/`=()]/g, function(m) { return map[m] || m; }); }
 function sanitizeFilter(filter) { if (!filter) return ''; if (/[<>'";{}()\\]/.test(filter)) { console.error('[SECURITY] Invalid characters in filter'); throw new Error('Invalid filter parameter'); } if (!filter.startsWith('?')) { throw new Error('Filter must start with ?'); } return filter; }
-// 🔑 ПУБЛИЧНЫЕ КЛЮЧИ
 var AUTH_TOKEN = null;
 var URL = 'https://tejndwtckdvueufqhitu.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
@@ -546,7 +560,7 @@ var selectedStake = 10;
 var currentRoom = null;
 var isGameFinished = false;
 var currentBalance = 0;
-var INITIAL_BALANCE = 1000; // Стартовый баланс
+var INITIAL_BALANCE = 1000;
 window.roomExpiry = {};
 var activeIntervals = { pollInterval: null, lobbyRefreshInterval: null, timerInterval: null };
 async function db(table, method, payload, filters, single) {
@@ -756,7 +770,7 @@ btn.classList.remove('active');
 if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + name + "'") !== -1) btn.classList.add('active');
 });
 clearAllIntervals();
-stopIdleAnimation(); // Останавливаем рулетку если уходим
+stopIdleAnimation();
 if (name === 'lobby') {
 currentRoom = null; isGameFinished = false; isProcessingGame = false;
 activeIntervals.lobbyRefreshInterval = setInterval(loadRooms, 5000);
@@ -766,7 +780,7 @@ updateHeroImage();
 loadRooms();
 } else if (name === 'tasks') {
 setTimeout(function() { renderDailyCards(); }, 50);
-initRoulette(); // 🔥 Инициализация рулетки
+initRoulette();
 } else if (name === 'stats') {
 loadStats();
 } else if (name === 'leaderboard') {
@@ -1217,7 +1231,7 @@ var c = document.getElementById('leaderboardList');
 if (!c) return;
 c.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
 try {
-var allUsers = await db('users', 'GET', null, '?select=id,username,wins,losses,balance&order=balance.desc.nullslast&limit=50', false);
+var allUsers = await db('users', 'GET', null, '?select=telegram_id,username,wins,losses,balance&order=balance.desc.nullslast&limit=100', false);
 var usersList = Array.isArray(allUsers) ? allUsers : [];
 if (usersList.length === 0) {
 c.innerHTML = '<div style="text-align:center;color:var(--sec);padding:20px;">Пока нет игроков</div>';
@@ -1226,44 +1240,37 @@ return;
 const uniqueUsers = [];
 const seenNames = new Set();
 let myRank = null;
+let myUserData = null;
 for (const u of usersList) {
-// 🔥 Фильтрация гостевых аккаунтов
-if (u.username && u.username.startsWith('Guest_')) {
-continue; // Пропускаем гостевые аккаунты
-}
+if (u.username && u.username.startsWith('Guest_')) continue;
 if (!seenNames.has(u.username)) {
 seenNames.add(u.username);
 uniqueUsers.push(u);
 if (String(u.telegram_id) === String(MY_ID)) {
 myRank = uniqueUsers.length;
+myUserData = u;
 }
 }
 }
 c.innerHTML = '';
-// 🔥 Показываем ТОП-20
 uniqueUsers.slice(0, 20).forEach(function(u, i) {
 var sk = SKINS[Math.min(Math.floor(Math.abs(u.balance || 0) / 100000), 7)] || SKINS[0];
 var name = escapeHtml(u.username || 'User');
 var el = document.createElement('div'); el.className = 'room-card';
 el.onclick = function() { openPlayerProfile(u); };
 el.style.cursor = 'pointer';
-// 🔥 ИСПРАВЛЕНИЕ: Вместо мешка показываем монету Spike
 el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;">' + (i + 1) + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + '</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(u.balance || 0) + '</div></div></div>';
 c.appendChild(el);
 });
-// 🔥 Добавляем мое место в конце
-if (myRank && myRank > 20) {
-var myUser = usersList.find(u => String(u.telegram_id) === String(MY_ID));
-if (myUser) {
-var sk = SKINS[Math.min(Math.floor(Math.abs(myUser.balance || 0) / 100000), 7)] || SKINS[0];
-var name = escapeHtml(myUser.username || 'User');
+if (myRank && myRank > 20 && myUserData) {
+var sk = SKINS[Math.min(Math.floor(Math.abs(myUserData.balance || 0) / 100000), 7)] || SKINS[0];
+var name = escapeHtml(myUserData.username || 'User');
 var el = document.createElement('div');
 el.className = 'room-card my-rank-card';
-el.onclick = function() { openPlayerProfile(myUser); };
+el.onclick = function() { openPlayerProfile(myUserData); };
 el.style.cursor = 'pointer';
-el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">' + myRank + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(myUser.balance || 0) + '</div></div></div>';
+el.innerHTML = '<div class="leaderboard-row"><div class="leaderboard-left"><div style="font-weight:700;width:40px;color:var(--gold);">' + myRank + '</div><div class="room-icon"><img src="' + escapeHtml(sk.img) + '" alt=""></div><div>@' + name + ' (Вы)</div></div><div class="leaderboard-right"><div class="lb-coin-icon"><img src="https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/spike-coin.png" alt="Spike"></div><div>' + formatCompactNumber(myUserData.balance || 0) + '</div></div></div>';
 c.appendChild(el);
-}
 }
 } catch(e) {
 c.innerHTML = '<div style="color:red;padding:15px;">Ошибка загрузки</div>';
@@ -1281,7 +1288,6 @@ var winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
 document.getElementById('playerStatWinRate').textContent = winRate + '%';
 document.getElementById('playerStatBalance').textContent = formatCompactNumber(balance);
 document.getElementById('playerStatTotalGames').textContent = totalGames;
-// Получаем любимый ход из localStorage (если это мой профиль) или показываем "-"
 var favMove = '-';
 if (String(playerData.telegram_id) === String(MY_ID)) {
 try {
@@ -1348,6 +1354,7 @@ tableBody.innerHTML = rowsHtml;
 tableBody.innerHTML = '<div class="games-empty">Ошибка загрузки</div>';
 }
 }
+// 🔁 ЕЖЕДНЕВНЫЕ КАРТОЧКИ - Зацикленная логика
 async function loadDailyDataFromDB() {
 try { if (!MY_ID) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var collected = result[0].collected_cards || []; if (typeof collected === 'string') { try { collected = JSON.parse(collected); } catch(e) { collected = []; } } return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: collected }; } return null; } catch(e) { return null; }
 }
@@ -1356,10 +1363,10 @@ try { if (!MY_ID) return; var existing = await db('daily_tasks', 'GET', null, '?
 }
 async function getDailyData() {
 var dbData = await loadDailyDataFromDB(); if (dbData && dbData.collectedCards && dbData.collectedCards.length > 0) return dbData;
-try { var s = localStorage.getItem('echidna_daily_v5'); if (s) return JSON.parse(s); } catch(e) {}
+try { var s = localStorage.getItem('echidna_daily_v6'); if (s) return JSON.parse(s); } catch(e) {}
 return { streak: 0, lastClaimDate: null, collectedCards: [] };
 }
-function saveDailyData(data) { try { localStorage.setItem('echidna_daily_v5', JSON.stringify(data)); } catch(e) {} saveDailyDataToDB(data); }
+function saveDailyData(data) { try { localStorage.setItem('echidna_daily_v6', JSON.stringify(data)); } catch(e) {} saveDailyDataToDB(data); }
 function isSameUTCDate(dateStr1, dateStr2) {
 if (!dateStr1 || !dateStr2) return false;
 const d1 = new Date(dateStr1 + 'T00:00:00Z'); const d2 = new Date(dateStr2 + 'T00:00:00Z');
@@ -1372,7 +1379,9 @@ var today = getTodayDate(); var data = await getDailyData();
 if (!data.collectedCards || !Array.isArray(data.collectedCards)) data.collectedCards = [];
 if (data.collectedCards.indexOf(cardIndex) !== -1) return;
 if (isSameUTCDate(data.lastClaimDate, today)) { alert('Уже открывали сегодня!'); return; }
-if (data.streak !== cardIndex) { alert('Открывайте по порядку!'); return; }
+// Проверка порядка: можно открыть только текущий день цикла
+var currentDayInCycle = data.streak % 9;
+if (currentDayInCycle !== cardIndex) { alert('Открывайте по порядку!'); return; }
 var reward = getDailyReward(cardIndex);
 var card = document.querySelector(`.daily-card[data-index="${cardIndex}"] .daily-card-inner`);
 if (card) {
@@ -1380,7 +1389,14 @@ card.classList.add('flipped');
 playFlipCardSound();
 }
 await sleep(600);
-data.streak = cardIndex + 1; data.lastClaimDate = today; data.collectedCards.push(cardIndex);
+// После 9-го дня сбрасываем цикл
+if (cardIndex === 8) {
+data.streak = 0;
+data.collectedCards = [];
+} else {
+data.streak = (data.streak + 1) % 9;
+}
+data.lastClaimDate = today; data.collectedCards.push(cardIndex);
 saveDailyData(data);
 var success = await updateBalanceOnly(MY_ID, reward);
 if (success) {
@@ -1397,10 +1413,11 @@ var grid = document.getElementById('dailyCardsGrid'); var streakNum = document.g
 if (!grid || !streakNum) return;
 var data = await getDailyData();
 if (!data.collectedCards) data.collectedCards = [];
-streakNum.textContent = data.streak || 0; grid.innerHTML = '';
+var currentDayInCycle = data.streak % 9;
+streakNum.textContent = (currentDayInCycle + 1); grid.innerHTML = '';
 for (var i = 0; i < 9; i++) {
 var reward = getDailyReward(i); var isCollected = data.collectedCards.indexOf(i) !== -1;
-var isToday = (i === data.streak && !isCollected && !isSameUTCDate(data.lastClaimDate, getTodayDate()));
+var isToday = (i === currentDayInCycle && !isCollected && !isSameUTCDate(data.lastClaimDate, getTodayDate()));
 var wrapper = document.createElement('div');
 wrapper.className = 'daily-card';
 wrapper.setAttribute('data-index', String(i));
@@ -1420,10 +1437,11 @@ if (isToday) { wrapper.addEventListener('click', (function(idx) { return functio
 grid.appendChild(wrapper);
 }
 }
-// 🎰 ЛОГИКА РУЛЕТКИ С ПЕРЕВОРАЧИВАЮЩИМИСЯ КАРТОЧКАМИ
+// 🎰 РУЛЕТКА NAKLZ - 5 часов кулдаун + звук щелчков
+const ROULETTE_COOLDOWN_HOURS = 5;
+const ROULETTE_COOLDOWN_MS = ROULETTE_COOLDOWN_HOURS * 60 * 60 * 1000;
 const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
 const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
-const MAX_ROULETTE_ATTEMPTS = 5;
 function getWeightedRandomSkin() {
 let totalWeight = Object.values(ROULETTE_WEIGHTS).reduce((a,b) => a+b, 0);
 let random = Math.random() * totalWeight;
@@ -1434,56 +1452,79 @@ random -= ROULETTE_WEIGHTS[skinId];
 return 'default';
 }
 function getRouletteState() {
-const today = getTodayDate();
-const stored = localStorage.getItem('echidna_roulette_state');
-let state = stored ? JSON.parse(stored) : { date: today, attempts: 0 };
-if (state.date !== today) {
-state = { date: today, attempts: 0 };
-localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
-}
+const stored = localStorage.getItem('echidna_roulette_naklz_v2');
+let state = stored ? JSON.parse(stored) : { lastSpin: 0 };
 return state;
 }
 function updateRouletteState() {
-const state = getRouletteState();
-state.attempts++;
-localStorage.setItem('echidna_roulette_state', JSON.stringify(state));
+const state = { lastSpin: Date.now() };
+localStorage.setItem('echidna_roulette_naklz_v2', JSON.stringify(state));
 return state;
+}
+function formatRouletteCountdown(ms) {
+if (ms <= 0) return "Готово!";
+var totalSeconds = Math.floor(ms / 1000);
+var hours = Math.floor(totalSeconds / 3600);
+var minutes = Math.floor((totalSeconds % 3600) / 60);
+var seconds = totalSeconds % 60;
+if (hours > 0) {
+return hours + 'ч ' + (minutes < 10 ? '0' : '') + minutes + 'м';
+}
+return (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+}
+function updateRouletteUI() {
+const btn = document.getElementById('spinBtn');
+const statusEl = document.getElementById('rouletteStatus');
+const timerEl = document.getElementById('rouletteTimer');
+if (!btn || !statusEl || !timerEl) return;
+const state = getRouletteState();
+const now = Date.now();
+const timeSinceSpin = now - state.lastSpin;
+const remaining = ROULETTE_COOLDOWN_MS - timeSinceSpin;
+if (remaining <= 0) {
+btn.disabled = false;
+btn.textContent = '🎰 Крутить!';
+btn.style.opacity = '1';
+statusEl.textContent = 'Доступно: сейчас';
+statusEl.className = 'roulette-info';
+timerEl.textContent = '';
+timerEl.className = 'roulette-timer';
+renderRouletteStrip(15);
+startIdleAnimation();
+} else {
+btn.disabled = true;
+btn.textContent = '⏳ Ожидание...';
+btn.style.opacity = '0.6';
+statusEl.textContent = 'Следующая попытка через:';
+statusEl.className = 'roulette-info';
+timerEl.textContent = formatRouletteCountdown(remaining);
+timerEl.className = 'roulette-timer waiting';
+stopIdleAnimation();
+}
 }
 function initRoulette() {
 const btn = document.getElementById('spinBtn');
 const strip = document.getElementById('rouletteStrip');
-const attemptsSpan = document.getElementById('rouletteAttempts');
-// Сброс
-if (rouletteInterval) clearInterval(rouletteInterval);
-strip.style.transition = 'none';
-strip.style.transform = 'translateX(0)';
-const state = getRouletteState();
-attemptsSpan.textContent = state.attempts;
-if (state.attempts >= MAX_ROULETTE_ATTEMPTS) {
-btn.disabled = true;
-btn.textContent = '🔒 Лимит исчерпан';
-btn.style.opacity = '0.5';
-// 🔥 Продолжаем крутить ленту даже когда лимит исчерпан
-renderRouletteStrip(15);
-startIdleAnimation();
-} else {
-btn.disabled = false;
-btn.textContent = '🎰 Крутить!';
-btn.style.opacity = '1';
-// Запускаем медленную анимацию
-renderRouletteStrip(15);
-startIdleAnimation();
+const statusEl = document.getElementById('rouletteStatus');
+const timerEl = document.getElementById('rouletteTimer');
+if (!btn || !strip || !statusEl || !timerEl) return;
+updateRouletteUI();
+// Обновляем таймер каждую секунду
+if (window.rouletteTimerInterval) clearInterval(window.rouletteTimerInterval);
+window.rouletteTimerInterval = setInterval(updateRouletteUI, 1000);
 btn.onclick = async () => {
-const newState = getRouletteState();
-if (newState.attempts >= MAX_ROULETTE_ATTEMPTS) {
-btn.disabled = true;
-btn.textContent = '🔒 Лимит исчерпан';
-btn.style.opacity = '0.5';
+const state = getRouletteState();
+const now = Date.now();
+const remaining = ROULETTE_COOLDOWN_MS - (now - state.lastSpin);
+if (remaining > 0) {
+alert('Подождите ещё ' + formatRouletteCountdown(remaining));
 return;
 }
 stopIdleAnimation();
 btn.disabled = true;
 btn.textContent = '🎰 Крутим...';
+statusEl.textContent = 'Крутим...';
+timerEl.textContent = '';
 const winningSkinId = getWeightedRandomSkin();
 const reward = ROULETTE_REWARDS[winningSkinId];
 const winningSkin = SKINS.find(s => s.id === winningSkinId);
@@ -1494,7 +1535,6 @@ for(let i=0; i<60; i++) {
 let skin = (i === targetIndex) ? winningSkin : SKINS[Math.floor(Math.random() * SKINS.length)];
 const card = document.createElement('div');
 card.className = 'roulette-card';
-// 🔥 Создаём карточку с переворотом (front/back)
 card.innerHTML = `
 <div class="daily-card-inner" style="width:100%;height:100%;position:relative;transform-style:preserve-3d;">
 <div class="daily-card-front" style="position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
@@ -1516,20 +1556,33 @@ const viewportWidth = strip.parentElement.offsetWidth;
 const centerOffset = viewportWidth / 2;
 const cardCenterPos = (targetIndex * cardWidth) + (cardWidth / 2);
 const translateX = -(cardCenterPos - centerOffset);
+// Звук щелчков с ускорением/замедлением
+let tickInterval = null;
 let tickCount = 0;
-const tickInterval = setInterval(() => {
-playTickSound();
+const totalTicks = 100;
+function startTickSound() {
+tickCount = 0;
+tickInterval = setInterval(() => {
+// Кривая: медленно → быстро → медленно (синусоида)
+const progress = tickCount / totalTicks;
+const speedFactor = Math.sin(progress * Math.PI); // 0→1→0
+const speed = 0.2 + (speedFactor * 0.8); // 0.2→1.0→0.2
+playTickSound(speed);
 vibrate(10);
 tickCount++;
-}, 100);
+if (tickCount >= totalTicks) {
+clearInterval(tickInterval);
+}
+}, 50); // Базовый интервал, регулируется speedFactor
+}
+startTickSound();
 requestAnimationFrame(() => {
 strip.style.transition = 'transform 5s cubic-bezier(0.1, 0.7, 0.1, 1)';
 strip.style.transform = `translateX(${translateX}px)`;
 });
-// 🔥 Показываем карточку 5 секунд, потом переворачиваем и еще 5 секунд показываем результат
+// После остановки показываем результат
 setTimeout(async () => {
-clearInterval(tickInterval);
-// 🔥 Переворачиваем выигрышную карточку
+// Переворачиваем выигрышную карточку
 const winningCard = strip.children[targetIndex];
 if (winningCard) {
 const inner = winningCard.querySelector('.daily-card-inner');
@@ -1538,36 +1591,26 @@ inner.style.transform = 'rotateY(180deg)';
 playFlipCardSound();
 }
 }
-// 🔥 Ждем еще 5 секунд после переворота
-await sleep(5000);
+// Ждём 2 секунды, затем начисляем
+await sleep(2000);
 const success = await updateBalanceOnly(MY_ID, reward);
 if (success) {
 updateRouletteState();
-const finalState = getRouletteState();
-attemptsSpan.textContent = finalState.attempts;
+updateRouletteUI();
 updateBalanceDisplay();
-if (finalState.attempts >= MAX_ROULETTE_ATTEMPTS) {
-btn.textContent = '🔒 Лимит исчерпан';
-btn.style.opacity = '0.5';
-btn.disabled = true;
-} else {
-btn.textContent = '🎰 Крутить!';
-btn.disabled = false;
-// Перезапуск idle анимации
-renderRouletteStrip(15);
-startIdleAnimation();
-}
 vibrate([50, 30, 50]);
+alert('🎉 +' + reward + ' Spike!');
 } else {
 btn.disabled = false;
 btn.textContent = '🎰 Крутить!';
+statusEl.textContent = 'Ошибка! Попробуйте позже';
 }
-}, 5000); // 5 секунд показываем карточку до переворота
+}, 5000);
 };
-}
 }
 function renderRouletteStrip(count) {
 const strip = document.getElementById('rouletteStrip');
+if (!strip) return;
 strip.innerHTML = '';
 for (let i = 0; i < count; i++) {
 const skin = SKINS[i % SKINS.length];
@@ -1582,8 +1625,10 @@ strip.appendChild(card);
 }
 function startIdleAnimation() {
 const strip = document.getElementById('rouletteStrip');
+if (!strip) return;
 let pos = 0;
 const speed = 1;
+if (rouletteInterval) clearInterval(rouletteInterval);
 rouletteInterval = setInterval(() => {
 pos -= speed;
 if (pos < -500) pos = 0;
