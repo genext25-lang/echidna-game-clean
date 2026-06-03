@@ -958,9 +958,27 @@ if (!MY_ID) return;
 try {
 var my = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&order=created_at.desc&limit=10');
 var all = await db('rooms', 'GET', null, '?status=neq.finished&order=created_at.desc&limit=50');
+
+// 🔥 ОТЛАДКА: выводим всё в консоль
+console.log('[ROOMS] ====== DEBUG START ======');
+console.log('[ROOMS] MY_ID:', MY_ID);
+console.log('[ROOMS] My rooms (raw):', my);
+console.log('[ROOMS] My rooms count:', Array.isArray(my) ? my.length : 'NOT ARRAY');
+console.log('[ROOMS] All rooms (raw):', all);
+console.log('[ROOMS] All rooms count:', Array.isArray(all) ? all.length : 'NOT ARRAY');
+
+var filteredForDisplay = (Array.isArray(all) ? all : []).filter(function(r) { 
+  return Number(r.creator_tg_id) !== MY_ID; 
+});
+console.log('[ROOMS] Filtered for "Available" (not mine):', filteredForDisplay);
+console.log('[ROOMS] Filtered count:', filteredForDisplay.length);
+console.log('[ROOMS] ====== DEBUG END ======');
+
 renderRooms('myRoomsList', Array.isArray(my) ? my : [], true);
-renderRooms('roomsList', (Array.isArray(all) ? all : []).filter(function(r) { return Number(r.creator_tg_id) !== MY_ID; }), false);
-} catch(e) {}
+renderRooms('roomsList', filteredForDisplay, false);
+} catch(e) {
+console.error('[ROOMS] Error loading rooms:', e);
+}
 }
 function renderRooms(id, rooms, isMy) {
 var c = document.getElementById(id); if (!c) return; c.innerHTML = '';
@@ -982,6 +1000,18 @@ if (!window.roomExpiry[r.id]) window.roomExpiry[r.id] = Date.now() + 5 * 60 * 10
 timerHtml = '<span class="room-timer" data-room-id="' + r.id + '">' + formatCountdown(window.roomExpiry[r.id] - Date.now()) + '</span>';
 }
 var stakeDisplay = formatStakeDisplay(r);
+var creatorName = escapeHtml(r.creator_username || 'Anonymous');
+if (trulyMine) {
+if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')">🔄 Вернуться</button>';
+var cancelBtn = !isPlaying && !r.opponent_tg_id ? '<button class="room-btn cancel" onclick="event.stopPropagation();cancelRoom(\'' + r.id + '\')">✕</button>' : '';
+el.innerHTML = '<div class="room-icon">' + escapeHtml(MY_INITIAL) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">Твоя комната</div></div><div class="room-actions">' + btnHtml + cancelBtn + '</div>';
+} else {
+btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();joinRoom(\'' + r.id + '\',this)">Войти</button>';
+el.innerHTML = '<div class="room-icon">' + escapeHtml(creatorName.charAt(0).toUpperCase()) + lockIcon + '</div><div class="room-info"><div class="room-stake">💰 ' + stakeDisplay + ' ' + badgeHtml + timerHtml + '</div><div class="room-creator">@' + creatorName + '</div></div><div class="room-actions">' + btnHtml + '</div>';
+}
+c.appendChild(el);
+});
+}var stakeDisplay = formatStakeDisplay(r);
 var creatorName = escapeHtml(r.creator_username || 'Anonymous');
 if (trulyMine) {
 if (isPlaying) btnHtml = '<button class="room-btn join" onclick="event.stopPropagation();resumeRoom(\'' + r.id + '\')">🔄 Вернуться</button>';
