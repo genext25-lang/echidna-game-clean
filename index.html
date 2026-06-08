@@ -23,6 +23,7 @@
      ========================================== -->
 <script>
 const EDGE_FUNCTION_URL = 'https://tejndwtckdvueufqhitu.supabase.co/functions/v1';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlam5kd3Rja2R2dWV1ZnFoaXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MjcsImV4cCI6MjA5MzgwMjkyN30.tDP9B-nWPMsuANJ4JiASs0UYgJqJZtm9Sj3jUs13l9c';
 
 async function secureAction(functionName, payload) {
     if (!window.Telegram || !window.Telegram.WebApp) {
@@ -41,6 +42,8 @@ async function secureAction(functionName, payload) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + ANON_KEY,
+                'apikey': ANON_KEY,
                 'X-Telegram-Init-Data': initData
             },
             body: JSON.stringify(payload)
@@ -910,7 +913,7 @@ async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; a
 async function loadSkinsFromDB() {
 if (!MY_ID) return false;
 try {
-var result = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1');
+var result = await db('user_skins', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1');
 if (result && result.length > 0) {
 if (result[0].owned_skins) { try { var loadedOwned = JSON.parse(result[0].owned_skins); if (Array.isArray(loadedOwned) && loadedOwned.length > 0) { ownedSkins = loadedOwned; if (ownedSkins.indexOf('default') === -1) ownedSkins.unshift('default'); } } catch(e) {} }
 if (result[0].current_skin) currentSkin = result[0].current_skin;
@@ -923,9 +926,9 @@ return false;
 async function saveSkinsToDB() {
 try {
 if (!MY_ID) return false;
-var existing = await db('user_skins', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1');
-var payload = { player_id: MY_ID, owned_skins: JSON.stringify(ownedSkins), current_skin: currentSkin, updated_at: new Date().toISOString() };
-if (existing && existing.length > 0) await db('user_skins', 'PATCH', payload, '?player_id=eq.' + MY_ID);
+var existing = await db('user_skins', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1');
+var payload = { telegram_id: MY_ID, owned_skins: JSON.stringify(ownedSkins), current_skin: currentSkin };
+if (existing && existing.length > 0) await db('user_skins', 'PATCH', payload, '?telegram_id=eq.' + MY_ID);
 else await db('user_skins', 'POST', [payload]);
 return true;
 } catch(e) { return false; }
@@ -1486,7 +1489,7 @@ var maxCount = 0;
 for (var m in moves) { if (moves[m] > maxCount) { maxCount = moves[m]; favMove = m === 'rock' ? '✊ Камень' : m === 'paper' ? '✋ Бумага' : '✌️ Ножницы'; } }
 } catch(e) {}
 document.getElementById('statsFavMove').textContent = favMove;
-var games = await db('game_history', 'GET', null, '?player_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false);
+var games = await db('game_history', 'GET', null, '?telegram_id=eq.' + MY_ID + '&order=played_at.desc&limit=20', false);
 var gamesList = Array.isArray(games) ? games : [];
 if (gamesList.length === 0) { tableBody.innerHTML = '<div class="games-empty">Пока нет игр</div>'; return; }
 var rowsHtml = '';
@@ -1501,7 +1504,7 @@ tableBody.innerHTML = rowsHtml;
 }
 
 async function loadDailyDataFromDB() {
-try { if (!MY_ID) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var collected = result[0].collected_cards || []; if (typeof collected === 'string') { try { collected = JSON.parse(collected); } catch(e) { collected = []; } } return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: collected }; } return null; } catch(e) { return null; }
+try { if (!MY_ID) return null; var result = await db('daily_tasks', 'GET', null, '?telegram_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var collected = result[0].collected_cards || []; if (typeof collected === 'string') { try { collected = JSON.parse(collected); } catch(e) { collected = []; } } return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: collected }; } return null; } catch(e) { return null; }
 }
 
 async function getDailyData() {
