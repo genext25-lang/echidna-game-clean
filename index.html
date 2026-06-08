@@ -17,6 +17,53 @@
       }
   }
 </script>
+
+<!-- ==========================================
+     EDGE FUNCTIONS - ЗАЩИЩЕННЫЕ ВЫЗОВЫ
+     ========================================== -->
+<script>
+const EDGE_FUNCTION_URL = 'https://tejndwtckdvueufqhitu.supabase.co/functions/v1';
+
+async function secureAction(functionName, payload) {
+    if (!window.Telegram || !window.Telegram.WebApp) {
+        throw new Error('Telegram WebApp не инициализирован');
+    }
+    
+    const tg = window.Telegram.WebApp;
+    const initData = tg.initData || '';
+    
+    if (!initData) {
+        throw new Error('Не удалось получить initData от Telegram');
+    }
+    
+    try {
+        const response = await fetch(`${EDGE_FUNCTION_URL}/${functionName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Telegram-Init-Data': initData
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            console.error(`[EDGE] ${functionName} failed:`, result);
+            throw new Error(result.error || `Ошибка ${response.status}`);
+        }
+        
+        console.log(`[EDGE] ${functionName} success:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[EDGE] ${functionName} error:`, error);
+        throw error;
+    }
+}
+
+console.log('[EDGE] Edge Functions initialized');
+</script>
+
 <style>
 :root {
 --bg: #0a0e27;
@@ -476,6 +523,7 @@ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 <button class="nav-btn" onclick="showScreen('skins')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span>Скины</span></button>
 <button class="nav-btn" onclick="showScreen('leaderboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10c1 0 2 .5 2 2v3c0 1-1 2-2 2H7c-1 0-2-1-2-2V6c0-1.5 1-2 2-2zM6 11h12"/></svg><span>Рейтинг</span></button>
 </div>
+
 <script>
 var moveImages = { rock: 'move-rock.png', scissors: 'move-scissors.png', paper: 'move-paper.png' };
 var audioCtx = null, soundsInitialized = false, audioUnlockAttempts = 0;
@@ -609,6 +657,9 @@ var INITIAL_BALANCE = 1000;
 window.roomExpiry = {};
 var activeIntervals = { pollInterval: null, lobbyRefreshInterval: null, timerInterval: null };
 
+// ==========================================
+// БЕЗОПАСНЫЕ ВЫЗОВЫ К БД (ТОЛЬКО ЧТЕНИЕ)
+// ==========================================
 async function db(table, method, payload, filters, single) {
 if (!navigator.onLine) { throw new Error('Нет соединения с интернетом'); }
 payload = payload || null; filters = filters || ''; single = single || false;
@@ -616,9 +667,6 @@ var safeFilters = sanitizeFilter(filters);
 var url = URL + '/rest/v1/' + table + safeFilters;
 var authHeader = AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY;
 var headers = { 'apikey': ANON_KEY, 'Authorization': authHeader, 'Content-Type': 'application/json', 'Accept': 'application/json' };
-if (method === 'POST') headers['Prefer'] = 'return=representation';
-else if (method === 'DELETE') headers['Prefer'] = 'return=minimal';
-else if (method === 'PATCH') headers['Prefer'] = 'return=representation';
 try {
 var response = await fetch(url, { method: method, headers: headers, body: payload ? JSON.stringify(payload) : null, cache: 'no-store' });
 if (!response.ok) { var errorText = await response.text(); throw new Error(response.status + ' ' + errorText); }
@@ -690,21 +738,17 @@ photo_url: tg.initDataUnsafe.user.photo_url || null
 };
 MY_ID = Number(user.id);
 console.log('[AUTH] ✅ User:', user.username, 'ID:', MY_ID);
-if (tg.initData) {
+
+// Вызываем Edge Function для верификации
 try {
-var response = await fetch(URL + '/functions/v1/verify-telegram', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY },
-body: JSON.stringify({ initData: tg.initData })
-});
-var result = await response.json();
-console.log('[AUTH] Edge function response:', result);
-if (result.success && result.session && result.session.access_token) {
-AUTH_TOKEN = result.session.access_token;
-console.log('[AUTH] ✅ JWT received:', AUTH_TOKEN.substring(0, 30) + '...');
-} else { console.warn('[AUTH] ⚠️ No session in response, using fallback'); }
-} catch(e) { console.warn('[AUTH] Edge function call failed:', e.message); }
+const result = await secureAction('verify-telegram', {});
+if (result.success) {
+console.log('[AUTH] ✅ Verified via Edge Function');
 }
+} catch(e) {
+console.warn('[AUTH] Edge function call failed:', e.message);
+}
+
 return true;
 }
 console.error('[AUTH] No user data');
@@ -747,44 +791,6 @@ var existing = await db('users', 'GET', null, '?telegram_id=eq.' + MY_ID + '&lim
 if (existing && existing.length > 0) { currentBalance = existing[0].balance || INITIAL_BALANCE; }
 await updateBalanceDisplay();
 } catch(e) { console.error('ensureUserExists error:', e); }
-}
-
-async function updateBalanceOnly(playerId, amountChange) {
-if (!playerId) return false;
-try {
-var userData = await db('users', 'GET', null, '?select=balance&telegram_id=eq.' + playerId, true);
-var currentBal = parseInt(userData ? userData.balance : INITIAL_BALANCE);
-var newBal = currentBal + amountChange;
-console.log('[BALANCE] Updating', playerId, 'Current:', currentBal, 'Change:', amountChange, 'New:', newBal);
-var success = await db('users', 'PATCH', { balance: newBal }, '?telegram_id=eq.' + playerId);
-if (success) {
-if (String(playerId) === String(MY_ID)) { currentBalance = newBal; updateBalanceDisplay(); }
-return true;
-}
-return false;
-} catch(e) { console.error('[BALANCE] Error:', e); return false; }
-}
-
-async function updateWinsOnly(playerId) {
-if (!playerId) return false;
-try {
-var userData = await db('users', 'GET', null, '?select=wins&telegram_id=eq.' + playerId, true);
-var currentWins = userData ? (userData.wins || 0) : 0;
-var success = await db('users', 'PATCH', { wins: currentWins + 1 }, '?telegram_id=eq.' + playerId);
-if (success) { console.log('[STATS] Wins updated for', playerId, '->', currentWins + 1); return true; }
-return false;
-} catch(e) { console.error('[STATS] Error updating wins:', e); return false; }
-}
-
-async function updateLossesOnly(playerId) {
-if (!playerId) return false;
-try {
-var userData = await db('users', 'GET', null, '?select=losses&telegram_id=eq.' + playerId, true);
-var currentLosses = userData ? (userData.losses || 0) : 0;
-var success = await db('users', 'PATCH', { losses: currentLosses + 1 }, '?telegram_id=eq.' + playerId);
-if (success) { console.log('[STATS] Losses updated for', playerId, '->', currentLosses + 1); return true; }
-return false;
-} catch(e) { console.error('[STATS] Error updating losses:', e); return false; }
 }
 
 function renderAvatar(elementId, photoUrl, username) {
@@ -875,9 +881,28 @@ async function buySkin(skinId) {
 if (isSkinOwned(skinId)) return;
 var price = getSkinPrice(skinId);
 if (currentBalance < price) { playErrorSound(); alert('Недостаточно средств!'); return; }
-var success = await updateBalanceOnly(MY_ID, -price);
-if (success) { ownedSkins.push(skinId); await saveSkinsToDB(); updateBalanceDisplay(); renderSkins(); playBuySound(); }
-else { alert('Ошибка при покупке!'); }
+
+// Используем Edge Function для покупки скина
+try {
+const result = await secureAction('game-action', { 
+action: 'buy_skin', 
+skinId: skinId 
+});
+
+if (result.success) {
+ownedSkins.push(skinId);
+await saveSkinsToDB();
+currentBalance = result.balance;
+updateBalanceDisplay();
+renderSkins();
+playBuySound();
+} else {
+alert('Ошибка при покупке!');
+}
+} catch(e) {
+playErrorSound();
+alert('Ошибка: ' + e.message);
+}
 }
 
 async function equipSkin(id) { if (!isSkinOwned(id)) return; currentSkin = id; await saveSkinsToDB(); updateStats(); renderSkins(); document.getElementById('skinModal').classList.add('hidden'); enableBottomNav(); }
@@ -904,15 +929,6 @@ if (existing && existing.length > 0) await db('user_skins', 'PATCH', payload, '?
 else await db('user_skins', 'POST', [payload]);
 return true;
 } catch(e) { return false; }
-}
-
-async function canCreateRoom() {
-try {
-var myRooms = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&limit=10');
-var activeRooms = Array.isArray(myRooms) ? myRooms.filter(function(r) { return r.status !== 'finished'; }) : [];
-if (activeRooms.length >= 5) { playErrorSound(); alert('❌ У вас уже есть 5 активных комнат!'); return false; }
-return true;
-} catch(e) { return true; }
 }
 
 function openStakeModal() {
@@ -945,15 +961,23 @@ async function confirmStake() {
 if (isCreatingRoom) return;
 isCreatingRoom = true;
 try {
-var canCreate = await canCreateRoom(); if (!canCreate) { isCreatingRoom = false; return; }
 var inputVal = document.getElementById('stakeInput').value; var finalStake = selectedStake;
 if (inputVal) { var parsed = parseInt(inputVal); if (parsed < 10 || parsed > 1000 || isNaN(parsed)) { playErrorSound(); document.getElementById('stakeError').textContent = 'Введи от 10 до 1000'; isCreatingRoom = false; return; } finalStake = Math.round(parsed / 10) * 10; }
 if (currentBalance < finalStake) { playErrorSound(); document.getElementById('stakeError').textContent = 'Недостаточно средств!'; isCreatingRoom = false; return; }
 var rawPassword = document.getElementById('roomPassword').value.trim();
 if (rawPassword && !/^\d{1,4}$/.test(rawPassword)) { playErrorSound(); isCreatingRoom = false; return; }
 closeStakeModal();
-var room = await db('rooms', 'POST', [{ creator_tg_id: MY_ID, creator_username: escapeHtml(user.username || 'Anonymous'), stake: finalStake, status: 'waiting', room_password: rawPassword || null }], '', true);
-currentRoom = room;
+
+// Используем Edge Function для создания комнаты
+const result = await secureAction('game-action', { 
+action: 'create_room', 
+stake: finalStake, 
+password: rawPassword 
+});
+
+currentRoom = result.room;
+currentBalance = result.balance;
+updateBalanceDisplay();
 showGameScreen(); startPolling(); loadRooms(); startChatPolling();
 } catch(e) { playErrorSound(); alert('Ошибка: ' + e.message); } finally { isCreatingRoom = false; }
 }
@@ -964,14 +988,7 @@ try {
 var my = await db('rooms', 'GET', null, '?creator_tg_id=eq.' + MY_ID + '&status=neq.finished&order=created_at.desc&limit=10');
 var all = await db('rooms', 'GET', null, '?status=neq.finished&order=created_at.desc&limit=50');
 
-// 🔥 ОТЛАДКА
-console.log('[ROOMS] ====== DEBUG START ======');
-console.log('[ROOMS] MY_ID:', MY_ID);
-console.log('[ROOMS] My rooms:', my);
-console.log('[ROOMS] All rooms:', all);
 var filteredForDisplay = (Array.isArray(all) ? all : []).filter(function(r) { return Number(r.creator_tg_id) !== MY_ID; });
-console.log('[ROOMS] Filtered for display:', filteredForDisplay);
-console.log('[ROOMS] ====== DEBUG END ======');
 
 renderRooms('myRoomsList', Array.isArray(my) ? my : [], true);
 renderRooms('roomsList', filteredForDisplay, false);
@@ -1023,15 +1040,24 @@ showGameScreen(); startPolling(); startChatPolling();
 async function cancelRoom(roomId) {
 if (!roomId) return;
 try {
-await db('rooms', 'DELETE', null, '?id=eq.' + roomId);
+// Используем Edge Function для отмены комнаты
+await secureAction('game-action', { 
+action: 'cancel_room', 
+roomId: roomId 
+});
+
 delete window.roomExpiry[roomId];
 if (currentRoom && currentRoom.id == roomId) { currentRoom = null; clearAllIntervals(); }
+await updateBalanceDisplay();
 loadRooms();
-} catch(e) { loadRooms(); }
+} catch(e) { 
+playErrorSound();
+alert('Ошибка: ' + e.message);
+loadRooms(); 
+}
 }
 
 async function joinRoom(roomId, btnElement) {
-isJoiningRoom = false;
 if (isJoiningRoom) return;
 isJoiningRoom = true;
 if (!user || !MY_ID) { alert('⚠️ Ошибка: Вы не вошли в систему!'); if(btnElement) btnElement.disabled = false; isJoiningRoom = false; return; }
@@ -1043,20 +1069,39 @@ var room = roomData[0];
 if (String(room.creator_tg_id) === String(MY_ID)) { alert('👉 Это ваша комната'); resumeRoom(roomId); return; }
 if (room.opponent_tg_id && String(room.opponent_tg_id) === String(MY_ID)) { alert('👉 Вы уже в этой комнате'); resumeRoom(roomId); return; }
 if (room.status !== 'waiting') throw new Error('Игра уже началась или комната занята');
+
+var pwd = null;
 if (room.room_password) {
-var pwd = prompt('🔒 Введите пароль:');
-if (pwd !== room.room_password) { alert('❌ Неверный пароль'); if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } isJoiningRoom = false; return; }
+pwd = prompt('🔒 Введите пароль:');
+if (!pwd) { if(btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } isJoiningRoom = false; return; }
 }
-var patchUrl = URL + '/rest/v1/rooms?id=eq.' + roomId;
-var res = await fetch(patchUrl, {
-method: 'PATCH',
-headers: { 'apikey': ANON_KEY, 'Authorization': AUTH_TOKEN ? 'Bearer ' + AUTH_TOKEN : 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-body: JSON.stringify({ opponent_tg_id: String(MY_ID), opponent_username: escapeHtml(user.username || 'Anonymous'), status: 'playing' })
+
+// Используем Edge Function для входа в комнату
+const result = await secureAction('game-action', { 
+action: 'join_room', 
+roomId: roomId, 
+password: pwd 
 });
-if (!res.ok) { var errText = await res.text(); throw new Error('Сервер отказал (' + res.status + '): ' + errText); }
-currentRoom = { id: room.id, creator_tg_id: room.creator_tg_id, creator_username: room.creator_username, opponent_tg_id: String(MY_ID), opponent_username: user.username, status: 'playing', stake: room.stake, room_password: room.room_password };
+
+currentRoom = { 
+id: room.id, 
+creator_tg_id: room.creator_tg_id, 
+creator_username: room.creator_username, 
+opponent_tg_id: String(MY_ID), 
+opponent_username: user.username, 
+status: 'playing', 
+stake: room.stake, 
+room_password: room.room_password 
+};
+
+currentBalance = result.balance;
+updateBalanceDisplay();
 showGameScreen(); startPolling(); loadRooms(); closeRoomsScreen(); startChatPolling();
-} catch(e) { alert('❌ ' + e.message); if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } } finally { isJoiningRoom = false; }
+} catch(e) { 
+playErrorSound();
+alert('❌ ' + e.message); 
+if (btnElement) { btnElement.disabled = false; btnElement.textContent = 'Войти'; } 
+} finally { isJoiningRoom = false; }
 }
 
 function showGameScreen() {
@@ -1142,8 +1187,19 @@ trackMove(choice);
 document.querySelectorAll('.choice-btn').forEach(function(b) { b.disabled = true; });
 document.getElementById('statusMessage').textContent = '✅ Ход записан';
 try {
-await db('rooms', 'PATCH', { [col]: choice }, '?id=eq.' + currentRoom.id);
+// Используем Edge Function для совершения хода
+const result = await secureAction('game-action', { 
+action: 'make_move', 
+roomId: currentRoom.id, 
+move: choice 
+});
+
 currentRoom[col] = choice;
+
+if (result.gameResult) {
+// Игра закончилась, сервер всё посчитал
+showGameResultBasedOnServer(result.gameResult);
+}
 } catch(e) {
 playErrorSound();
 document.getElementById('statusMessage').textContent = '❌ Ошибка хода';
@@ -1151,46 +1207,91 @@ setTimeout(function() { document.querySelectorAll('.choice-btn').forEach(functio
 }
 }
 
+function showGameResultBasedOnServer(gameResult) {
+if (!gameResult || !gameResult.success) return;
+
+var myMove = currentRoom[String(currentRoom.creator_tg_id) === String(MY_ID) ? 'creator_choice' : 'opponent_choice'];
+var oppMove = currentRoom[String(currentRoom.creator_tg_id) === String(MY_ID) ? 'opponent_choice' : 'creator_choice'];
+
+var resultText = '';
+var resultClass = '';
+
+if (gameResult.result === 'draw') {
+resultText = '🤝 Ничья!';
+resultClass = 'draw';
+} else {
+var isCreator = String(currentRoom.creator_tg_id) === String(MY_ID);
+var iWon = (gameResult.result === 'creator_wins' && isCreator) || (gameResult.result === 'opponent_wins' && !isCreator);
+resultText = iWon ? '🏆 Победа!' : '😢 Поражение';
+resultClass = iWon ? 'victory' : 'defeat';
+}
+
+showRevealAnimationWithResult(myMove, oppMove, resultText, resultClass);
+}
+
 async function showRevealAnimation(room) {
 if (processedGames[room.id]) { console.log('[GAME] Already processed, skipping...'); return; }
 processedGames[room.id] = true;
 isProcessingGame = true;
+
 var overlay = document.getElementById('revealOverlay');
 try { var freshRoom = await db('rooms', 'GET', null, '?id=eq.' + room.id, true); if (freshRoom) room = freshRoom; } catch(e) {}
+
 var isCreator = String(room.creator_tg_id) === String(MY_ID);
 var myMove = isCreator ? room.creator_choice : room.opponent_choice;
 var oppMove = isCreator ? room.opponent_choice : room.creator_choice;
+
 document.getElementById('revealPlayer1Label').textContent = 'Вы';
 document.getElementById('revealPlayer2Label').textContent = 'Соперник';
 document.getElementById('card1Img').src = moveImages[myMove] || '';
 document.getElementById('card1Name').textContent = myMove === 'rock' ? 'Камень' : myMove === 'scissors' ? 'Ножницы' : 'Бумага';
 document.getElementById('card2Img').src = moveImages[oppMove] || '';
 document.getElementById('card2Name').textContent = oppMove === 'rock' ? 'Камень' : oppMove === 'scissors' ? 'Ножницы' : 'Бумага';
+
 overlay.classList.remove('hidden');
 document.getElementById('card1').classList.remove('flipped');
 document.getElementById('card2').classList.remove('flipped');
 document.getElementById('revealResult').textContent = '';
 document.getElementById('revealEmotion').classList.add('hidden');
+
 await sleep(500); document.getElementById('card1').classList.add('flipped'); playFlipCardSound();
 await sleep(1000); document.getElementById('card2').classList.add('flipped'); playFlipCardSound();
 await sleep(800);
-var result = calculateWinner(room);
-document.getElementById('revealResult').textContent = result.msg;
-document.getElementById('revealResult').className = 'reveal-result show ' + (result.msg.indexOf('Победа') !== -1 ? 'victory' : result.msg.indexOf('Ничья') !== -1 ? 'draw' : 'defeat');
-var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg');
-if (result.msg.indexOf('Победа') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; emDiv.classList.remove('hidden'); playWinSound(); }
-else if (result.msg.indexOf('Поражение') !== -1) { emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; emDiv.classList.remove('hidden'); playLoseSound(); }
-var winnerId = result.winnerId;
-var stake = room.stake || 10;
-if (winnerId && isCreator) {
-var loserId = String(winnerId) === String(room.creator_tg_id) ? room.opponent_tg_id : room.creator_tg_id;
-if (winnerId) await updateBalanceOnly(winnerId, stake);
-if (loserId) await updateBalanceOnly(loserId, -stake);
-await updateWinsOnly(winnerId);
-await updateLossesOnly(loserId);
+
+// Определяем результат на основе ходов
+var resultText = '';
+var resultClass = '';
+if (myMove === oppMove) {
+resultText = '🤝 Ничья!';
+resultClass = 'draw';
+} else {
+var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
+var iWon = beats[myMove] === oppMove;
+resultText = iWon ? '🏆 Победа!' : '😢 Поражение';
+resultClass = iWon ? 'victory' : 'defeat';
 }
+
+showRevealAnimationWithResult(myMove, oppMove, resultText, resultClass);
+}
+
+function showRevealAnimationWithResult(myMove, oppMove, resultText, resultClass) {
+document.getElementById('revealResult').textContent = resultText;
+document.getElementById('revealResult').className = 'reveal-result show ' + resultClass;
+
+var emDiv = document.getElementById('revealEmotion'); var emImg = document.getElementById('emotionImg');
+if (resultText.indexOf('Победа') !== -1) { 
+emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-happy.png'; 
+emDiv.classList.remove('hidden'); 
+playWinSound(); 
+} else if (resultText.indexOf('Поражение') !== -1) { 
+emImg.src = 'https://raw.githubusercontent.com/genext25-lang/ekhidna-bot-V2.0/refs/heads/main/echidna-sad.png'; 
+emDiv.classList.remove('hidden'); 
+playLoseSound(); 
+}
+
 updateBalanceDisplay();
 updateStats();
+
 var countdown = 3;
 var countdownEl = document.getElementById('revealCountdown');
 countdownEl.textContent = countdown;
@@ -1199,12 +1300,11 @@ countdown--;
 if (countdown > 0) countdownEl.textContent = countdown;
 else {
 clearInterval(countdownInterval);
-overlay.classList.add('hidden');
+document.getElementById('revealOverlay').classList.add('hidden');
 try {
-db('rooms', 'PATCH', { creator_choice: null, opponent_choice: null }, '?id=eq.' + room.id);
 currentRoom.creator_choice = null;
 currentRoom.opponent_choice = null;
-delete processedGames[room.id];
+delete processedGames[currentRoom.id];
 isProcessingGame = false;
 var choices = document.querySelectorAll('.choice-btn');
 choices.forEach(function(b) { b.disabled = false; });
@@ -1214,31 +1314,24 @@ document.getElementById('statusMessage').textContent = 'Выберите ход'
 }, 1000);
 }
 
-function calculateWinner(room) {
-var c1 = room.creator_choice, c2 = room.opponent_choice;
-var id1 = room.creator_tg_id, id2 = room.opponent_tg_id;
-if (!c1 || !c2) return { msg: 'Ошибка', winnerId: null };
-if (c1 === c2) return { msg: '🤝 Ничья!', winnerId: null };
-var beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
-var creatorWins = beats[c1] === c2;
-return { msg: (creatorWins ? (MY_ID == id1) : (MY_ID == id2)) ? '🏆 Победа!' : '😢 Поражение', winnerId: creatorWins ? id1 : id2 };
-}
-
-function showGameResult(room) {
-var msg = calculateWinner(room).msg;
-document.getElementById('statusMessage').innerHTML = '<div style="font-size:18px;">' + msg + '</div>';
-setTimeout(function() { showScreen('lobby'); }, 3000);
-}
-
 async function leaveRoom() {
 if (!currentRoom) return;
 if (!confirm('Вы уверены, что хотите покинуть комнату?')) return;
 try {
-await db('rooms', 'DELETE', null, '?id=eq.' + currentRoom.id);
+// Используем Edge Function для выхода из комнаты
+await secureAction('game-action', { 
+action: 'leave_room', 
+roomId: currentRoom.id 
+});
+
 currentRoom = null;
 clearAllIntervals();
+await updateBalanceDisplay();
 showScreen('lobby');
-} catch(e) { alert('Ошибка: ' + e.message); }
+} catch(e) { 
+playErrorSound();
+alert('Ошибка: ' + e.message); 
+}
 }
 
 async function sendChatMessage() {
@@ -1411,17 +1504,11 @@ async function loadDailyDataFromDB() {
 try { if (!MY_ID) return null; var result = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); if (result && result.length > 0) { var collected = result[0].collected_cards || []; if (typeof collected === 'string') { try { collected = JSON.parse(collected); } catch(e) { collected = []; } } return { streak: result[0].streak || 0, lastClaimDate: result[0].last_claim_date || null, collectedCards: collected }; } return null; } catch(e) { return null; }
 }
 
-async function saveDailyDataToDB(data) {
-try { if (!MY_ID) return; var existing = await db('daily_tasks', 'GET', null, '?player_id=eq.' + MY_ID + '&limit=1'); var payload = { player_id: MY_ID, streak: data.streak || 0, last_claim_date: data.lastClaimDate || null, collected_cards: JSON.stringify(data.collectedCards || []), updated_at: new Date().toISOString() }; if (existing && existing.length > 0) await db('daily_tasks', 'PATCH', payload, '?player_id=eq.' + MY_ID); else await db('daily_tasks', 'POST', [payload]); } catch(e) {}
-}
-
 async function getDailyData() {
 var dbData = await loadDailyDataFromDB(); if (dbData && dbData.collectedCards && dbData.collectedCards.length > 0) return dbData;
 try { var s = localStorage.getItem('echidna_daily_v6'); if (s) return JSON.parse(s); } catch(e) {}
 return { streak: 0, lastClaimDate: null, collectedCards: [] };
 }
-
-function saveDailyData(data) { try { localStorage.setItem('echidna_daily_v6', JSON.stringify(data)); } catch(e) {} saveDailyDataToDB(data); }
 
 function isSameUTCDate(dateStr1, dateStr2) {
 if (!dateStr1 || !dateStr2) return false;
@@ -1439,17 +1526,28 @@ if (data.collectedCards.indexOf(cardIndex) !== -1) return;
 if (isSameUTCDate(data.lastClaimDate, today)) { alert('Уже открывали сегодня!'); return; }
 var currentDayInCycle = data.streak % 9;
 if (currentDayInCycle !== cardIndex) { alert('Открывайте по порядку!'); return; }
-var reward = getDailyReward(cardIndex);
+
 var card = document.querySelector(`.daily-card[data-index="${cardIndex}"] .daily-card-inner`);
 if (card) { card.classList.add('flipped'); playFlipCardSound(); }
 await sleep(600);
-if (cardIndex === 8) { data.streak = 0; data.collectedCards = []; }
-else { data.streak = (data.streak + 1) % 9; }
-data.lastClaimDate = today; data.collectedCards.push(cardIndex);
-saveDailyData(data);
-var success = await updateBalanceOnly(MY_ID, reward);
-if (success) { updateBalanceDisplay(); renderDailyCards(); alert('✅ +' + reward + ' Spike!'); vibrate([50, 30, 50]); }
-else { alert('Ошибка начисления!'); }
+
+// Используем Edge Function для получения дейли-награды
+try {
+const result = await secureAction('claim-reward', { action: 'claim_daily' });
+
+if (result.success) {
+currentBalance = result.balance;
+updateBalanceDisplay();
+await renderDailyCards();
+alert('✅ +' + result.reward + ' Spike!');
+vibrate([50, 30, 50]);
+} else {
+alert('Ошибка начисления!');
+}
+} catch(e) {
+playErrorSound();
+alert('Ошибка: ' + e.message);
+}
 }
 
 async function renderDailyCards() {
@@ -1484,15 +1582,6 @@ grid.appendChild(wrapper);
 
 const ROULETTE_COOLDOWN_HOURS = 5;
 const ROULETTE_COOLDOWN_MS = ROULETTE_COOLDOWN_HOURS * 60 * 60 * 1000;
-const ROULETTE_WEIGHTS = { collector: 10, rich: 20, cool: 30, cap: 40, sneakers: 50, sporty: 60, socks: 70, default: 80 };
-const ROULETTE_REWARDS = { default: 100, socks: 200, sporty: 300, sneakers: 400, cap: 500, cool: 600, rich: 700, collector: 800 };
-
-function getWeightedRandomSkin() {
-let totalWeight = Object.values(ROULETTE_WEIGHTS).reduce((a,b) => a+b, 0);
-let random = Math.random() * totalWeight;
-for (let skinId in ROULETTE_WEIGHTS) { if (random < ROULETTE_WEIGHTS[skinId]) return skinId; random -= ROULETTE_WEIGHTS[skinId]; }
-return 'default';
-}
 
 function getRouletteState() {
 const stored = localStorage.getItem('echidna_roulette_naklz_v3');
@@ -1560,9 +1649,16 @@ if (remaining > 0) { alert('Подождите ещё ' + formatRouletteCountdow
 isRouletteSpinning = true;
 stopIdleAnimation();
 btn.disabled = true; btn.textContent = '🎰 Крутим...'; statusEl.textContent = 'Крутим...'; timerEl.textContent = '';
-const winningSkinId = getWeightedRandomSkin();
-const reward = ROULETTE_REWARDS[winningSkinId];
-const winningSkin = SKINS.find(s => s.id === winningSkinId);
+
+// Используем Edge Function для спина рулетки
+try {
+const result = await secureAction('claim-reward', { action: 'spin_roulette' });
+
+if (result.success) {
+const winningSkinId = result.winningSkinId;
+const reward = result.reward;
+const winningSkin = SKINS.find(s => s.id === winningSkinId) || SKINS[0];
+
 renderRouletteStrip(60);
 const targetIndex = 50;
 strip.innerHTML = '';
@@ -1605,12 +1701,25 @@ const inner = winningCard.querySelector('.daily-card-inner');
 if (inner) { inner.style.transform = 'rotateY(180deg)'; playFlipCardSound(); }
 }
 await sleep(2000);
-const success = await updateBalanceOnly(MY_ID, reward);
-if (success) { updateRouletteState(); updateBalanceDisplay(); vibrate([50, 30, 50]); alert('🎉 +' + reward + ' Spike!'); }
-else { alert('Ошибка начисления!'); }
+updateRouletteState();
+currentBalance = result.balance;
+updateBalanceDisplay();
+vibrate([50, 30, 50]);
+alert('🎉 +' + reward + ' Spike! Скин: ' + winningSkin.name);
 isRouletteSpinning = false;
 updateRouletteUI();
 }, 5000);
+} else {
+alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+isRouletteSpinning = false;
+updateRouletteUI();
+}
+} catch(e) {
+playErrorSound();
+alert('Ошибка: ' + e.message);
+isRouletteSpinning = false;
+updateRouletteUI();
+}
 };
 }
 
